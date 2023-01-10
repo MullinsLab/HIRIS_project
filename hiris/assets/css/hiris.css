@@ -1,0 +1,27 @@
+#mullins-internal-banner {
+  position: relative;
+  display: block !important;
+  padding: 30px 45px 30px 150px;
+  background: rgb(200, 240, 255);
+  font-size: 21px;
+  font-weight: 300;
+  line-height: 1.4;
+}
+#mullins-internal-banner .wave {
+  position: absolute;
+  display: block;
+  font-size: 72px;
+  left: 45px;
+  top: 15px;
+}
+.wave:hover {
+  animation-name: wave;
+  animation-duration: 0.2s;
+  animation-iteration-count: 2;
+  cursor: pointer;
+}
+@keyframes wave {
+  from { transform: rotate(0deg)  }
+  25%  { transform: rotate(20deg) }
+  to   { transform: rotate(0deg)  }
+}
