@@ -17,6 +17,8 @@ https://djangostars.com/blog/configuring-django-settings-best-practices/
 import os,sys
 import environ
 from pathlib import Path
+from django.conf.urls.static import static
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 
@@ -105,6 +107,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
 DATABASES = {'default': env.db('DATABASE_URL')}
 
 
@@ -144,6 +147,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'assets',
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

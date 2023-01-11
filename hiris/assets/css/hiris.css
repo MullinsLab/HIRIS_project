@@ -25,3 +25,7 @@
   25%  { transform: rotate(20deg) }
   to   { transform: rotate(0deg)  }
 }
+
+html  {
+  font-size:0.75em;
+}

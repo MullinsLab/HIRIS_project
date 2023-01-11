@@ -15,7 +15,7 @@
 -->
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html style="font-size:1em;">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -24,6 +24,11 @@
   <title>
     HIRIS: HIV-1 Reservoirs Integration Sites
   </title>
+
+  <!-- Site-specific <head> elements -->
+  <link rel="stylesheet" type="text/css" href="{% static 'css/hiris.css' }%">
+  <!--<script type="text/javascript" src="static/hiris.js"></script>-->
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
   <!-- Page-specific <head> elements -->
@@ -33,10 +38,7 @@
   </script>
   <script src="{% static 'js/vega.min.js' %}" type="text/javascript"></script>
 
-  <!-- Site-specific <head> elements -->
-  
-  <!--<link rel="stylesheet" type="text/css" href="assets/css/hiris.css">-->
-  <!--<script type="text/javascript" src="static/hiris.js"></script>-->
+ 
 
 </head>
 <body>
@@ -46,7 +48,7 @@
         <small>“high-rise”</small>    
       </h1>
     </div>
-    <div class="row">
+    <div class="row mb-5">
       <!--  navigation bar -->
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
@@ -57,21 +59,45 @@
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
               <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="#">Home</a>
+                <a class="nav-link active" aria-current="page" href="#">About</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#">Top Genes</a>
               </li>
               <li class="nav-item">
+                <a class="nav-link" href="#">Get the data</a>
+              </li>
+              <li class="nav-item">
                 <a class="nav-link" href="#">Data Sources</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="#">About</a>
+                <a class="nav-link" href="#">Documentation</a>
               </li>
               
-            <form class="d-flex">
-              <input class="form-control me-2 " type="search" placeholder="Search" aria-label="Search">
-              <button class="btn btn-outline-success" type="submit">Search</button>
+              <li class="nav-item">
+                <a class="nav-link" href="#">Register</a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Login
+                </a>
+                <ul class="dropdown-menu w-100" aria-labelledby="navbarDropdown">
+                  <li>
+                    <form class="form-horizontal" method="post" accept-charset="UTF-8">
+                      <input class="form-control p-1 input-sm login" type="text" name="username" placeholder="Username..">
+                      <input class="form-control p-1 input-sm login" type="password" name="password" placeholder="Password..">
+                      <input class="btn btn-primary" type="submit" name="submit" value="Login">
+                    </form>
+                  </li>
+
+                </ul>
+              </li>
+    
+            </ul>
+            
+            <form class="d-flex ms-auto">
+              <input class="form-control me-2 justify-content-end" type="search" placeholder="Search" aria-label="Search" role="search">
+              <button class="btn  btn-sm btn-outline-success justify-content-end" type="submit">Search</button>
             </form>
           </div>
         </div>
@@ -79,41 +105,45 @@
     </div>
 
     <!-- default -->
+    {% block page_content %}
     <div class="row">
-      {% block page_content %}content goes here{% endblock %}
-    </div>
-    
-
-    <div class="row footer">
       <div class="col col-md-8 col-sm-12">
-        <hr>
-        <div class="media">
-          <div class="media-left">
+        content goes here
+      </div>
+    </div>
+    {% endblock %}
+
+  </div>  
+  <div class="b-example-divider"></div>
+  <div class="container-fluid mt-5">
+    <hr>
+    <div class="row">
+        <div class="d-flex justify-content-center  mb-3">
+          <div class="p-2 ">
             <a href="https://mullinslab.microbiol.washington.edu">
-              <img src="assets/vendor/ml.png"
-                  alt="Mullins Lab"
-                class="media-object">
+              <img src="{% static 'images/ml.png' %}" alt="Mullins Lab"> 
             </a>
           </div>
-          <div class="media-body">
-      </div>
-      <div class="col col-md-8 col-sm-12">
-        <p>
-          Copyright © 2015–2023
-          <a href="https://washington.edu">University of Washington</a>.
-          Previously published datasets are copyright their respective authors
-          and used in accordance with their licenses.
-        </p>
-        <p>
-          This work was supported by the <a href="https://www.nih.gov">National Institutes of Health</a>
-          [R01AI111806, R21AI22361].
-        </p>
-        <p>
-          Built with <a href="https://mullinslab.microbiol.washington.edu/isdb/">ISDB</a>,
-          a project of the <a href="https://mullinslab.microbiol.washington.edu">Mullins Molecular Retrovirology Lab</a>
-          at the <a href="https://washington.edu">University of Washington</a>.
-        </p>
-      </div>
+          <div class="p-2">
+            <p>
+              Copyright © 2015–2023
+              <a href="https://washington.edu">University of Washington</a>.
+              Previously published datasets are copyright their respective authors
+              and used in accordance with their licenses.
+            </p>
+            <p>
+              This work was supported by the <a href="https://www.nih.gov">National Institutes of Health</a>
+              [R01AI111806, R21AI22361].
+            </p>
+            <p>
+              Built with <a href="https://mullinslab.microbiol.washington.edu/isdb/">ISDB</a>,
+              a project of the <a href="https://mullinslab.microbiol.washington.edu">Mullins Molecular Retrovirology Lab</a>
+              at the <a href="https://washington.edu">University of Washington</a>.
+            </p>
+          </div>
+          
+        </div>
+        
     </div>
   </div>
 </body>
