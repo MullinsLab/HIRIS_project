@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     # tools
     'django_extensions',
     'hiris.apps.about',
+    'hiris.apps.api',
 ]
 
 MIDDLEWARE = [

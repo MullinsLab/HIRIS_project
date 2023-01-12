@@ -1,4 +1,8 @@
+# minimal requirements file
 Django==4.1.5
 django-environ==0.9.0
 django-extensions==3.2.1
 psycopg2==2.9.5
+pandas==1.5.2
+# install jupyterlab if you want to test django code in a notebook environment
+jupyterlab==3.5.2
