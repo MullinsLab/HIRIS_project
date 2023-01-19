@@ -3,7 +3,7 @@ HIV-1 Reservoirs Integration Sites
 
 ---
 
-###Instalation
+### Instalation
 
 Clone GitHub repository
 Copy .env.TEMPLATE to .env
