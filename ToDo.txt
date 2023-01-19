@@ -11,3 +11,5 @@ ToDo:
 
 Questions:
     Is there value in versioning the data instead of freezing?  How often is data updated in a project?
+    Are there reasons to freeze a data set other than when it gets reorientated to a different version of the Human Genome?
+    

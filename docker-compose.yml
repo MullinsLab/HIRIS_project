@@ -1,0 +1,38 @@
+version: '0.0'
+services:
+
+  db:
+    image: postgres:15.1-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment: 
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_USER: hiris
+      
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hiris"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  hiris:
+    image: mullinslab/hiris
+    build: .
+    command: python /hiris/manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/hiris
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_NAME=hiris
+      - POSTGRES_USER=hiris
+      - POSTGRES_PASSWORD=mypassword
+    depends_on:
+      - db
+    env_file:
+      - .env
+
+volumes:
+  db-data:
