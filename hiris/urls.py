@@ -20,6 +20,6 @@ from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('hiris.apps.about.urls', namespace='about')),
+    path('', include('hiris.apps.core.urls', namespace='about')),
     
 ]

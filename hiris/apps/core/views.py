@@ -1,4 +1,3 @@
-# Create your views here.
 from django.views.generic.base import View
 from django.shortcuts import render
 

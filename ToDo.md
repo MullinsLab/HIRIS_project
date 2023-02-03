@@ -13,6 +13,21 @@ Add freeze table
 Work out what's stored in the JSON fields
     Pull data out of JSON fields?
 Set up tests
+
+DB Updates
+Store DNA fragments 
+provirus
+LTR sites
+Where in genome it is
+orientation in genome
+
+Has multiple sites
+Number of possible sites
+Actual possible sites
+
+Host genome names
+
+
 ```
 
 # Notes on DB Reorg:
@@ -41,6 +56,23 @@ Moved NCGI_Gene to Gene.  If the genes are from a different organism it may not 
         Example: If the gene is from NCGI, the External_Gene_ID_Name would be NCGI_Gene_ID and any export of the data would have the column labeled that.
 Linked Genome to Gene table
 Added Dates to Genomes, Sources, Data Sets.  This may never be needed, but it's cheap and it gives some history to the data, if it's ever needed.
+
+Round 3
+Added a Gene_Types table
+Removed duplicate Environment field from Integrations
+Renamed Integration_Data_Sets to Data_Set_Versions
+    Added Data_Set_Version_Name 
+    Fixed duplicate Data_Set_ID by changing one to Integration_ID which it should have been
+Changed LTR in Integrations to have values of 5p or 3p instead of json.
+Added Environments table
+
+Round 4
+Added Genome_Hosts table
+Added Sequences table
+Added Environments table
+Add Integration_Locations table
+Changed Integration_Data_Sets to Integration_Data_Set_Versions
+Add Data_Set_Versions
 
 # Questions:
 

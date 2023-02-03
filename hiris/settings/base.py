@@ -23,9 +23,10 @@ from django.conf.urls.static import static
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+#BASE_DIR = Path(__file__).resolve().parent.parent.parent
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
 
-print(BASE_DIR, PROJECT_DIR)
+# print(BASE_DIR, PROJECT_DIR)
 
 env = environ.Env(
     # set casting, default value
@@ -64,8 +65,9 @@ INSTALLED_APPS = [
 
     # tools
     'django_extensions',
-    'hiris.apps.about',
-    'hiris.apps.api',
+
+    # HIRIS apps
+    'hiris.apps.core',
 ]
 
 MIDDLEWARE = [
