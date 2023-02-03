@@ -20,7 +20,7 @@ services:
   hiris:
     container_name: HIRIS
     build: .
-    command: python /hiris/manage.py runserver 0.0.0.0:8000
+    command: python /hiris/manage.py runserver 8001
     volumes:
       - .:/hiris
     ports:
