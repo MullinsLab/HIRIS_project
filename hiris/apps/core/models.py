@@ -17,20 +17,20 @@ class CoreBaseModel(models.Model):
     def name(self) -> str:
         ''' Returns the specific class name field as name 
         uses explicit name_field if it exists, otherwise defaults to the class name + "_name" '''
-        if hasattr(self, 'name_field') and self.name_field:
-            return eval("self." + self.name_field) # pragma: no cover
+        if hasattr(self, 'name_field') and self.name_field:         # type: ignore
+            return eval("self." + self.name_field)                  # type: ignore
         else:
             name_list = re.sub( r"([A-Z])", r" \1", self.__class__.__name__).split()
             name = '_'.join(name_list)
 
-            return eval("self." + name.lower() + "_name") # pragma: no cover
+            return eval("self." + name.lower() + "_name")
 
     def __str__(self) ->str:
         ''' Generic stringify function.  Most objects will have a name so it's the default. '''
-        return self.name # pragma: no cover
+        return self.name                                            # pragma: no cover
 
 
-class GenomeHosts(CoreBaseModel):
+class GenomeHost(CoreBaseModel):
     ''' Holds genome hosts.  Initially should contain: Homo Sapiens'''
     genome_host_id = models.BigAutoField(primary_key=True)
     genome_host_name = models.CharField(max_length=255)
@@ -40,12 +40,12 @@ class GenomeHosts(CoreBaseModel):
 
 
 class Genome(CoreBaseModel):
-    ''' Hold eenome top level data '''
+    ''' Holds Genome top level data '''
     genome_id = models.BigAutoField(primary_key=True)
     genome_name = models.CharField(max_length=255)
     # The name of the external_gene_id field in the outside source.  For example, a gene from NCBi would have an external_gene_id_name of 'NCBI_Gene_ID'
     external_gene_id_name = models.CharField(max_length=255, null=True, blank=True)
-    genome_host = models.ForeignKey(GenomeHosts, on_delete=models.CASCADE)
+    genome_host = models.ForeignKey(GenomeHost, on_delete=models.CASCADE)
 
     class Meta:
         db_table = "genome"
