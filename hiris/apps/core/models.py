@@ -18,7 +18,7 @@ class CoreBaseModel(models.Model):
         ''' Returns the specific class name field as name 
         uses explicit name_field if it exists, otherwise defaults to the class name + "_name" '''
         if hasattr(self, 'name_field') and self.name_field:         # type: ignore
-            return eval("self." + self.name_field)                  # type: ignore
+            return eval("self." + self.name_field)                  # type: ignore # pragma: no cover
         else:
             name_list = re.sub( r"([A-Z])", r" \1", self.__class__.__name__).split()
             name = '_'.join(name_list)
@@ -27,8 +27,7 @@ class CoreBaseModel(models.Model):
 
     def __str__(self) ->str:
         ''' Generic stringify function.  Most objects will have a name so it's the default. '''
-        return self.name                                            # pragma: no cover
-
+        return self.name
 
 class GenomeHost(CoreBaseModel):
     ''' Holds genome hosts.  Initially should contain: Homo Sapiens'''
@@ -48,7 +47,7 @@ class Genome(CoreBaseModel):
     genome_host = models.ForeignKey(GenomeHost, on_delete=models.CASCADE)
 
     class Meta:
-        db_table = "genome"
+        db_table = "genomes"
 
 
 class GeneType(CoreBaseModel):
@@ -58,28 +57,35 @@ class GeneType(CoreBaseModel):
     gene_type_name = models.CharField(max_length=255)
 
     class Meta:
-        db_table = "gene_type"
+        db_table = "gene_types"
 
 
-class Gene(models.Model):
+class Gene(CoreBaseModel):
     ''' Holds gene data except for locations '''
     gene_id = models.BigAutoField(primary_key=True)
     genome = models.ForeignKey(Genome, on_delete=models.CASCADE)
-    genome_name = models.CharField(max_length=255)
+    gene_name = models.CharField(max_length=255)
     external_gene_id = models.IntegerField(null=True, blank=True)
     gene_type = models.ForeignKey(GeneType, on_delete=models.CASCADE)
 
     class Meta:
-        db_table = "gene"
+        db_table = "genes"
 
 class GeneLocation(CoreBaseModel):
     ''' Holds gene location data'''
     gene_location_id = models.BigAutoField(primary_key=True)
     gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
-    landmark = models.CharField(max_length=255)
-    gene_start = models.IntegerField
-    gene_end = models.IntegerField
-    gene_orientation = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')))
+    landmark = models.CharField(null=False, max_length=255)
+    gene_start = models.IntegerField(null=False)
+    gene_end = models.IntegerField(null=False)
+    gene_orientation = models.CharField(null=False, max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')))
+
+    @property
+    def name(self) -> str:
+        ''' Set the name for a GeneLocation to be Gene: Landmark '''
+        return f'{self.gene.name}: {self.landmark}'
 
     class Meta:
-        db_table = "gene_location"
+        db_table = "gene_locations"
+        unique_together = ('gene', 'landmark')
+

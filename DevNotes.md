@@ -27,6 +27,8 @@ Actual possible sites
 
 Host genome names
 
+Best Practices Suggestions
+https://www.toptal.com/django/django-top-10-mistakes
 
 ```
 
