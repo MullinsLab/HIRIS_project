@@ -22,11 +22,12 @@ from django.conf.urls.static import static
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-#BASE_DIR = Path(__file__).resolve().parent.parent.parent
-PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
+# BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
+PROJECT_DIR = Path(__file__).resolve().parent.parent
 
-# print(BASE_DIR, PROJECT_DIR)
+#print(BASE_DIR, PROJECT_DIR)
 
 env = environ.Env(
     # set casting, default value
@@ -50,9 +51,8 @@ SECRET_KEY = env('SECRET_KEY')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
-ALLOWED_HOSTS = []
-
-
+ALLOWED_HOSTS = env('DJANGO_ALLOWED_HOSTS').split(" ")
+# ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
@@ -85,7 +85,7 @@ ROOT_URLCONF = 'hiris.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [ os.path.join(BASE_DIR, 'templates'), ],
+        'DIRS': [ os.path.join(BASE_DIR, 'hiris/templates'), ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -100,18 +100,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'hiris.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-
-#DATABASES = {
-#    'default': {
-#        'ENGINE': 'django.db.backends.sqlite3',
-#        'NAME': BASE_DIR / 'db.sqlite3',
-#    }
-#}
-
-#DATABASES = {'default': env.db('DATABASE_URL')}
 
 DATABASES = {
     'default': {
@@ -161,7 +149,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
-    BASE_DIR / 'assets',
+    BASE_DIR / 'hiris/assets',
 ]
 
 # Default primary key field type
