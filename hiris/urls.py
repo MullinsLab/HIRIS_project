@@ -21,5 +21,7 @@ from django.views.generic import RedirectView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('hiris.apps.core.urls', namespace='about')),
-    
+
+    # For UW_SAML
+    # url(r'^saml/', include('uw_saml.urls')),
 ]
