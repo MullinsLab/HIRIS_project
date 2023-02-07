@@ -3,34 +3,36 @@ services:
 
   db:
     image: postgres:15.1-alpine
-    ports:
-      - 15432:15432
+
+   # ports:
+   #   - '127.0.0.1:${POSTGRES_PORT}:5432'
+
     volumes:
       - hiris-db-data:/var/lib/postgresql/data
-    environment: 
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_USER: hiris
-      
+
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hiris"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+    env_file:
+      - .env
+
   hiris:
     container_name: HIRIS
     build: .
-    command: python /hiris/manage.py runserver 8001
+    command: python /hiris/manage.py runserver 0.0.0.0:${WEB_PORT}
+
     volumes:
       - .:/hiris
+
     ports:
-      - "8001:8001"
-    environment:
-      - POSTGRES_NAME=hiris
-      - POSTGRES_USER=hiris
-      - POSTGRES_PASSWORD=mypassword
+      - '127.0.0.1:${WEB_PORT}:${WEB_PORT}'
+
     depends_on:
       - db
+
     env_file:
       - .env
 

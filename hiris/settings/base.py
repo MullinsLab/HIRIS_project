@@ -55,6 +55,7 @@ SECRET_KEY = env('SECRET_KEY')
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 ALLOWED_HOSTS = env('DJANGO_ALLOWED_HOSTS').split(" ")
+
 # ALLOWED_HOSTS = []
 # Application definition
 
@@ -72,10 +73,12 @@ INSTALLED_APPS = [
 
     # HIRIS apps
     'hiris.apps.core',
+    'hiris.apps.import',
 ]
 
 AUTHENTICATION_BACKENDS = [
     # For UW_SAML
+    'django.contrib.auth.backends.ModelBackend',
     'django.contrib.auth.backends.RemoteUserBackend',
 ]
 
@@ -115,10 +118,17 @@ WSGI_APPLICATION = 'hiris.wsgi.application'
 
 DATABASES = {
     'default': {
+        # 'ENGINE': 'django.db.backends.postgresql',
+        # 'NAME': os.environ.get('POSTGRES_NAME'),
+        # 'USER': os.environ.get('POSTGRES_USER'),
+        # 'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        # 'HOST': 'db',
+        # 'PORT': 5432,
+
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_NAME'),
-        'USER': os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'NAME': env('POSTGRES_NAME'),
+        'USER': env('POSTGRES_USER'),
+        'PASSWORD': env('POSTGRES_PASSWORD'),
         'HOST': 'db',
         'PORT': 5432,
     }
@@ -148,7 +158,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
+ 
 TIME_ZONE = 'UTC'
 
 USE_I18N = True
