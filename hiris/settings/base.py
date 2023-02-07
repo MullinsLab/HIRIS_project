@@ -68,7 +68,7 @@ INSTALLED_APPS = [
 
     # tools
     'django_extensions',
-    # 'uw_saml'
+    'uw_saml',
 
     # HIRIS apps
     'hiris.apps.core',

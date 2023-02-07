@@ -23,5 +23,6 @@ urlpatterns = [
     path('', include('hiris.apps.core.urls', namespace='about')),
 
     # For UW_SAML
-    # url(r'^saml/', include('uw_saml.urls')),
+    #path('saml/', include('uw_saml.urls')),
+    re_path(r'^saml/', include('uw_saml.urls')),
 ]
