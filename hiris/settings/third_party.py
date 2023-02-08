@@ -1,14 +1,43 @@
-# Copyright 2023 V. de Jager
-# 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-# 
-#     http://www.apache.org/licenses/LICENSE-2.0
-# 
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# For UW_SAML
+from django.urls import reverse_lazy
 
+# For UW_SAML
+LOGIN_URL = reverse_lazy('saml_login')
+
+UW_SAML = {
+    'strict': False,
+    'debug': True,
+    'sp': {
+        'entityId': 'https://example.uw.edu/saml2',
+        'assertionConsumerService': {
+            'url': 'https://example.uw.edu/saml/sso',
+            'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
+        },
+        'singleLogoutService': {
+            'url': 'https://example.uw.edu/saml/logout',
+            'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
+        },
+        'NameIDFormat': 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified',
+        'x509cert': '',
+        # for encrypted saml assertions uncomment and add the private key
+        # 'privateKey': '',
+    },
+    'idp': {
+        'entityId': 'urn:mace:incommon:washington.edu',
+        'singleSignOnService': {
+            'url': 'https://idp.u.washington.edu/idp/profile/SAML2/Redirect/SSO',
+            'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
+        },
+        'singleLogoutService': {
+            'url': 'https://idp.u.washington.edu/idp/logout',
+            'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
+        },
+        'x509cert': '',
+    },
+    'security': {
+        # for encrypted saml assertions
+        # 'wantAssertionsEncrypted': True,
+        # for 2FA uncomment this line
+        # 'requestedAuthnContext':  ['urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken']
+    }
+}
