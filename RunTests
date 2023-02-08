@@ -1,3 +1,3 @@
 #!/bin/bash
-coverage run --source='.' manage.py test hiris.apps.core
+coverage run --source='.' manage.py test
 coverage html >/dev/null

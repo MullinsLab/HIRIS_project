@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     # HIRIS apps
     'hiris.apps.core',
     'hiris.apps.import',
+    'hiris.apps.export',
 ]
 
 AUTHENTICATION_BACKENDS = [
