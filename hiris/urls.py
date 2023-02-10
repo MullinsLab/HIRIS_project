@@ -20,9 +20,11 @@ from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('hiris.apps.core.urls', namespace='about')),
+    path('', include('hiris.apps.core.urls')),  # namespace='about')),
 
     # For UW_SAML
-    #path('saml/', include('uw_saml.urls')),
     re_path(r'^saml/', include('uw_saml.urls')),
+
+    # For debug_toolbar
+    path('__debug__/', include('debug_toolbar.urls')),
 ]

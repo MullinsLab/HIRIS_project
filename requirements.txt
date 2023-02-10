@@ -13,5 +13,6 @@ UW-Django-SAML2
 # install jupyterlab if you want to test django code in a notebook environment
 # jupyterlab==3.5.2
 
-# testing stuff
+# testing stuff & devel stuff
 coverage
+django-debug-toolbar

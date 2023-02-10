@@ -1,5 +1,11 @@
+import os
+from .base import env
+
 # For UW_SAML
 from django.urls import reverse_lazy
+
+
+# print(f"Mock Username: {env('MOCK_USERNAME')}")
 
 # For UW_SAML
 LOGIN_URL = reverse_lazy('saml_login')
@@ -41,3 +47,25 @@ UW_SAML = {
         # 'requestedAuthnContext':  ['urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken']
     }
 }
+
+# Mock login for testing
+# DJANGO_LOGIN_MOCK_SAML = {
+#     'NAME_ID': 'mock-nameid',
+#     'SESSION_INDEX': 'mock-session',
+#     'SAML_USERS': [
+#         {
+#             "username": env('MOCK_USERNAME'),
+#             "password": 'saml',
+#             "email": 'saml@darleyconsulting.com',
+#             "MOCK_ATTRIBUTES" : {
+#                 'uwnetid': ['saml@uw.edu'],
+#                 'affiliations': ['student', 'member'],
+#                 'eppn': ['javerage@washington.edu'],
+#                 'scopedAffiliations': ['student@washington.edu', 'member@washington.edu'],
+#                 'isMemberOf': [
+#                     'u_test_group', 'u_test_another_group'
+#                 ],
+#             }
+#         }
+#     ]
+# }
