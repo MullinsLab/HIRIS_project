@@ -2,19 +2,17 @@ import os #,sys
 import environ
 from pathlib import Path
 from django.conf.urls.static import static
+import logging
+import logging.config
+from django.utils.log import DEFAULT_LOGGING
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 
-env = environ.Env(
-    # set casting, default value
-    DEBUG=(bool, False)
-)
-
-# environ.Env.read_env()  # reading .env file
 # Take environment variables from .env file
+env = environ.Env(DEBUG=(bool, False))
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -152,3 +150,91 @@ if DEBUG and env('DEBUG_TOOLBAR'):
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS = [ip[: ip.rfind(".")] + ".1" for ip in ips] + ["127.0.0.1", "10.0.2.2"]
     RESULT_CACHE=100
+
+
+# logging - Imported directly from viroverse_project.  Should go through and confirm what it does at some point
+# Disable Django's logging setup
+
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+if not os.path.exists(LOG_DIR):
+    os.mkdir(LOG_DIR)
+
+LOGLEVEL = os.environ.get('LOGLEVEL', 'info').upper()
+
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+        'django.server': DEFAULT_LOGGING['formatters']['django.server'],
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {
+        # default logs to stderr and rotating logs
+        # console for warnings
+        'console': {
+            'level': 'INFO',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+
+        'default': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_DIR,'hiris.log'),
+            'maxBytes': 1024*1024*5, # 5 MB
+            'backupCount': 5,
+            'formatter':'verbose',
+        },
+
+        'request_handler': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename':  os.path.join(LOG_DIR,'hiris_django_request.log'),
+            'maxBytes': 1024*1024*5, # 5 MB
+            'backupCount': 5,
+            'formatter':'verbose',
+        },
+
+        'django.server': DEFAULT_LOGGING['handlers']['django.server'],
+    },
+    
+    'loggers': {
+
+        # default for all undefined Python modules
+        'default': {
+            'level': 'WARNING',
+            'handlers': ['console', 'default'],
+        },
+
+        # Our application code
+        'app': {
+            'level': LOGLEVEL,
+            'handlers': ['console', 'default'],
+            # Avoid double logging because of root logger
+            'propagate': False,
+        },
+
+        # Default runserver request logging
+        'django.server': DEFAULT_LOGGING['loggers']['django.server'],
+
+        #  Logging SQL for DEBUG Begin
+        'django.db.backends': {
+             'level': 'DEBUG',
+             'handlers': ['console'],
+         }
+    
+    },
+})
