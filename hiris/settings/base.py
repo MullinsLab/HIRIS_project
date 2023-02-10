@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     # tools
     'django_extensions',
     'uw_saml',
+    'rest_framework',
 
     # HIRIS apps
     'hiris.apps.core',
@@ -150,6 +151,24 @@ if DEBUG and env('DEBUG_TOOLBAR'):
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS = [ip[: ip.rfind(".")] + ".1" for ip in ips] + ["127.0.0.1", "10.0.2.2"]
     RESULT_CACHE=100
+
+
+# django restframework
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ),
+    'DEFAULT_FILTER_BACKENDS': (
+        ['django_filters.rest_framework.DjangoFilterBackend',]
+
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework_datatables.pagination.DatatablesPageNumberPagination',
+    'PAGE_SIZE': 1000,
+     'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ]
+}
 
 
 # logging - Imported directly from viroverse_project.  Should go through and confirm what it does at some point

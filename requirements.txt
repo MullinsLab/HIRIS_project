@@ -16,3 +16,8 @@ UW-Django-SAML2
 # testing stuff & devel stuff
 coverage
 django-debug-toolbar
+
+# REST stuff
+djangorestframework
+markdown
+django-filter
