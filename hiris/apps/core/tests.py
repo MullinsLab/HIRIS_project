@@ -9,7 +9,6 @@ class ModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         ''' Set up all the test data for ModelTests '''
-        
         cls.my_genome_host = GenomeHost.objects.create(genome_host_name='My Genome Host')
         cls.my_genome = Genome.objects.create(genome_name='My Genome', genome_host=cls.my_genome_host)
         cls.my_gene_type = GeneType.objects.create(gene_type_name='My Gene Type')
@@ -17,15 +16,21 @@ class ModelTests(TestCase):
         cls.my_gene_location = GeneLocation(gene=cls.my_gene, landmark='chr1', gene_start=1231, gene_end=234234, gene_orientation='F')
 
 
-    def test_core_base_class_works_correctly(self):
+    def test_core_base_class_should_return_names_that_match_objects_name_attribute(self):
         ''' The core_base_class should have a working name property and __str__ function.  Testing with a various objects '''
-
         self.assertEqual(self.my_genome_host.name, 'My Genome Host')
         self.assertEqual(str(self.my_genome), 'My Genome')
+
+
+    def test_core_base_class_should_return_correct_str_for_objects_with_no_name_attribute(self):
+        ''' When an object doesn't have an ClassName_name attribute but is declaring it's own name @property '''
         self.assertEqual(str(self.my_gene_location), 'My Gene: chr1')
+
 
 class ViewTests(TestCase):
     ''' Class to hold all the test for views '''
-    def test_entry_page_returns_something(self):
+    def test_core_entry_page_should_use_template_about_html(self):
+        ''' Just make sure we're getting a success status code and hitting the correct template '''
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'about.htmls')
