@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse  
 
-from .models import Genome, GenomeHost, GeneLocation, GeneType, Gene
+from hiris.apps.core.models import Genome, GenomeHost, GeneLocation, GeneType, Gene
 
 class ModelTests(TestCase):
     ''' Tests that just test model structure and functions '''
@@ -33,4 +33,4 @@ class ViewTests(TestCase):
         ''' Just make sure we're getting a success status code and hitting the correct template '''
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'about.htmls')
+        self.assertTemplateUsed(response, 'about.html')
