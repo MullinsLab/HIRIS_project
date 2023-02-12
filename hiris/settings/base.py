@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'django_extensions',
     'uw_saml',
     'rest_framework',
+    'crispy_forms',
+    'crispy_bootstrap5',
 
     # HIRIS apps
     'hiris.apps.core',
@@ -259,3 +261,7 @@ logging.config.dictConfig({
 
 # logger = logging.getLogger('app')
 # logger.info('Testing!')
+
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
