@@ -48,8 +48,8 @@ INSTALLED_APPS = [
 
     # HIRIS apps
     'hiris.apps.core',
-    'hiris.apps.import',
-    'hiris.apps.export',
+    'hiris.apps.import_wizard',
+    'hiris.apps.export_wizard',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -171,9 +171,7 @@ REST_FRAMEWORK = {
 }
 
 
-# logging - Imported directly from viroverse_project.  Should go through and confirm what it does at some point
-# Disable Django's logging setup
-
+# Set up Logging
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 if not os.path.exists(LOG_DIR):
     os.mkdir(LOG_DIR)
@@ -185,7 +183,8 @@ logging.config.dictConfig({
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': '{levelname} [{asctime}] Module:{module} Function:{funcName} Line:{lineno} {message}',
+            'datefmt' : '%Y-%m-%d %H:%M:%S',
             'style': '{',
         },
         'simple': {
@@ -257,3 +256,6 @@ logging.config.dictConfig({
     
     },
 })
+
+# logger = logging.getLogger('app')
+# logger.info('Testing!')

@@ -20,8 +20,10 @@ from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('hiris.apps.core.urls.api_urls', namespace='api')),
+    
     path('', include('hiris.apps.core.urls.tool_urls', namespace='core')),
+    path('api/', include('hiris.apps.core.urls.api_urls', namespace='api')),
+    path('import/', include('hiris.apps.import_wizard.urls', namespace='import')),
 
     # For UW_SAML
     re_path(r'^saml/', include('uw_saml.urls')),
