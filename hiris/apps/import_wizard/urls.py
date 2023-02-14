@@ -1,11 +1,10 @@
 from django.contrib.auth.decorators import login_required
 from django.urls import path, include
 
-from hiris.apps.import_wizard import views
+from hiris.apps.import_wizard.views import ImportManager
 
-# determine appname
-app_name='hiris.apps.core'
+app_name='hiris.apps.import_wizard'
 
 urlpatterns = [
-     path('', views.StartImport.as_view(), name='about'),
+    path('', ImportManager.as_view(), name='import'),
 ]

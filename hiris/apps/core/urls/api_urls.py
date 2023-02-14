@@ -8,7 +8,7 @@ router = routers.DefaultRouter()
 router.register(r'genome_hosts', views.GenomeHosts)
 
 # determine appname
-app_name='viroverse.apps.core'
+app_name='hiris.apps.core'
 
 urlpatterns = [
      path('', include(router.urls)),

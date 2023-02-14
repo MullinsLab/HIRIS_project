@@ -1,0 +1,13 @@
+{% extends "base.django-html" %}
+
+{% block page_content %}
+So, it looks like you're wanting to import something?
+<br><br>
+What are you wanting to import:
+<ul>
+{% for importer in importers %}
+<li>{{ importer.name }}{% if importer.description %}: {{ importer.description }}{% endif %}</li>
+{% endfor %}
+</ul>
+
+{% endblock %}

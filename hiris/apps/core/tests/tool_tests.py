@@ -33,4 +33,4 @@ class ViewTests(TestCase):
         ''' Just make sure we're getting a success status code and hitting the correct template '''
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'about.html')
+        self.assertTemplateUsed(response, 'about.django-html')
