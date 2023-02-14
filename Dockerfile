@@ -8,4 +8,4 @@ RUN apt-get -y install libxml2-dev libxmlsec1-dev libxmlsec1-openssl
 COPY requirements.txt /hiris/
 RUN pip install -r requirements.txt
 COPY . /hiris/
-expose ${WEB_PORT}
+expose 8000
