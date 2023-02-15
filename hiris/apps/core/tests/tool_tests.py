@@ -27,8 +27,8 @@ class ModelTests(TestCase):
         self.assertEqual(str(self.my_gene_location), 'My Gene: chr1')
 
 
-class ViewTests(TestCase):
-    ''' Class to hold all the test for views '''
+class TemplateAndViewTests(TestCase):
+    ''' Class to hold all the test for templates and views '''
     def test_core_entry_page_should_use_template_about_html(self):
         ''' Just make sure we're getting a success status code and hitting the correct template '''
         response = self.client.get("/")

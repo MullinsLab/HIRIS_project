@@ -8,9 +8,11 @@ class ImportBaseModel(models.Model):
     
     def __str__(self) ->str:
         ''' Generic stringify function.  Most objects will have a name so it's the default. '''
-        return self.name                    # type: ignore
+        return self.name                    # type: ignore   # pragma: no cover
 
 
 class ImportScheme(ImportBaseModel):
     '''  Import scheme holds all required information to import a file '''
     name = models.CharField(max_length=255, null=False, blank=False)
+    hash = models.CharField(max_length=32, null=False, blank=False)
+    

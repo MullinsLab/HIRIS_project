@@ -1,0 +1,6 @@
+{% extends "base.django-html" %}
+
+{% block page_content %}
+Creating a new import, eh?
+
+{% endblock %}

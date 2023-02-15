@@ -6,7 +6,7 @@ So, it looks like you're wanting to import something?
 What are you wanting to import:
 <ul>
 {% for importer in importers %}
-<li>{{ importer.name }}{% if importer.description %}: {{ importer.description }}{% endif %}</li>
+<li><a href='new/{{ importer.slug }}''>{{ importer.name }}</a>{% if importer.description %}: {{ importer.description }}{% endif %}</li>
 {% endfor %}
 </ul>
 
