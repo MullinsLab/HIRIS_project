@@ -73,17 +73,18 @@ UW_SAML = {
 
 
 IMPORT_WIZARD = {
-    'Importers': [
-        {
+    'Importers': {
+        'Genome': {
             'name': 'Genome',
             'description': 'Import an entire genome',
             'app': 'hiris.apps.core',
             'meta_models': [],
+            'data_models': [],
         },
-        {
+        'Integrations':{
             'name': 'Integrations',
             'long_name': 'A list of integrations into a genome',
             # 'description': 'A test description of an Integration.',
         },
-    ]
+    }
 }

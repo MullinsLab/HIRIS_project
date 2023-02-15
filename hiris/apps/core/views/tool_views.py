@@ -5,6 +5,7 @@ from django.views.generic.base import View
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 
+
 class Home(View):
     ''' The default view for HIRIS Home.  Currently shows the About page '''
     def get(self, request, *args, **kwargs):

@@ -26,6 +26,7 @@ services:
 
     volumes:
       - .:/hiris
+      - hiris-file-storage:/hiris-files
 
     ports:
       - '127.0.0.1:${WEB_PORT}:8000'
@@ -38,3 +39,4 @@ services:
 
 volumes:
   hiris-db-data:
+  hiris-file-storage:

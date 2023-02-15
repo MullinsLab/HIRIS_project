@@ -8,7 +8,7 @@ router = routers.DefaultRouter()
 router.register(r'genome_hosts', views.GenomeHosts)
 
 # determine appname
-app_name='hiris.apps.core'
+app_name='API'
 
 urlpatterns = [
      path('', include(router.urls)),
