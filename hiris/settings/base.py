@@ -185,7 +185,8 @@ logging.config.dictConfig({
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} [{asctime}] Module:{module} Function:{funcName} Line:{lineno} {message}',
+            # 'format': '{levelname} [{asctime}] Module:{module} Function:{funcName} Line:{lineno} {message}',
+            'format': '{levelname} [{asctime}] {pathname}:{lineno} {message}',
             'datefmt' : '%Y-%m-%d %H:%M:%S',
             'style': '{',
         },
@@ -243,8 +244,8 @@ logging.config.dictConfig({
         'app': {
             'level': LOGLEVEL,
             'handlers': ['console', 'default'],
-            # Avoid double logging because of root logger
-            'propagate': False,
+            # Avoid double logging because of root logger - Except I want it to propagate so it reaches the Debug Toolbar
+            # 'propagate': False,
         },
 
         # Default runserver request logging
