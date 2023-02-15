@@ -7,5 +7,5 @@ from hiris.apps.core import views
 app_name='hiris.apps.core'
 
 urlpatterns = [
-     path('', views.About.as_view(), name='about'),
+     path('', views.Home.as_view(), name='about'),
 ]
