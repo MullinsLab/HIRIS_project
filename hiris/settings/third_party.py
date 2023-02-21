@@ -78,8 +78,7 @@ IMPORT_WIZARD = {
             'name': 'Genome',
             'description': 'Import an entire genome',
             'app': 'hiris.apps.core',
-            'meta_models': [],
-            'data_models': [],
+            'models': ['test'],
         },
         'Integrations':{
             'name': 'Integrations',

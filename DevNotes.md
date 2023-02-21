@@ -76,6 +76,25 @@ Add Integration_Locations table
 Changed Integration_Data_Sets to Integration_Data_Set_Versions
 Add Data_Set_Versions
 
+Round 5
+Linked Integrations to Data_Sets via Data_Set_ID
+Added Subjects table
+Changed Integration_Sample relationship to Integrations to 1-many instead of 1-1, compressing Integration Sample table
+Moved Integration_Sample to Sample
+    Integration_Sample_id becomes Sample_ID
+    Added foreign key Subject_ID to Subject table
+    Removed Pubmed_ID
+Added Preperations table
+Moved Sequence information into Integrations
+Removed Integration_Sequences table
+Added Blast_Info table
+    Added Blast_Score
+Removed Integration_Info table
+    Moved blast stuff to Blast_Info table
+    Moved Sequence and Replicates stuff to Integrations
+Rarranged the chart so higher level tables are generally to the left
+Updated Data Description document
+
 # Questions:
 
 Are there times that a HIRIS data set would be frozen other than to align it with a different version of the Human Genome? 

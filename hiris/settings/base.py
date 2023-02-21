@@ -30,6 +30,9 @@ SECRET_KEY = env('SECRET_KEY')
 
 ALLOWED_HOSTS = env('DJANGO_ALLOWED_HOSTS').split(" ")
 
+# Specify location of working files
+WORKING_FILES_DIR = os.path.join('/', env('WORKING_FILES_DIR'), '')
+
 # ALLOWED_HOSTS = []
 # Application definition
 
@@ -62,6 +65,7 @@ AUTHENTICATION_BACKENDS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -139,6 +143,8 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     PROJECT_DIR / 'assets/',
 ]
+# STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# STATIC_ROOT = os.path.join(BASE_DIR,"assets")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -220,6 +226,15 @@ logging.config.dictConfig({
             'formatter':'verbose',
         },
 
+        'test': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_DIR,'test.log'),
+            'maxBytes': 1024*1024*5, # 5 MB
+            'backupCount': 5,
+            'formatter':'verbose',
+        },
+
         'request_handler': {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
@@ -240,10 +255,18 @@ logging.config.dictConfig({
             'handlers': ['console', 'default'],
         },
 
-        # Our application code
+        # Logging for our apps
         'app': {
             'level': LOGLEVEL,
             'handlers': ['console', 'default'],
+            # Avoid double logging because of root logger - Except I want it to propagate so it reaches the Debug Toolbar
+            # 'propagate': False,
+        },
+
+        # Logging for tests
+        'test': {
+            'level': LOGLEVEL,
+            'handlers': ['console', 'test'],
             # Avoid double logging because of root logger - Except I want it to propagate so it reaches the Debug Toolbar
             # 'propagate': False,
         },
