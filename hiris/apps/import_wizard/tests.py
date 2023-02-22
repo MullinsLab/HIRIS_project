@@ -58,7 +58,7 @@ class ModelTests(TestCase):
             name = 'Test Importer', 
             user = User.objects.first(), 
             importer = 'Genome',
-            status = 'New',
+            status = 0,
         )
         my_import_scheme.save()
         log.debug(f'ImporteScheme: Importer {my_import_scheme.importer} has hash {my_import_scheme.importer_hash}.')

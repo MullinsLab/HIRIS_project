@@ -20,11 +20,16 @@ class ImportBaseModel(models.Model):
 class ImportScheme(ImportBaseModel):
     '''  Import scheme holds all required information to import a specific file format. FIELDS:(name, importer, user) '''
 
+    STATUSES: list[tuple] = [
+        (0, 'New'),
+        (1, 'File Received'),
+    ]
+
     name = models.CharField(max_length=255, null=False, blank=False)
     importer = models.CharField(max_length=255, null=False, blank=False)
     importer_hash = models.CharField(max_length=32)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    status = models.CharField(max_length=255)
+    status = models.IntegerField(choices=STATUSES)
 
     def save(self, *args, **kwargs):
         ''' Override Save to store the importer_hash.  This is used to know if the Importer definition has changed, invalidating this importer  '''
