@@ -1,5 +1,14 @@
 from django import forms
-# from crispy_forms.helper import FormHelper
+from crispy_forms.helper import FormHelper
+from .models import ImportScheme
+
+
+class NewImportScheme(forms.ModelForm):
+    ''' Start a new import scheme '''
+    class Meta:
+        model = ImportScheme
+        fields = ['name', 'description']
+
 
 class UploadFileForImport(forms.Form):
     ''' Get a file to start importing from '''
@@ -16,3 +25,4 @@ class UploadFileForImport(forms.Form):
     #     # self.helper.form_action = 'submit_survey'
 
     #     self.helper.add_input(Submit('submit', 'Submit'))
+
