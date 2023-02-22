@@ -4,7 +4,7 @@ log = logging.getLogger('app')
 from django.conf import settings
 from django.views.generic.base import View
 from django.shortcuts import render
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -39,36 +39,36 @@ class NewImport(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         ''' Build a new Import '''
         
-        form = UploadFileForImport()
-        importer = kwargs['importer_slug']
+        importer: str = kwargs['importer_slug']
 
         return render(request, "new_import.django-html", {'form': UploadFileForImport(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
     
     def post(self, request, *args, **kwargs):
         ''' Get the file for a new import '''
 
-        form = UploadFileForImport(request.POST, request.FILES)
-        importer = kwargs['importer_slug']
-        file = request.FILES['file']
+        form: form = UploadFileForImport(request.POST, request.FILES)
+        importer: str = kwargs['importer_slug']
+        file: file = request.FILES['file']
 
         log.debug(f'Getting file: {file.name}')
 
         if form.is_valid():
-            new_import_scheme = ImportScheme(name=file.name, importer=importer, user=request.user)
-            new_import_scheme.save()
-            log.debug(f'Stored ImportScheme with PKey of {new_import_scheme.id}')
+            import_scheme: ImportScheme = ImportScheme(name=file.name, importer=importer, user=request.user)
+            import_scheme.save()
+            log.debug(f'Stored ImportScheme with PKey of {import_scheme.id}')
 
-            new_import_file = ImportFile(name=file.name, import_scheme=new_import_scheme)
-            new_import_file.save()
-            log.debug(f'Stored ImportFile with PKey of {new_import_file.id}')
+            import_file: ImportFile = ImportFile(name=file.name, import_scheme=import_scheme)
+            import_file.save()
+            log.debug(f'Stored ImportFile with PKey of {import_file.id}')
 
-            # Save the file named from the file_name of the ImportFile
-            log.debug(f'Getting ready to store file at: {settings.WORKING_FILES_DIR}{new_import_file.file_name}')
-            with open(settings.WORKING_FILES_DIR + new_import_file.file_name, 'wb+') as destination:
+            request.session['current_import_id'] = import_scheme.id
+
+            log.debug(f'Getting ready to store file at: {settings.WORKING_FILES_DIR}{import_file.file_name}')
+            with open(settings.WORKING_FILES_DIR + import_file.file_name, 'wb+') as destination:
                 for chunk in file.chunks():
                     destination.write(chunk)
 
-            return HttpResponseRedirect(reverse('Import_Wizard:do_import'))
+            return JsonResponse({'data':'Data uploaded'})
 
         else:
             # Needs to have a better error
@@ -81,4 +81,6 @@ class DoImport(View):
     def get(self, request, *args, **kwargs):
         ''' Dothe actual import stuff '''
         
-        return render(request, 'do_import.django-html')
+        import_scheme: ImportScheme = ImportScheme.objects.get(pk=request.session['current_import_id'])
+        
+        return render(request, 'do_import.django-html', {'importer': import_scheme.importer})
