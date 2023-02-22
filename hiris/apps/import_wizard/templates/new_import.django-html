@@ -4,6 +4,7 @@
 
 {% block header_content %}
 <link rel="stylesheet" type="text/css" href="{% static 'css/import_wizard.css' %}">
+<script src="{% static 'js/import_wizard.js' %}"></script>
 {% endblock %}
 
 {% block page_content %}
@@ -18,55 +19,23 @@ Creating a new {{ importer }} import, eh?  Let's get started by uploading a data
 </div>
 
 <script>
-    const uploadForm = document.getElementById('upload_form');
+    $( document ).ready( prep_upload_progress_bar(
+        'upload_form',
+        'id_file',
+        'progress',
+        '{{ request.path }}',
+        '{% url 'Import_Wizard:do_import' %}',
+    ) );
+
+    {% comment %} function prep_upload_progress_bar(form_name, file_input_name, progress_bar_name, post_url, redirect_url)
+
+
+    const form_name = 'upload_form'
+    const uploadForm = document.getElementById(form_name);
     const input_file = document.getElementById('id_file');
     const progress_bar = document.getElementById('progress');
-    
-    $("#upload_form").submit(function(e){
-        // console.log('testing');
-        e.preventDefault();
-        var formData = new FormData(this);
-        const media_data = input_file.files[0];
-        if(media_data != null){
-            // console.log(media_data);
-            progress_bar.classList.remove("not-visible");
-        }
-
-        $.ajax({
-            type: 'POST',
-            url:'{{ request.path }}',
-            data: formData,
-            dataType: 'json',
-            beforeSend: function(){
-            },
-            xhr:function(){
-                const xhr = new window.XMLHttpRequest();
-                xhr.upload.addEventListener('progress', e=>{
-                    if(e.lengthComputable){
-                        const percentProgress = (e.loaded/e.total)*100;
-                        // console.log(percentProgress);
-                        progress_bar.innerHTML = `<div class="progress-bar progress-bar-striped bg-success" 
-                role="progressbar" style="width: ${percentProgress}%" aria-valuenow="${percentProgress}" aria-valuemin="0" 
-                aria-valuemax="100"></div>`
-                    }
-                });
-                return xhr
-            },
-            success: function(response){
-                // console.log(response);
-                // uploadForm.reset()
-                // progress_bar.classList.add('not-visible')
-                window.location = "{% url 'Import_Wizard:do_import' %}"
-            },
-            error: function(err){
-                console.log(err);
-            },
-            cache: false,
-            contentType: false,
-            processData: false,
-        });
-    });
-
+    const post_url = '{{ request.path }}';
+    const redirect_url = '{% url 'Import_Wizard:do_import' %}'; {% endcomment %}
 </script>
 
 {% endblock %}
