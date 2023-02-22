@@ -8,4 +8,4 @@ RUN apt-get -y install libxml2-dev libxmlsec1-dev libxmlsec1-openssl
 COPY requirements.txt /hiris/
 RUN pip install -r requirements.txt
 COPY . /hiris/
-expose 8000
+EXPOSE 8000
