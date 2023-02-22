@@ -73,6 +73,7 @@ UW_SAML = {
 
 
 IMPORT_WIZARD = {
+    'Logger': 'app',
     'Importers': {
         'Genome': {
             'name': 'Genome',

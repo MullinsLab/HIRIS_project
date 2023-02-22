@@ -1,5 +1,4 @@
-function prep_upload_progress_bar(form_name, file_input_name, progress_bar_name, post_url, redirect_url){
-    const upload_form = document.getElementById(form_name);
+function prep_upload_progress_bar(form_name, file_input_name, progress_bar_name, post_url){
     const input_file = document.getElementById(file_input_name);
     const progress_bar = document.getElementById(progress_bar_name);
     console.log('started script');
@@ -35,7 +34,7 @@ function prep_upload_progress_bar(form_name, file_input_name, progress_bar_name,
                 return xhr
             },
             success: function(response){
-                window.location = redirect_url;
+                window.location = response.redirect_url;
             },
             error: function(err){
                 console.log(err);

@@ -24,18 +24,8 @@ Creating a new {{ importer }} import, eh?  Let's get started by uploading a data
         'id_file',
         'progress',
         '{{ request.path }}',
-        '{% url 'Import_Wizard:do_import' %}',
     ) );
 
-    {% comment %} function prep_upload_progress_bar(form_name, file_input_name, progress_bar_name, post_url, redirect_url)
-
-
-    const form_name = 'upload_form'
-    const uploadForm = document.getElementById(form_name);
-    const input_file = document.getElementById('id_file');
-    const progress_bar = document.getElementById('progress');
-    const post_url = '{{ request.path }}';
-    const redirect_url = '{% url 'Import_Wizard:do_import' %}'; {% endcomment %}
 </script>
 
 {% endblock %}

@@ -1,12 +1,12 @@
-import logging
-log = logging.getLogger('app')
-
 from django.conf import settings
 from django.views.generic.base import View
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
+
+import logging
+log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
 
 from .forms import UploadFileForImport
 from .models import ImportScheme, ImportFile
@@ -18,6 +18,7 @@ class ManageImports(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         ''' Handle a get request.  Returns a starting import page. '''
         importers: list[dict] = []
+        user_import_schemes: list[dict] = []
 
         # Bring in the importers from settings
         for importer, importer_dict in settings.IMPORT_WIZARD['Importers'].items():
@@ -30,7 +31,18 @@ class ManageImports(LoginRequiredMixin, View):
 
             importers.append(importer_item)
 
-        return render(request, "import_manager.django-html", {'importers': importers})
+        # Show Import Schemes that this user owns
+        for import_scheme in ImportScheme.objects.filter(user_id=request.user.id):
+            user_import_scheme_item: dict = {
+                'name': import_scheme.name,
+                'id': import_scheme.id,
+                'importer': import_scheme.importer,
+                'description': import_scheme.description,
+            }
+
+            user_import_schemes.append(user_import_scheme_item)
+
+        return render(request, "import_manager.django-html", {'importers': importers, 'user_import_schemes': user_import_schemes})
 
 
 class NewImport(LoginRequiredMixin, View):
@@ -61,26 +73,43 @@ class NewImport(LoginRequiredMixin, View):
             import_file.save()
             log.debug(f'Stored ImportFile with PKey of {import_file.id}')
 
-            request.session['current_import_id'] = import_scheme.id
+            request.session['current_import_scheme_id'] = import_scheme.id
 
             log.debug(f'Getting ready to store file at: {settings.WORKING_FILES_DIR}{import_file.file_name}')
             with open(settings.WORKING_FILES_DIR + import_file.file_name, 'wb+') as destination:
                 for chunk in file.chunks():
                     destination.write(chunk)
 
-            return JsonResponse({'data':'Data uploaded'})
+            log.debug('Reverse URL after file save: ' + reverse('Import_Wizard:do_import_with_id', kwargs={'import_scheme_id': import_scheme.id}))
+            
+            return JsonResponse({
+                # 'data':'Data uploaded',
+                'redirect_url': reverse('Import_Wizard:do_import_with_id', kwargs={'import_scheme_id': import_scheme.id})
+            })
 
         else:
             # Needs to have a better error
-            return HttpResponseRedirect(reverse('Import_Wizard:do_import'))
+            return HttpResponseRedirect(reverse('Import_Wizard:import'))
 
 
 class DoImport(View):
     ''' Do the actual import stuff '''
-    
+
     def get(self, request, *args, **kwargs):
-        ''' Dothe actual import stuff '''
+        ''' Do the actual import stuff '''
+        import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
+        log.debug(f'This is my import_scheme_id:{import_scheme_id}')
+
+        # Return the user to the /import page if they don't have a valid import_scheme_id to work on
+        if import_scheme_id is None:
+            log.debug('Got bad import_scheme_id')
+            return HttpResponseRedirect(reverse('Import_Wizard:import'))
+
+        try:
+            import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
+        except ImportScheme.DoesNotExist:
+            # Return the user to the /import page if they don't have a valid import_scheme to work on
+            return HttpResponseRedirect(reverse('Import_Wizard:import'))
         
-        import_scheme: ImportScheme = ImportScheme.objects.get(pk=request.session['current_import_id'])
-        
+        request.session['current_import_scheme_id'] = import_scheme_id
         return render(request, 'do_import.django-html', {'importer': import_scheme.importer})

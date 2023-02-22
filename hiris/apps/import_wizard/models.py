@@ -26,10 +26,12 @@ class ImportScheme(ImportBaseModel):
     ]
 
     name = models.CharField(max_length=255, null=False, blank=False)
+    description = models.TextField(null=True, blank=True)
     importer = models.CharField(max_length=255, null=False, blank=False)
     importer_hash = models.CharField(max_length=32)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    status = models.IntegerField(choices=STATUSES)
+    status = models.IntegerField(choices=STATUSES, default=0)
+    public = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         ''' Override Save to store the importer_hash.  This is used to know if the Importer definition has changed, invalidating this importer  '''
