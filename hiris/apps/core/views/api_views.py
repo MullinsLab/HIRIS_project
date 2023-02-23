@@ -1,9 +1,9 @@
 from rest_framework import viewsets
 from rest_framework import generics
 
-from hiris.apps.core.models import GenomeHost
-from hiris.apps.core.serializers import GenomeHostSerializer
+from hiris.apps.core.models import GenomeSpecies
+from hiris.apps.core.serializers import GenomeSpeciesSerializer
 
-class GenomeHosts(viewsets.ModelViewSet):
-    queryset = GenomeHost.objects.all()
-    serializer_class = GenomeHostSerializer
+class GenomeSpecies(viewsets.ModelViewSet):
+    queryset = GenomeSpecies.objects.all()
+    serializer_class = GenomeSpeciesSerializer

@@ -29,13 +29,13 @@ class CoreBaseModel(models.Model):
         ''' Generic stringify function.  Most objects will have a name so it's the default. '''
         return self.name
 
-class GenomeHost(CoreBaseModel):
+class GenomeSpecies(CoreBaseModel):
     ''' Holds genome hosts.  Initially should contain: Homo Sapiens'''
-    genome_host_id = models.BigAutoField(primary_key=True)
-    genome_host_name = models.CharField(max_length=255)
+    genome_species_id = models.BigAutoField(primary_key=True)
+    genome_species_name = models.CharField(max_length=255)
     
     class Meta:
-        db_table = "genome_hosts"
+        db_table = "genome_species"
 
 
 class Genome(CoreBaseModel):
@@ -44,7 +44,7 @@ class Genome(CoreBaseModel):
     genome_name = models.CharField(max_length=255)
     # The name of the external_gene_id field in the outside source.  For example, a gene from NCBi would have an external_gene_id_name of 'NCBI_Gene_ID'
     external_gene_id_name = models.CharField(max_length=255, null=True, blank=True)
-    genome_host = models.ForeignKey(GenomeHost, on_delete=models.CASCADE)
+    genome_species = models.ForeignKey(GenomeSpecies, on_delete=models.CASCADE)
 
     class Meta:
         db_table = "genomes"

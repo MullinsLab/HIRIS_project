@@ -1,9 +1,9 @@
 from rest_framework import serializers
 
-from hiris.apps.core.models import GenomeHost
+from hiris.apps.core.models import GenomeSpecies
 
-class GenomeHostSerializer(serializers.HyperlinkedModelSerializer):
-    ''' Serializer for GenomeHosts '''
+class GenomeSpeciesSerializer(serializers.HyperlinkedModelSerializer):
+    ''' Serializer for GenomeSpecies '''
     class Meta:
-        model = GenomeHost
+        model = GenomeSpecies
         fields = '__all__'
