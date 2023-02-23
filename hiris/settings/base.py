@@ -12,12 +12,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 
 # Take environment variables from .env file
-env = environ.Env(DEBUG=(bool, False))
+env = environ.Env(DEBUG=(int, 0))
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # False if not in os.environ because of casting above
-DEBUG = env('DEBUG')
+DEBUG = int(env("DEBUG", default=0))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # Raises Django's ImproperlyConfigured
@@ -152,7 +152,7 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # adding django debug toolbar
-if DEBUG and env('DEBUG_TOOLBAR'):
+if DEBUG and int(env('DEBUG_TOOLBAR')):
     import socket  # only if you haven't already imported this
     MIDDLEWARE.insert(0,'debug_toolbar.middleware.DebugToolbarMiddleware')
     INSTALLED_APPS += 'debug_toolbar',
