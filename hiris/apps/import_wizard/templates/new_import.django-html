@@ -8,24 +8,9 @@
 {% endblock %}
 
 {% block page_content %}
+<div class='border border-2 border-primary rounded-3 bg-light container'>
 Creating a new {{ importer }} import:<br><br>
-<form action="" method="post" enctype="multipart/form-data" id="upload_form">
-    {% csrf_token %}
-    {{ form|crispy }}
-    <input type="submit" value="Submit" class="btn btn-primary">
-</form>
 
-<div class="container not-visible progress" id="progress">
+{% crispy form %}
 </div>
-
-<script>
-    $( document ).ready( prep_upload_progress_bar(
-        'upload_form',
-        'id_file',
-        'progress',
-        '{{ request.path }}',
-    ) );
-
-</script>
-
 {% endblock %}

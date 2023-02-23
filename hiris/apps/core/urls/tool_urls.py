@@ -4,7 +4,7 @@ from django.urls import path, include
 from hiris.apps.core import views
 
 # determine appname
-app_name='Tools'
+app_name='tools'
 
 urlpatterns = [
      path('', views.Home.as_view(), name='about'),

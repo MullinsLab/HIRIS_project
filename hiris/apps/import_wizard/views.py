@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 import logging
 log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
 
-from .forms import UploadFileForImport, NewImportScheme
+from .forms import UploadFileForImportForm, NewImportSchemeForm
 from .models import ImportScheme, ImportFile
 
 
@@ -45,7 +45,7 @@ class ManageImports(LoginRequiredMixin, View):
         return render(request, "import_manager.django-html", {'importers': importers, 'user_import_schemes': user_import_schemes})
 
 
-class NewImport(LoginRequiredMixin, View):
+class NewImportScheme(LoginRequiredMixin, View):
     ''' View for creating a new import '''
 
     def get(self, request, *args, **kwargs):
@@ -53,22 +53,23 @@ class NewImport(LoginRequiredMixin, View):
         
         importer: str = kwargs['importer_slug']
 
-        return render(request, "new_import.django-html", {'form': NewImportScheme(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
+        return render(request, "new_import.django-html", {'form': NewImportSchemeForm(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
     
     
 class FileUpload(LoginRequiredMixin, View):
     ''' Receive an uploaded file '''
+
     def get(self, request, *args, **kwargs):
         ''' Build a new Import '''
         
         importer: str = kwargs['importer_slug']
 
-        return render(request, "new_import.django-html", {'form': UploadFileForImport(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
+        return render(request, "new_import.django-html", {'form': UploadFileForImportForm(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
 
     def post(self, request, *args, **kwargs):
         ''' Get the file for a new import '''
 
-        form: form = UploadFileForImport(request.POST, request.FILES)
+        form: form = UploadFileForImportForm(request.POST, request.FILES)
         importer: str = kwargs['importer_slug']
         file: file = request.FILES['file']
 
@@ -90,18 +91,16 @@ class FileUpload(LoginRequiredMixin, View):
                 for chunk in file.chunks():
                     destination.write(chunk)
 
-            log.debug('Reverse URL after file save: ' + reverse('Import_Wizard:do_import', kwargs={'import_scheme_id': import_scheme.id}))
+            log.debug('Reverse URL after file save: ' + reverse('import_wizard:do_import', kwargs={'import_scheme_id': import_scheme.id}))
             
             return JsonResponse({
                 # 'data':'Data uploaded',
-                'redirect_url': reverse('Import_Wizard:do_import', kwargs={'import_scheme_id': import_scheme.id})
+                'redirect_url': reverse('import_wizard:do_import', kwargs={'import_scheme_id': import_scheme.id})
             })
 
         else:
             # Needs to have a better error
-            return HttpResponseRedirect(reverse('Import_Wizard:import'))
-
-
+            return HttpResponseRedirect(reverse('import_wizard:import'))
 
 
 class DoImport(View):
@@ -115,13 +114,13 @@ class DoImport(View):
         # Return the user to the /import page if they don't have a valid import_scheme_id to work on
         if import_scheme_id is None:
             log.debug('Got bad import_scheme_id')
-            return HttpResponseRedirect(reverse('Import_Wizard:import'))
+            return HttpResponseRedirect(reverse('import_wizard:import'))
 
         try:
             import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
         except ImportScheme.DoesNotExist:
             # Return the user to the /import page if they don't have a valid import_scheme to work on
-            return HttpResponseRedirect(reverse('Import_Wizard:import'))
+            return HttpResponseRedirect(reverse('import_wizard:import'))
         
         request.session['current_import_scheme_id'] = import_scheme_id
         return render(request, 'do_import.django-html', {'importer': import_scheme.importer})

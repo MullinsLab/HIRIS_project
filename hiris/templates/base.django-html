@@ -42,14 +42,19 @@
             <span class="navbar-toggler-icon"></span>
           </button>
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <ul class="navbar-nav navbar-expand-lg me-auto mb-2 mb-lg-0">
               <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="#">About</a>
+                {% url 'tools:about' as about_url %}
+                <a class="nav-link {% if request.get_full_path == about_url %}active{% endif %}" aria-current="page" href="{{about_url}}">About</a>
+              </li>
+              <li>
+                {% url 'import_wizard:import' as import_url %}
+                <a class="nav-link {% if import_url in request.get_full_path %}active{% endif %}" href="{{import_url}}"> Import</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#">Top Genes</a>
               </li>
-              <li class="nav-item">
+              {% comment %} <li class="nav-item">
                 <a class="nav-link" href="#">Get the data</a>
               </li>
               <li class="nav-item">
@@ -57,7 +62,7 @@
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="#">Documentation</a>
-              </li>
+              </li> {% endcomment %}
             </ul>
 
             <div class="d-flex ms-auto">

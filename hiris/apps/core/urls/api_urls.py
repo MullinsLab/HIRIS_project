@@ -8,7 +8,7 @@ router = routers.DefaultRouter()
 router.register(r'genome_hosts', views.GenomeHosts)
 
 # determine appname
-app_name='API'
+app_name='api'
 
 urlpatterns = [
      path('', include(router.urls)),
