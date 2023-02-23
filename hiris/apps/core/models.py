@@ -41,11 +41,13 @@ class GenomeSpecies(CoreBaseModel):
 class Genome(CoreBaseModel):
     ''' Holds Genome top level data '''
     genome_id = models.BigAutoField(primary_key=True)
-    genome_name = models.CharField(max_length=255)
+    genome_version_name = models.CharField(max_length=255)
     # The name of the external_gene_id field in the outside source.  For example, a gene from NCBi would have an external_gene_id_name of 'NCBI_Gene_ID'
-    external_gene_id_name = models.CharField(max_length=255, null=True, blank=True)
+    external_gene_id_source = models.CharField(max_length=255, null=True, blank=True)
     genome_species = models.ForeignKey(GenomeSpecies, on_delete=models.CASCADE)
 
+    name_field = 'genome_version_name'
+    
     class Meta:
         db_table = "genomes"
 
@@ -75,10 +77,11 @@ class GeneLocation(CoreBaseModel):
     ''' Holds gene location data'''
     gene_location_id = models.BigAutoField(primary_key=True)
     gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
-    landmark = models.CharField(null=False, max_length=255)
+    chromosome = models.CharField(max_length=255, null=True)
+    landmark = models.CharField(max_length=255, null=True)
     gene_start = models.IntegerField(null=False)
     gene_end = models.IntegerField(null=False)
-    gene_orientation = models.CharField(null=False, max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')))
+    gene_orientation = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=False)
 
     @property
     def name(self) -> str:

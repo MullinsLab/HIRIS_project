@@ -10,7 +10,7 @@ class ModelTests(TestCase):
     def setUpTestData(cls):
         ''' Set up all the test data for ModelTests '''
         cls.my_genome_species = GenomeSpecies.objects.create(genome_species_name='My Genome Species')
-        cls.my_genome = Genome.objects.create(genome_name='My Genome', genome_species=cls.my_genome_species)
+        cls.my_genome = Genome.objects.create(genome_version_name='My Genome', genome_species=cls.my_genome_species)
         cls.my_gene_type = GeneType.objects.create(gene_type_name='My Gene Type')
         cls.my_gene = Gene.objects.create(gene_name='My Gene', genome=cls.my_genome, gene_type=cls.my_gene_type)
         cls.my_gene_location = GeneLocation(gene=cls.my_gene, landmark='chr1', gene_start=1231, gene_end=234234, gene_orientation='F')
