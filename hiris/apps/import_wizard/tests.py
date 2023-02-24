@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 
 from .models import ImportScheme, ImportFile
-from .tools import dict_hash
+from .tools import dict_hash, sound_user_name
 
 
 class InclusionTest(TestCase):
@@ -45,7 +45,7 @@ class TemplateAndViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'import_manager.django-html')
         self.assertContains(response, 'Genome')
-        self.assertContains(response, 'integrations')
+        self.assertContains(response, 'integration')
 
 
 class ModelTests(TestCase):
@@ -71,8 +71,8 @@ class ModelTests(TestCase):
         self.assertEquals('00000001', my_import_file.file_name)
 
 
-class ThirdPartyTest(TestCase):
-    ''' Tests for third party '''
+class ToolsTest(TestCase):
+    ''' Tests for tools '''
 
     def test_dict_hash_returns_correct_hash(self):
         ''' Ensure that the hash for our dictionary is consistant and correct, as well as different from other hashes '''
@@ -85,3 +85,17 @@ class ThirdPartyTest(TestCase):
         self.assertEqual(dict_hash(dict1), dict_hash(dict2))
         self.assertEqual(dict_hash(dict1), dict_hash(dict1))
         self.assertNotEqual(dict_hash(dict1), dict_hash(dict3))
+
+
+    def test_sound_user_name_returns_correct_value(self):
+        '''  Ensure that the return value for sound_user_name is correct'''
+
+        user1 = User(username='username')
+        user2 = User(username='username', first_name='first_name')
+        user3 = User(username='username', last_name='last_name')
+        user4 = User(username='username', first_name='first_name', last_name='last_name')
+
+        self.assertEqual(sound_user_name(user1), 'username')
+        self.assertEqual(sound_user_name(user2), 'first_name')
+        self.assertEqual(sound_user_name(user3), 'last_name')
+        self.assertEqual(sound_user_name(user4), 'first_name last_name')

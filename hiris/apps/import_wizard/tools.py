@@ -1,3 +1,5 @@
+from django.contrib.auth.models import User
+
 from typing import Dict, Any
 import hashlib
 import json
@@ -11,3 +13,11 @@ def dict_hash(dictionary: Dict[str, Any]) -> str:
     encoded = json.dumps(dictionary, sort_keys=True).encode()
     dhash.update(encoded)
     return dhash.hexdigest()
+
+
+def sound_user_name(user: User) -> str:
+    ''' Get a sound name for the user.  First match of "first_name last_name", "first_name", "last_name", "username"'''
+    if user.first_name and user.last_name:
+       return f'{user.first_name} {user.last_name}'
+    
+    return user.first_name or user.last_name or user.username

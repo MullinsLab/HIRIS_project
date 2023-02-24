@@ -1,6 +1,6 @@
 import os
 from .base import env
-# from hiris.apps.core.models import GenomeHost
+# from hiris.apps.core.models import GenomeSpecies
 
 # For UW_SAML
 from django.urls import reverse_lazy
@@ -82,8 +82,8 @@ IMPORT_WIZARD = {
             'models': ['test'],
         },
         'Integrations':{
-            'name': 'Integrations',
-            'long_name': 'A list of integrations into a genome',
+            'name': 'Integration Sites',
+            'long_name': 'A list of integration sites in a genome',
             # 'description': 'A test description of an Integration.',
         },
     }

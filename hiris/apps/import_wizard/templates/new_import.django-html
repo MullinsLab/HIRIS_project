@@ -9,7 +9,7 @@
 
 {% block page_content %}
 <div class='border border-2 border-primary rounded-3 bg-light container'>
-Creating a new {{ importer }} import:<br><br>
+Let's get you started with a new {{ importer }} Import:<br><br>
 
 {% crispy form %}
 </div>

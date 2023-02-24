@@ -10,7 +10,7 @@ log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
 
 from .forms import UploadFileForImportForm, NewImportSchemeForm
 from .models import ImportScheme, ImportFile
-
+from .tools import sound_user_name
 
 class ManageImports(LoginRequiredMixin, View):
     ''' The starting place for importing.  Show information on imports, started imports, new import, etc. '''
@@ -52,55 +52,72 @@ class NewImportScheme(LoginRequiredMixin, View):
         ''' Build a new Import '''
         
         importer: str = kwargs['importer_slug']
+        importer_name: str = settings.IMPORT_WIZARD['Importers'][importer]['name']
 
-        return render(request, "new_import.django-html", {'form': NewImportSchemeForm(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
+        return render(request, "new_import.django-html", {
+            'form': NewImportSchemeForm(importer_slug=importer, initial={'name': f"{sound_user_name(request.user)}'s {importer_name} import"}), 
+            'importer': importer_name
+        })
     
-    
-class FileUpload(LoginRequiredMixin, View):
-    ''' Receive an uploaded file '''
-
-    def get(self, request, *args, **kwargs):
-        ''' Build a new Import '''
-        
-        importer: str = kwargs['importer_slug']
-
-        return render(request, "new_import.django-html", {'form': UploadFileForImportForm(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
-
     def post(self, request, *args, **kwargs):
-        ''' Get the file for a new import '''
+        ''' Save the new import '''
 
-        form: form = UploadFileForImportForm(request.POST, request.FILES)
+        form: form = NewImportSchemeForm(request.POST)
         importer: str = kwargs['importer_slug']
-        file: file = request.FILES['file']
-
-        log.debug(f'Getting file: {file.name}')
 
         if form.is_valid():
-            import_scheme = ImportScheme(name=file.name, importer=importer, user=request.user)
+            import_scheme = ImportScheme(name=form.cleaned_data['name'], description=form.cleaned_data['description'], importer=importer, user=request.user)
             import_scheme.save()
             log.debug(f'Stored ImportScheme with PKey of {import_scheme.id}')
 
-            import_file = ImportFile(name=file.name, import_scheme=import_scheme)
-            import_file.save()
-            log.debug(f'Stored ImportFile with PKey of {import_file.id}')
-
             request.session['current_import_scheme_id'] = import_scheme.id
 
-            log.debug(f'Getting ready to store file at: {settings.WORKING_FILES_DIR}{import_file.file_name}')
-            with open(settings.WORKING_FILES_DIR + import_file.file_name, 'wb+') as destination:
-                for chunk in file.chunks():
-                    destination.write(chunk)
-
-            log.debug('Reverse URL after file save: ' + reverse('import_wizard:do_import', kwargs={'import_scheme_id': import_scheme.id}))
-            
-            return JsonResponse({
-                # 'data':'Data uploaded',
-                'redirect_url': reverse('import_wizard:do_import', kwargs={'import_scheme_id': import_scheme.id})
-            })
-
+            return HttpResponseRedirect(reverse('import_wizard:do_import', kwargs={'import_scheme_id': import_scheme.id}))
+        
         else:
             # Needs to have a better error
             return HttpResponseRedirect(reverse('import_wizard:import'))
+            
+    
+    
+# class FileUpload(LoginRequiredMixin, View):
+#     ''' Receive an uploaded file '''
+
+#     def get(self, request, *args, **kwargs):
+#         ''' Build a new Import '''
+        
+#         importer: str = kwargs['importer_slug']
+
+#         return render(request, "new_import.django-html", {'form': UploadFileForImportForm(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
+
+#     def post(self, request, *args, **kwargs):
+#         ''' Get the file for a new import '''
+
+#         form: form = UploadFileForImportForm(request.POST, request.FILES)
+#         importer: str = kwargs['importer_slug']
+#         file: file = request.FILES['file']
+
+#         log.debug(f'Getting file: {file.name}')
+
+#         if form.is_valid():
+#             import_file = ImportFile(name=file.name, import_scheme=import_scheme)
+#             import_file.save()
+#             log.debug(f'Stored ImportFile with PKey of {import_file.id}')
+
+#             log.debug(f'Getting ready to store file at: {settings.WORKING_FILES_DIR}{import_file.file_name}')
+#             with open(settings.WORKING_FILES_DIR + import_file.file_name, 'wb+') as destination:
+#                 for chunk in file.chunks():
+#                     destination.write(chunk)
+
+#             log.debug('Reverse URL after file save: ' + reverse('import_wizard:do_import', kwargs={'import_scheme_id': import_scheme.id}))
+            
+#             return JsonResponse({
+#                 'redirect_url': reverse('import_wizard:do_import', kwargs={'import_scheme_id': import_scheme.id})
+#             })
+
+#         else:
+#             # Needs to have a better error
+#             return HttpResponseRedirect(reverse('import_wizard:import'))
 
 
 class DoImport(View):

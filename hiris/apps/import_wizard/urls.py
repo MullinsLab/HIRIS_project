@@ -7,6 +7,6 @@ app_name='import_wizard'
 
 urlpatterns = [
     path('', ManageImports.as_view(), name='import'),
-    path('<slug:importer_slug>', NewImportScheme.as_view(), name='new_import'),
     path('<int:import_scheme_id>', DoImport.as_view(), name='do_import'),
+    path('<slug:importer_slug>', NewImportScheme.as_view(), name='new_import'),
 ]
