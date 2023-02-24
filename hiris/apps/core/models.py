@@ -32,31 +32,31 @@ class CoreBaseModel(models.Model):
 class GenomeSpecies(CoreBaseModel):
     ''' Holds genome hosts.  Initially should contain: Homo Sapiens'''
     genome_species_id = models.BigAutoField(primary_key=True)
-    genome_species_name = models.CharField(max_length=255)
+    genome_species_name = models.CharField(max_length=255, unique=True)
     
     class Meta:
         db_table = "genome_species"
 
 
-class Genome(CoreBaseModel):
+class GenomeVersion(CoreBaseModel):
     ''' Holds Genome top level data '''
-    genome_id = models.BigAutoField(primary_key=True)
-    genome_version_name = models.CharField(max_length=255)
+    genome_version_id = models.BigAutoField(primary_key=True)
+    genome_version_name = models.CharField(max_length=255, unique=True)
     # The name of the external_gene_id field in the outside source.  For example, a gene from NCBi would have an external_gene_id_name of 'NCBI_Gene_ID'
     external_gene_id_source = models.CharField(max_length=255, null=True, blank=True)
     genome_species = models.ForeignKey(GenomeSpecies, on_delete=models.CASCADE)
 
-    name_field = 'genome_version_name'
+    # name_field = 'genome_version_name'
     
     class Meta:
-        db_table = "genomes"
+        db_table = "genome_versions"
 
 
 class GeneType(CoreBaseModel):
     ''' Hold gene types.  Initially should contain: 
     protein-coding, pseudo, rRNA, tRNA, ncRNA, scRNA, snRNA, snoRNA, miscRNA, transposon, biological-region, lnRNA, SE, eRNA, other '''
     gene_type_id = models.BigAutoField(primary_key=True)
-    gene_type_name = models.CharField(max_length=255)
+    gene_type_name = models.CharField(max_length=255, unique=True)
 
     class Meta:
         db_table = "gene_types"
@@ -65,13 +65,21 @@ class GeneType(CoreBaseModel):
 class Gene(CoreBaseModel):
     ''' Holds gene data except for locations '''
     gene_id = models.BigAutoField(primary_key=True)
-    genome = models.ForeignKey(Genome, on_delete=models.CASCADE)
+    genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE)
     gene_name = models.CharField(max_length=255)
     external_gene_id = models.IntegerField(null=True, blank=True)
     gene_type = models.ForeignKey(GeneType, on_delete=models.CASCADE)
 
     class Meta:
         db_table = "genes"
+        unique_together = ['genome_version', 'gene_name']
+        indexes = [
+            models.Index(fields=['genome_version', 'gene_name']),
+            models.Index(fields=['gene_name']),
+            models.Index(fields=['genome_version']),
+        ]
+
+
 
 class GeneLocation(CoreBaseModel):
     ''' Holds gene location data'''
@@ -91,4 +99,9 @@ class GeneLocation(CoreBaseModel):
     class Meta:
         db_table = "gene_locations"
         unique_together = ('gene', 'landmark')
-
+        indexes = [
+            models.Index(fields=['gene', 'landmark']),
+            models.Index(fields=['landmark']),
+            models.Index(fields=['gene', 'chromosome']),
+            models.Index(fields=['chromosome']),
+        ]
