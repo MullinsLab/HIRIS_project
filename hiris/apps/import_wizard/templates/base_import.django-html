@@ -2,6 +2,6 @@
 {% load static %}
 
 {% block header_content %}
-<link rel="stylesheet" type="text/css" href="{% static 'css/import_wizard.css' %}">
-<script src="{% static 'js/import_wizard.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'import_wizard/css/import_wizard.css' %}">
+<script src="{% static 'import_wizard/js/import_wizard.js' %}"></script>
 {% endblock %}
