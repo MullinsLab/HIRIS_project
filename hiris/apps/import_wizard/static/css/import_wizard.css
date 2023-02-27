@@ -2,7 +2,17 @@
     display: none;
 }
 
-div.form_box{
-    width: 80%;
-    padding: 10px;
+.accordion-urgent-button{
+    background-color: rgb(252, 178, 178);
+}
+
+.accordion-urgent-button::before{
+    content: url('../images/notice-outline.svg');
+    width: 25px;
+    height: 20px;
+    padding-right: 5px;
+}
+
+.accordion-urgent{
+    background-color: rgb(255, 228, 228);
 }

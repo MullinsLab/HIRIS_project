@@ -79,12 +79,15 @@ IMPORT_WIZARD = {
             'name': 'Genome',
             'description': 'Import an entire genome',
             'app': 'hiris.apps.core',
-            'models': ['test'],
+            'models': [
+                {'GenomeSpecies': {'restriction': 'deferred'}},
+                {'GenomeVersion': {}},
+            ],
         },
         'Integrations':{
             'name': 'Integration Sites',
             'long_name': 'A list of integration sites in a genome',
-            # 'description': 'A test description of an Integration.',
+            'description': 'A test description of an Integration.',
         },
     }
 }

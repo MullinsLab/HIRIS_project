@@ -13,7 +13,7 @@ class NewImportSchemeForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         ''' Specify information about the display of the form '''
-        importer = kwargs.pop('importer_slug')
+        importer = kwargs.pop('importer_slug', None)
 
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()

@@ -5,6 +5,7 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 
+import json
 import logging
 log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
 
@@ -50,7 +51,7 @@ class NewImportScheme(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         ''' Build a new Import '''
-        
+    
         importer: str = kwargs['importer_slug']
         importer_name: str = settings.IMPORT_WIZARD['Importers'][importer]['name']
 
@@ -59,11 +60,12 @@ class NewImportScheme(LoginRequiredMixin, View):
             'importer': importer_name
         })
     
+    
     def post(self, request, *args, **kwargs):
         ''' Save the new import '''
 
+        importer: str = kwargs["importer_slug"]
         form: form = NewImportSchemeForm(request.POST)
-        importer: str = kwargs['importer_slug']
 
         if form.is_valid():
             import_scheme = ImportScheme(name=form.cleaned_data['name'], description=form.cleaned_data['description'], importer=importer, user=request.user)
@@ -78,7 +80,6 @@ class NewImportScheme(LoginRequiredMixin, View):
             # Needs to have a better error
             return HttpResponseRedirect(reverse('import_wizard:import'))
             
-    
     
 # class FileUpload(LoginRequiredMixin, View):
 #     ''' Receive an uploaded file '''
@@ -120,7 +121,7 @@ class NewImportScheme(LoginRequiredMixin, View):
 #             return HttpResponseRedirect(reverse('import_wizard:import'))
 
 
-class DoImport(View):
+class DoImportScheme(View):
     ''' Do the actual import stuff '''
 
     def get(self, request, *args, **kwargs):
@@ -140,4 +141,23 @@ class DoImport(View):
             return HttpResponseRedirect(reverse('import_wizard:import'))
         
         request.session['current_import_scheme_id'] = import_scheme_id
-        return render(request, 'do_import.django-html', {'importer': import_scheme.importer})
+
+        actions: list = []
+        # First make sure that there is one or more file to work from
+        if import_scheme.files.count() == 0:
+            action: dict = {
+                'name': 'No data file',
+                'description': "You'll need one or more files to import data from.",
+                'urgent': True,
+                'start_expanded': True,
+            }
+            actions.append(action)
+
+        # action: dict = {'name': 'Testing'}
+        # actions.append(action)
+
+        return render(request, 'do_import.django-html', {
+            'importer': settings.IMPORT_WIZARD['Importers'][import_scheme.importer]['name'], 
+            'import_scheme': import_scheme, 
+            'actions': actions}
+        )

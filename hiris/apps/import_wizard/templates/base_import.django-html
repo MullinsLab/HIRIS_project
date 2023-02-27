@@ -1,0 +1,7 @@
+{% extends "base.django-html" %}
+{% load static %}
+
+{% block header_content %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/import_wizard.css' %}">
+<script src="{% static 'js/import_wizard.js' %}"></script>
+{% endblock %}
