@@ -53,3 +53,13 @@ class ImportFile(ImportBaseModel):
         ''' Return a file name based on the ID of the ImportFile '''
 
         return str(self.id).rjust(8, '0')
+
+
+class ImportSchemeItem(ImportBaseModel):
+    ''' Holds Import Items '''
+
+    name = models.CharField(max_length=255, null=False, blank=False)
+    import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='items', null=True)
+    import_scheme_item = models.ForeignKey('self', on_delete=models.CASCADE, related_name='items', null=True)
+    added_date = models.DateField(auto_now_add=True)
+    updated_date = models.DateField(auto_now=True)
