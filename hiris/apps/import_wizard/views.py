@@ -10,7 +10,7 @@ import logging
 log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
 
 from .forms import UploadFileForImportForm, NewImportSchemeForm
-from .models import ImportScheme, ImportFile
+from .models import ImportScheme, ImportFile, ImportSchemeItem
 from .tools import sound_user_name
 
 class ManageImports(LoginRequiredMixin, View):
@@ -79,8 +79,115 @@ class NewImportScheme(LoginRequiredMixin, View):
         else:
             # Needs to have a better error
             return HttpResponseRedirect(reverse('import_wizard:import'))
-            
+
+
+class DoImportScheme(View):
+    ''' Do the actual import stuff '''
+
+    def get(self, request, *args, **kwargs):
+        ''' Do the actual import stuff '''
+        import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
+
+        # Return the user to the /import page if they don't have a valid import_scheme_id to work on
+        if import_scheme_id is None:
+            log.debug('Got bad import_scheme_id')
+            return HttpResponseRedirect(reverse('import_wizard:import'))
+
+        try:
+            import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
+        except ImportScheme.DoesNotExist:
+            # Return the user to the /import page if they don't have a valid import_scheme to work on
+            return HttpResponseRedirect(reverse('import_wizard:import'))
+        
+        request.session['current_import_scheme_id'] = import_scheme_id
+
+        actions: list = []
+        # First make sure that there is one or more file to work from
+        if import_scheme.files.count() == 0:
+            action: dict = {
+                'name': 'No data file',
+                'description': "You'll need one or more files to import data from.",
+                'urgent': True,
+                'start_expanded': True,
+            }
+            actions.append(action)
+
+        return render(request, 'do_import_scheme.django-html', {
+            'importer': settings.IMPORT_WIZARD['Importers'][import_scheme.importer]['name'], 
+            'import_scheme': import_scheme, 
+            'actions': actions}
+        )
     
+    
+class ListImportSchemeItems(LoginRequiredMixin, View):
+    '''' List the ImportSchemeItems for a particular ImportScheme '''
+
+    def get(self, request, *args, **kwargs):
+        ''' Produce the list of ImportSchemeItems  '''
+
+        import_scheme = ImportScheme.objects.get(pk=kwargs['import_scheme_id'])
+        # Initialize with a 0 for 
+        import_scheme_items: list[int] = [0]
+
+        for item in import_scheme.items.all():
+            import_scheme_items.append(item.id)
+
+        return JsonResponse({
+            'import_scheme_items': import_scheme_items
+        })
+
+    
+class DoImportSchemeItem(LoginRequiredMixin, View):
+    ''' Show and store ImportItems '''
+
+    def get(self, request, *args, **kwargs):
+        ''' Get information about an Import Item '''
+
+        import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
+        import_item_id: int = kwargs['import_item_id']
+
+        return_data: dict = {}
+
+        try:
+            import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
+        except ImportScheme.DoesNotExist:
+            # Return the user to the /import page if they don't have a valid import_scheme to work on
+            return HttpResponseRedirect(reverse('import_wizard:import'))
+        
+        if (import_item_id == 0):
+            ''' import_item_id 0 always refers to associated files '''
+            if import_scheme.files.count() == 0:
+                return_data = {
+                    'name': 'No data file',
+                    'description': "You'll need one or more files to import data from.",
+                    'urgent': True,
+                    'start_expanded': True,
+                }
+        log.debug('Sending ImportSchemeItem via AJAX query.')      
+        return JsonResponse(return_data)   
+
+
+    def post(self, request, *args, **kwargs):
+        ''' Save or create an Import Item '''
+        
+        import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
+        import_item_id: int = kwargs['import_item_id']
+
+        try:
+            import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
+        except ImportScheme.DoesNotExist:
+            # Return the user to the /import page if they don't have a valid import_scheme to work on
+            return HttpResponseRedirect(reverse('import_wizard:import'))
+
+        if (import_item_id == 0):
+            ''' import_item_id 0 always refers to associated files '''
+            pass
+
+        if (import_item_id == -1):
+            ''' import_item_id -1 indicates a new ImportItem '''
+            pass
+
+
 # class FileUpload(LoginRequiredMixin, View):
 #     ''' Receive an uploaded file '''
 
@@ -119,45 +226,3 @@ class NewImportScheme(LoginRequiredMixin, View):
 #         else:
 #             # Needs to have a better error
 #             return HttpResponseRedirect(reverse('import_wizard:import'))
-
-
-class DoImportScheme(View):
-    ''' Do the actual import stuff '''
-
-    def get(self, request, *args, **kwargs):
-        ''' Do the actual import stuff '''
-        import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
-        log.debug(f'This is my import_scheme_id:{import_scheme_id}')
-
-        # Return the user to the /import page if they don't have a valid import_scheme_id to work on
-        if import_scheme_id is None:
-            log.debug('Got bad import_scheme_id')
-            return HttpResponseRedirect(reverse('import_wizard:import'))
-
-        try:
-            import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
-        except ImportScheme.DoesNotExist:
-            # Return the user to the /import page if they don't have a valid import_scheme to work on
-            return HttpResponseRedirect(reverse('import_wizard:import'))
-        
-        request.session['current_import_scheme_id'] = import_scheme_id
-
-        actions: list = []
-        # First make sure that there is one or more file to work from
-        if import_scheme.files.count() == 0:
-            action: dict = {
-                'name': 'No data file',
-                'description': "You'll need one or more files to import data from.",
-                'urgent': True,
-                'start_expanded': True,
-            }
-            actions.append(action)
-
-        # action: dict = {'name': 'Testing'}
-        # actions.append(action)
-
-        return render(request, 'do_import.django-html', {
-            'importer': settings.IMPORT_WIZARD['Importers'][import_scheme.importer]['name'], 
-            'import_scheme': import_scheme, 
-            'actions': actions}
-        )

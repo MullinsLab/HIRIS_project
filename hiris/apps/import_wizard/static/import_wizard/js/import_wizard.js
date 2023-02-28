@@ -1,3 +1,77 @@
+// Variables for the do_import_scheme import_wizard page
+
+class ImportScheme {
+    id;                     // ID from the database
+    items = [];             // ImportSchemeItem objects
+    base_url;               // Base URL for loading from the system
+    accordion_id;           // ID of the DOM object being used for the accordion
+    _this = this;
+
+    constructor(args){
+        // Set up the ImportScheme and get it's items
+        this.id = args.id;
+        this.base_url = args.base_url;
+        this.accordion_id = args.accordion_id;
+
+        this.get_items();
+        console.log("Items: " + this.items);
+    };
+
+    get_items(){
+        // Get a list of import_scheme_items 
+        $.ajax(this.base_url+'/list', {
+            // pass this to caller so it's referrable inside the success function
+            caller: this,
+            dataType: 'json',
+            cache: false,
+            success: function(data){
+                let items = data.import_scheme_items;
+                for (let item in items){
+                    console.log("Item: " + item + ", Value:" + items[item])
+                    this.caller.items.push(new ImportSchemeItem({id: items[item], parent: this.caller}))
+                };
+            },
+        });
+    };
+};
+
+class ImportSchemeItem{
+    id;                     // ID from the database.  Used for loading
+    name;                   // Name to be displayed in the accoridon button
+    description;            // Description to be displayed in the accordion body - placeholder for HTML form or whatnot
+    urgent = false;         // Is the Item urgent, meaning that it needs to be dealt with before the import can happen
+    start_expanded;         // If true, the accordion will start in an expanded state
+    parent;                 // ImportScheme this Item belongs to
+
+    constructor(args){
+        console.log('Creating an object!')
+        this.id = args.id;
+        this.parent = args.parent;
+
+        console.log(this.parent);
+
+        this.load();
+    };
+
+    load(args){
+        // Load the ImportSchemeItem from the backend
+        $.ajax(this.parent.base_url+'/'+this.id, {
+            // pass this to caller so it's referrable inside the success function
+            caller: this,
+            dataType: 'json',
+            cache: false,
+            success: function(data){
+                this.caller.name = data.name;
+                this.caller.description = data.description;
+                this.caller.urgent = data.urgent;
+                this.caller.start_expanded = data.start_expanded;
+
+                console.log(this.caller);
+            },
+        });
+    }
+};
+
 function prep_upload_progress_bar(form_name, file_input_name, progress_bar_name, post_url){
     const input_file = document.getElementById(file_input_name);
     const progress_bar = document.getElementById(progress_bar_name);
