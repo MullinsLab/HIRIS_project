@@ -4,14 +4,14 @@ class ImportScheme {
     id;                     // ID from the database
     items = [];             // ImportSchemeItem objects
     base_url;               // Base URL for loading from the system
-    accordion_id;           // ID of the DOM object being used for the accordion
+    accordion_container;    // ID of the DOM object being used to hold the accordion
     _this = this;
 
     constructor(args){
         // Set up the ImportScheme and get it's items
         this.id = args.id;
         this.base_url = args.base_url;
-        this.accordion_id = args.accordion_id;
+        this.accordion_container = args.accordion_container;
 
         this.get_items();
         console.log("Items: " + this.items);
@@ -41,14 +41,12 @@ class ImportSchemeItem{
     description;            // Description to be displayed in the accordion body - placeholder for HTML form or whatnot
     urgent = false;         // Is the Item urgent, meaning that it needs to be dealt with before the import can happen
     start_expanded;         // If true, the accordion will start in an expanded state
+    dirty;                  // Indicates that the item is dirty and needs to be rerendered
     parent;                 // ImportScheme this Item belongs to
 
     constructor(args){
-        console.log('Creating an object!')
         this.id = args.id;
         this.parent = args.parent;
-
-        console.log(this.parent);
 
         this.load();
     };
@@ -61,14 +59,55 @@ class ImportSchemeItem{
             dataType: 'json',
             cache: false,
             success: function(data){
-                this.caller.name = data.name;
-                this.caller.description = data.description;
-                this.caller.urgent = data.urgent;
-                this.caller.start_expanded = data.start_expanded;
+                this.caller.set_with_dirty({field: 'name', value: data.name});
+                this.caller.set_with_dirty({field: 'description', value: data.description});
+                this.caller.set_with_dirty({field: 'urgent', value: data.urgent});
+                this.caller.set_with_dirty({field: 'start_expanded', value: data.start_expanded});
 
-                console.log(this.caller);
+                this.caller.render();
             },
         });
+    };
+
+    set_with_dirty(args){
+        // Sets the field value if different from current, and if so sets dirty to true
+        if (this[args.field] != args.value){
+            this[args.field] = args.value;
+            this.dirty=true;
+        }
+    }
+
+    render(args){
+        // Create the structure of the accoridion
+
+        // If the accordion item doesn't exist yet, create it
+        if (! $('#accordion_'+this.id).length){
+            $(this.parent.accordion_container).append(ITEM_TEMPLATE.replaceAll("!ACCORDION_ID!", this.id));
+        };
+
+        // If the item isn't dirty, no reason to render it
+        if (! this.dirty){
+            return 1;
+        };
+        
+        let accordion = $('#accordion_'+this.id)
+        let button = $('#button_'+this.id);
+        let collapse = $('#collapse_'+this.id);
+        let body = $('#body_'+this.id);
+        
+        button.html(this.name);
+        body.html(this.description);
+
+        // Set the propper css classes and open/close if item is urgent
+        if (this.urgent){
+            accordion.addClass('border-danger');
+            button.addClass('accordion-urgent-button');
+            body.addClass('accordion-urgent');
+
+            collapse.collapse('show');
+        } else {
+            accordian.addClass('border-primary');
+        };
     }
 };
 

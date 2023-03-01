@@ -163,7 +163,8 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                     'urgent': True,
                     'start_expanded': True,
                 }
-        log.debug('Sending ImportSchemeItem via AJAX query.')      
+                
+        log.debug(f'Sending ImportSchemeItem via AJAX query: {return_data}')      
         return JsonResponse(return_data)   
 
 

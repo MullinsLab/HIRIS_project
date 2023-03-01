@@ -10,22 +10,20 @@
 
 {% block page_content %}
 <div class='border border-2 border-primary rounded-3 bg-light container'>
-    <fieldset class="accordion" id="import_scheme_accordian">
-        <legend>{{import_scheme}}</legend>
-        {% for action in actions %}{% include "do_import_accordian_item.django-html" with action=action count=forloop.counter %}{% endfor %}
+    <fieldset class="accordion" id="import_scheme_accordion">
+        <legend id='accordion_container'>{{import_scheme}}</legend>
     </fieldset>
     <br>
 </div>
 
 <script type="text/javascript">
-    // const base_url = "{% url 'import_wizard:do_import_scheme_list_items' import_scheme_id=import_scheme.id %}"
-
-    // $( document ).ready(get_import_scheme_items_list());
+    const ITEM_TEMPLATE = `{% include "do_import_scheme_item.django-html" %}`;
+    // const item_template='test';
     $( document ).ready(
         import_scheme = new ImportScheme({
             id: {{ import_scheme.id }},
             base_url: "{% url 'import_wizard:do_import_scheme' import_scheme_id=import_scheme.id %}",
-            accordion_id: 'import_scheme_accordian',
+            accordion_container: '#import_scheme_accordion',
         })
     );
 </script>
