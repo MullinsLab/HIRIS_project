@@ -1,4 +1,4 @@
-{% extends "base_import.django-html" %}
+{% extends "import_wizard/base.django-html" %}
 
 {% load crispy_forms_tags %}
 {% load static %}
@@ -17,7 +17,7 @@
 </div>
 
 <script type="text/javascript">
-    const ITEM_TEMPLATE = `{% include "fragments/import_scheme_item.django-html" %}`;
+    const ITEM_TEMPLATE = `{% include "import_wizard/fragments/scheme_item.django-html" %}`;
     // const item_template='test';
     $( document ).ready(
         import_scheme = new ImportScheme({

@@ -1,0 +1,11 @@
+{% load crispy_forms_tags %}
+{% crispy form %}
+
+<script>
+    $( document ).ready( prep_upload_progress_bar(
+        'upload_form',
+        'id_file',
+        'progress',
+        '{{ request.path }}',
+    ) );
+</script>

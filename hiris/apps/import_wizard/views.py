@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.template.loader import render_to_string
 
 import json
 import logging
@@ -42,8 +43,8 @@ class ManageImports(LoginRequiredMixin, View):
             }
 
             user_import_schemes.append(user_import_scheme_item)
-
-        return render(request, "import_manager.django-html", {'importers': importers, 'user_import_schemes': user_import_schemes})
+ 
+        return render(request, "import_wizard/manager.django-html", context={'importers': importers, 'user_import_schemes': user_import_schemes})
 
 
 class NewImportScheme(LoginRequiredMixin, View):
@@ -55,7 +56,7 @@ class NewImportScheme(LoginRequiredMixin, View):
         importer: str = kwargs['importer_slug']
         importer_name: str = settings.IMPORT_WIZARD['Importers'][importer]['name']
 
-        return render(request, "import_new_scheme.django-html", {
+        return render(request, "import_wizard/new_scheme.django-html", context={
             'form': NewImportSchemeForm(importer_slug=importer, initial={'name': f"{sound_user_name(request.user)}'s {importer_name} import"}), 
             'importer': importer_name
         })
@@ -112,7 +113,7 @@ class DoImportScheme(View):
             }
             actions.append(action)
 
-        return render(request, 'import_scheme.django-html', {
+        return render(request, 'import_wizard/scheme.django-html', context={
             'importer': settings.IMPORT_WIZARD['Importers'][import_scheme.importer]['name'], 
             'import_scheme': import_scheme, 
             'actions': actions}
@@ -160,6 +161,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 return_data = {
                     'name': 'No data file',
                     'description': "You'll need one or more files to import data from.",
+                    'form': render_to_string('import_wizard/fragments/scheme_file.django-html', context={'form': UploadFileForImportForm()}),
                     'urgent': True,
                     'start_expanded': True,
                 }
@@ -197,7 +199,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
         
 #         importer: str = kwargs['importer_slug']
 
-#         return render(request, "new_import_scheme.django-html", {'form': UploadFileForImportForm(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
+#         return render(request, "new_import_scheme.django-html", context={'form': UploadFileForImportForm(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
 
 #     def post(self, request, *args, **kwargs):
 #         ''' Get the file for a new import '''
