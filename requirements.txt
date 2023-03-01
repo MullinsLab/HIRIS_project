@@ -25,3 +25,6 @@ django-debug-toolbar
 djangorestframework
 markdown
 django-filter
+
+# Bioinformatics stuff
+gffutils
