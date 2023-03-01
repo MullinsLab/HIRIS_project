@@ -14,7 +14,6 @@ class ImportScheme {
         this.accordion_container = args.accordion_container;
 
         this.get_items();
-        console.log("Items: " + this.items);
     };
 
     get_items(){
@@ -27,7 +26,6 @@ class ImportScheme {
             success: function(data){
                 let items = data.import_scheme_items;
                 for (let item in items){
-                    console.log("Item: " + item + ", Value:" + items[item])
                     this.caller.items.push(new ImportSchemeItem({id: items[item], parent: this.caller}))
                 };
             },
@@ -43,6 +41,12 @@ class ImportSchemeItem{
     start_expanded;         // If true, the accordion will start in an expanded state
     dirty;                  // Indicates that the item is dirty and needs to be rerendered
     parent;                 // ImportScheme this Item belongs to
+    
+    // objects that corrispond with the dom objects for this item
+    accordion;
+    button;
+    collapse;
+    body;
 
     constructor(args){
         this.id = args.id;
@@ -83,6 +87,12 @@ class ImportSchemeItem{
         // If the accordion item doesn't exist yet, create it
         if (! $('#accordion_'+this.id).length){
             $(this.parent.accordion_container).append(ITEM_TEMPLATE.replaceAll("!ACCORDION_ID!", this.id));
+
+            // Assign the dom object refrences for this item
+            this.accordion = $('#accordion_'+this.id)
+            this.button = $('#button_'+this.id);
+            this.collapse = $('#collapse_'+this.id);
+            this.body = $('#body_'+this.id);
         };
 
         // If the item isn't dirty, no reason to render it
@@ -90,23 +100,18 @@ class ImportSchemeItem{
             return 1;
         };
         
-        let accordion = $('#accordion_'+this.id)
-        let button = $('#button_'+this.id);
-        let collapse = $('#collapse_'+this.id);
-        let body = $('#body_'+this.id);
-        
-        button.html(this.name);
-        body.html(this.description);
+        this.button.html(this.name);
+        this.body.html(this.description);
 
         // Set the propper css classes and open/close if item is urgent
         if (this.urgent){
-            accordion.addClass('border-danger');
-            button.addClass('accordion-urgent-button');
-            body.addClass('accordion-urgent');
+            this.accordion.addClass('border-danger');
+            this.button.addClass('accordion-urgent-button');
+            this.body.addClass('accordion-urgent');
 
-            collapse.collapse('show');
+            this.collapse.collapse('show');
         } else {
-            accordian.addClass('border-primary');
+            this.accordian.addClass('border-primary');
         };
     }
 };

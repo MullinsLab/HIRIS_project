@@ -55,7 +55,7 @@ class NewImportScheme(LoginRequiredMixin, View):
         importer: str = kwargs['importer_slug']
         importer_name: str = settings.IMPORT_WIZARD['Importers'][importer]['name']
 
-        return render(request, "new_import.django-html", {
+        return render(request, "import_new_scheme.django-html", {
             'form': NewImportSchemeForm(importer_slug=importer, initial={'name': f"{sound_user_name(request.user)}'s {importer_name} import"}), 
             'importer': importer_name
         })
@@ -74,7 +74,7 @@ class NewImportScheme(LoginRequiredMixin, View):
 
             request.session['current_import_scheme_id'] = import_scheme.id
 
-            return HttpResponseRedirect(reverse('import_wizard:do_import', kwargs={'import_scheme_id': import_scheme.id}))
+            return HttpResponseRedirect(reverse('import_wizard:import_scheme', kwargs={'import_scheme_id': import_scheme.id}))
         
         else:
             # Needs to have a better error
@@ -112,7 +112,7 @@ class DoImportScheme(View):
             }
             actions.append(action)
 
-        return render(request, 'do_import_scheme.django-html', {
+        return render(request, 'import_scheme.django-html', {
             'importer': settings.IMPORT_WIZARD['Importers'][import_scheme.importer]['name'], 
             'import_scheme': import_scheme, 
             'actions': actions}
@@ -197,7 +197,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
         
 #         importer: str = kwargs['importer_slug']
 
-#         return render(request, "new_import.django-html", {'form': UploadFileForImportForm(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
+#         return render(request, "new_import_scheme.django-html", {'form': UploadFileForImportForm(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
 
 #     def post(self, request, *args, **kwargs):
 #         ''' Get the file for a new import '''

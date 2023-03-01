@@ -17,12 +17,12 @@
 </div>
 
 <script type="text/javascript">
-    const ITEM_TEMPLATE = `{% include "do_import_scheme_item.django-html" %}`;
+    const ITEM_TEMPLATE = `{% include "fragments/import_scheme_item.django-html" %}`;
     // const item_template='test';
     $( document ).ready(
         import_scheme = new ImportScheme({
             id: {{ import_scheme.id }},
-            base_url: "{% url 'import_wizard:do_import_scheme' import_scheme_id=import_scheme.id %}",
+            base_url: "{% url 'import_wizard:scheme' import_scheme_id=import_scheme.id %}",
             accordion_container: '#import_scheme_accordion',
         })
     );
