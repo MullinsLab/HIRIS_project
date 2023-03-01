@@ -37,6 +37,7 @@ class ImportSchemeItem{
     id;                     // ID from the database.  Used for loading
     name;                   // Name to be displayed in the accoridon button
     description;            // Description to be displayed in the accordion body - placeholder for HTML form or whatnot
+    form;                   // The form to use to collect informatoin about this item
     urgent = false;         // Is the Item urgent, meaning that it needs to be dealt with before the import can happen
     start_expanded;         // If true, the accordion will start in an expanded state
     dirty;                  // Indicates that the item is dirty and needs to be rerendered
@@ -65,6 +66,7 @@ class ImportSchemeItem{
             success: function(data){
                 this.caller.set_with_dirty({field: 'name', value: data.name});
                 this.caller.set_with_dirty({field: 'description', value: data.description});
+                this.caller.set_with_dirty({field: 'form', value: data.form});
                 this.caller.set_with_dirty({field: 'urgent', value: data.urgent});
                 this.caller.set_with_dirty({field: 'start_expanded', value: data.start_expanded});
 
@@ -101,27 +103,33 @@ class ImportSchemeItem{
         };
         
         this.button.html(this.name);
-        this.body.html(this.description);
+
+        let body_bit = this.description;
+        if (this.form){body_bit += '<br><br>'+this.form}
+        this.body.html(body_bit);
 
         // Set the propper css classes and open/close if item is urgent
         if (this.urgent){
             this.accordion.addClass('border-danger');
             this.button.addClass('accordion-urgent-button');
-            this.body.addClass('accordion-urgent');
+            // this.body.addClass('accordion-urgent');
 
             this.collapse.collapse('show');
         } else {
             this.accordian.addClass('border-primary');
         };
+
+        // Set dirty to false so it won't rerender if it doesn't need to
+        this.dirty = false;
     }
 };
 
-function prep_upload_progress_bar(form_name, file_input_name, progress_bar_name, post_url){
-    const input_file = document.getElementById(file_input_name);
-    const progress_bar = document.getElementById(progress_bar_name);
+function prep_upload_progress_bar(args){
+    const input_file = document.getElementById(args.file_input_name);
+    const progress_bar = document.getElementById(args.progress_bar_name);
     console.log('started script');
 
-    $("#"+form_name).bind( "submit", function(e) {
+    $("#"+args.form_name).bind( "submit", function(e) {
         console.log('hit form');
         e.preventDefault();
         var formData = new FormData(this);
@@ -133,7 +141,7 @@ function prep_upload_progress_bar(form_name, file_input_name, progress_bar_name,
 
         $.ajax({
             type: 'POST',
-            url: post_url,
+            url: args.post_url,
             data: formData,
             dataType: 'json',
             beforeSend: function(){
