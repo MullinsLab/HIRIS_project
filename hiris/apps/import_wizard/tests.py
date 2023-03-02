@@ -43,7 +43,7 @@ class TemplateAndViewTests(TestCase):
         response = self.client.get("/import/")
         
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'import_manager.django-html')
+        self.assertTemplateUsed(response, 'import_wizard/manager.django-html')
         self.assertContains(response, 'Genome')
         self.assertContains(response, 'integration')
 
@@ -51,24 +51,44 @@ class TemplateAndViewTests(TestCase):
 class ModelTests(TestCase):
     '''  Tests of basic model functionality '''
 
-    def test_import_scheme_has_gets_created_correctly(self):
-        ''' A new ImportScheme model should have a hash '''
+    @classmethod
+    def setUpTestData(cls):
+        ''' Set up whatever objects are going to be needed for all tests '''    
 
-        my_import_scheme = ImportScheme(
+        cls.import_scheme = ImportScheme(
             name = 'Test Importer', 
             user = User.objects.first(), 
             importer = 'Genome',
             status = 0,
         )
-        my_import_scheme.save()
-        log.debug(f'ImporteScheme: Importer {my_import_scheme.importer} has hash {my_import_scheme.importer_hash}.')
+        cls.import_scheme.save()
 
-        my_import_file = ImportFile(name='test.txt', import_scheme=my_import_scheme)
-        my_import_file.save()
+        cls.import_file_1 = ImportFile(name='test1.txt', import_scheme=cls.import_scheme)
+        cls.import_file_1.save()
+        
+    
+    def test_import_scheme_has_gets_created_correctly(self):
+        ''' A new ImportScheme model should have a hash '''
 
-        self.assertEquals(32, len(my_import_scheme.importer_hash))
-        self.assertEquals(dict_hash(settings.IMPORT_WIZARD['Importers']['Genome']), my_import_scheme.importer_hash)
-        self.assertEquals('00000001', my_import_file.file_name)
+        log.debug(f'ImporteScheme: Importer {self.import_scheme.importer} has hash {self.import_scheme.importer_hash}.')
+
+        self.assertEquals(32, len(self.import_scheme.importer_hash))
+        self.assertEquals(dict_hash(settings.IMPORT_WIZARD['Importers']['Genome']), self.import_scheme.importer_hash)
+        self.assertEquals('00000001', self.import_file_1.file_name)
+    
+
+    def test_import_scheme_can_list_its_files(self):
+        ''' Test that ImportScheme.list_files() works correctly '''
+        
+        log.debug(f'File list for {self.import_scheme} is {self.import_scheme.list_files()}')
+
+        self.assertEquals('test1.txt', self.import_scheme.list_files())
+
+        import_file_2 = ImportFile(name='test2.txt', import_scheme=self.import_scheme)
+        import_file_2.save()
+
+        self.assertEquals('test1.txt, test2.txt', self.import_scheme.list_files())
+        self.assertEquals('test1.txt<br>test2.txt', self.import_scheme.list_files(separator='<br>'))
 
 
 class ToolsTest(TestCase):

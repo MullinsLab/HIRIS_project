@@ -16,8 +16,12 @@ class ImportScheme {
         this.get_items();
     };
 
+    find_item_by_id(id){
+        return this.items.find(item => item.id == id);
+    };
+
     get_items(){
-        // Get a list of import_scheme_items 
+        // Get a list of import_scheme_items from the backend
         $.ajax(this.base_url+'/list', {
             // pass this to caller so it's referrable inside the success function
             caller: this,
@@ -110,13 +114,22 @@ class ImportSchemeItem{
 
         // Set the propper css classes and open/close if item is urgent
         if (this.urgent){
+            this.accordion.removeClass('border-primary');
+
             this.accordion.addClass('border-danger');
             this.button.addClass('accordion-urgent-button');
-            // this.body.addClass('accordion-urgent');
+        } else {
+            this.accordion.removeClass('border-danger');
+            this.button.removeClass('accordion-urgent-button');
 
+            this.accordion.addClass('border-primary');
+        };
+
+        // Open or close accordion based on start_expanded
+        if (this.start_expanded){
             this.collapse.collapse('show');
         } else {
-            this.accordian.addClass('border-primary');
+            this.collapse.collapse('hide');
         };
 
         // Set dirty to false so it won't rerender if it doesn't need to
@@ -127,6 +140,12 @@ class ImportSchemeItem{
 function prep_upload_progress_bar(args){
     const input_file = document.getElementById(args.file_input_name);
     const progress_bar = document.getElementById(args.progress_bar_name);
+    // const progress_modal = document.getElementById(args.progress_bar_name+'_modal_control');
+
+    // const input_file = $('#'+args.file_input_name);
+    // const progress_bar = $('#'+args.progress_bar_name);
+    const progress_modal = $('#'+args.progress_bar_name+'_modal_control');
+    const progress_content = $('#'+args.progress_content);
     console.log('started script');
 
     $("#"+args.form_name).bind( "submit", function(e) {
@@ -135,10 +154,11 @@ function prep_upload_progress_bar(args){
         var formData = new FormData(this);
         const media_data = input_file.files[0];
         if(media_data != null){
-            // console.log(media_data);
-            progress_bar.classList.remove("not-visible");
+            console.log(media_data);
+            progress_content.html(media_data.name+'<br><br>')
+            progress_modal.modal('show');
         }
-
+        
         $.ajax({
             type: 'POST',
             url: args.post_url,
@@ -151,7 +171,6 @@ function prep_upload_progress_bar(args){
                 xhr.upload.addEventListener('progress', e=>{
                     if(e.lengthComputable){
                         const percentProgress = (e.loaded/e.total)*100;
-                        // console.log(percentProgress);
                         progress_bar.innerHTML = `<div class="progress-bar progress-bar-striped bg-success" 
                 role="progressbar" style="width: ${percentProgress}%" aria-valuenow="${percentProgress}" aria-valuemin="0" 
                 aria-valuemax="100"></div>`
@@ -160,7 +179,10 @@ function prep_upload_progress_bar(args){
                 return xhr
             },
             success: function(response){
-                window.location = response.redirect_url;
+                // window.location = response.redirect_url;
+                console.log('Saved file');
+                progress_modal.modal('hide');
+                window.import_scheme.find_item_by_id(0).load();
             },
             error: function(err){
                 console.log(err);

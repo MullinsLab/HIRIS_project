@@ -7,10 +7,11 @@
 } */
 
 .accordion-urgent-button::before{
-    content: url('../images/notice-outline.svg');
+    content: url('../images/notice-outline-red.svg');
     width: 25px;
     height: 20px;
     padding-right: 5px;
+    /* filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(330deg) brightness(118%) contrast(119%); */
 }
 
 .accordion-urgent{

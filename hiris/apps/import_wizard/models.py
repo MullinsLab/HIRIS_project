@@ -40,6 +40,18 @@ class ImportScheme(ImportBaseModel):
             self.importer_hash = dict_hash(settings.IMPORT_WIZARD['Importers'][self.importer])
         super().save(*args, **kwargs)
 
+    def list_files(self, *args, **kwargs) -> str:
+        ''' Return a string that contains a list of file names for this ImportScheme 
+        kwargs = separator '''
+
+        separator: str = kwargs.get('separator', ', ')
+        file_list: list[str] = []
+        
+        for file in self.files.all():
+            file_list.append(file.name)
+
+        return separator.join(file_list)
+
 
 class ImportFile(ImportBaseModel):
     ''' Holds a file to import for an ImportScheme. FIELDS: (name, import_scheme, location) '''

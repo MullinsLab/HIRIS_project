@@ -2,10 +2,13 @@
 {% crispy form %}
 
 <script>
-    $( document ).ready( prep_upload_progress_bar(
-        'upload_form',
-        'id_file',
-        'progress',
-        '{{ request.path }}',
-    ) );
+    $( document ).ready( 
+        prep_upload_progress_bar({
+            form_name: 'upload_form',
+            file_input_name: 'id_file',
+            progress_bar_name: 'progress',
+            progress_content: 'progress_content',
+            post_url: '{{ path }}',
+        }) 
+    );
 </script>

@@ -20,11 +20,12 @@
     const ITEM_TEMPLATE = `{% include "import_wizard/fragments/scheme_item.django-html" %}`;
     // const item_template='test';
     $( document ).ready(
-        import_scheme = new ImportScheme({
+        window.import_scheme = new ImportScheme({
             id: {{ import_scheme.id }},
             base_url: "{% url 'import_wizard:scheme' import_scheme_id=import_scheme.id %}",
             accordion_container: '#import_scheme_accordion',
         })
     );
 </script>
+{% include "import_wizard/fragments/unclosable_progress_modal.django-html" %}
 {% endblock %}

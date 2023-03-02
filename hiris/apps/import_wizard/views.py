@@ -161,11 +161,24 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 return_data = {
                     'name': 'No data file',
                     'description': "You'll need one or more files to import data from.",
-                    'form': render_to_string('import_wizard/fragments/scheme_file.django-html', context={'form': UploadFileForImportForm()}),
+                    'form': render_to_string('import_wizard/fragments/scheme_file.django-html', request=request, context={
+                        'form': UploadFileForImportForm(), 
+                        'path': reverse('import_wizard:scheme_item', kwargs={'import_scheme_id': import_scheme.id, 'import_item_id': 0})
+                    }),
                     'urgent': True,
                     'start_expanded': True,
                 }
-                
+            elif import_scheme.files.count() == 1:
+                return_data = {
+                    'name': '1 file uploaded',
+                    'description': 'There is 1 file uploaded for this import:<br>',
+                }
+            else:
+                return_data = {
+                    'name': f'{import_scheme.files.count()} files uploaded',
+                    'description': f'There are {import_scheme.files.count()} files uploaded for this import:<ul><li>{import_scheme.list_files(separator="</li><li>")}</li></ul>',
+                }
+
         log.debug(f'Sending ImportSchemeItem via AJAX query: {return_data}')      
         return JsonResponse(return_data)   
 
@@ -184,48 +197,21 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
 
         if (import_item_id == 0):
             ''' import_item_id 0 always refers to associated files '''
-            pass
+            form: form = UploadFileForImportForm(request.POST, request.FILES)
+            file: file = request.FILES['file']
 
-        if (import_item_id == -1):
-            ''' import_item_id -1 indicates a new ImportItem '''
-            pass
+            if form.is_valid():
+                import_file = ImportFile(name=file.name, import_scheme=import_scheme)
+                import_file.save()
+                log.debug(f'Stored ImportFile with PKey of {import_file.id}')
 
+                log.debug(f'Getting ready to store file at: {settings.WORKING_FILES_DIR}{import_file.file_name}')
+                with open(settings.WORKING_FILES_DIR + import_file.file_name, 'wb+') as destination:
+                    for chunk in file.chunks():
+                        destination.write(chunk)
 
-# class FileUpload(LoginRequiredMixin, View):
-#     ''' Receive an uploaded file '''
-
-#     def get(self, request, *args, **kwargs):
-#         ''' Build a new Import '''
-        
-#         importer: str = kwargs['importer_slug']
-
-#         return render(request, "new_import_scheme.django-html", context={'form': UploadFileForImportForm(), 'importer': settings.IMPORT_WIZARD['Importers'][importer]['name']})
-
-#     def post(self, request, *args, **kwargs):
-#         ''' Get the file for a new import '''
-
-#         form: form = UploadFileForImportForm(request.POST, request.FILES)
-#         importer: str = kwargs['importer_slug']
-#         file: file = request.FILES['file']
-
-#         log.debug(f'Getting file: {file.name}')
-
-#         if form.is_valid():
-#             import_file = ImportFile(name=file.name, import_scheme=import_scheme)
-#             import_file.save()
-#             log.debug(f'Stored ImportFile with PKey of {import_file.id}')
-
-#             log.debug(f'Getting ready to store file at: {settings.WORKING_FILES_DIR}{import_file.file_name}')
-#             with open(settings.WORKING_FILES_DIR + import_file.file_name, 'wb+') as destination:
-#                 for chunk in file.chunks():
-#                     destination.write(chunk)
-
-#             log.debug('Reverse URL after file save: ' + reverse('import_wizard:do_import', kwargs={'import_scheme_id': import_scheme.id}))
-            
-#             return JsonResponse({
-#                 'redirect_url': reverse('import_wizard:do_import', kwargs={'import_scheme_id': import_scheme.id})
-#             })
-
-#         else:
-#             # Needs to have a better error
-#             return HttpResponseRedirect(reverse('import_wizard:import'))
+                log.debug('Stored file');
+                
+                return JsonResponse({
+                    'saved': True,
+                })
