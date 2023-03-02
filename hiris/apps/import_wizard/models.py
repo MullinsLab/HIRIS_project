@@ -1,5 +1,8 @@
 from django.conf import settings
 from django.db import models
+
+from pathlib import Path
+
 from .tools import dict_hash
 
 
@@ -56,16 +59,32 @@ class ImportScheme(ImportBaseModel):
 class ImportFile(ImportBaseModel):
     ''' Holds a file to import for an ImportScheme. FIELDS: (name, import_scheme, location) '''
 
+    STATUSES: list[tuple] = [
+        (0, 'New'),
+        (1, 'Uploaded'),
+        (2, 'Inspeting'),
+        (3, 'Inspected'),
+        (4, 'Importing'),
+        (5, 'Imported'),
+    ]
+
     name = models.CharField(max_length=255, null=False, blank=False)
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='files')
-    file_type = models.CharField(max_length=255)
+    type = models.CharField(max_length=255)
+    status = models.IntegerField(choices=STATUSES, default=0)
 
     @property
     def file_name(self) -> str:
         ''' Return a file name based on the ID of the ImportFile '''
 
         return str(self.id).rjust(8, '0')
+    
+    def save(self, *args, **kwargs):
+        ''' Override Save to get at the file type  '''
 
+        self.type = Path(self.name).suffix[1:]
+
+        super().save(*args, **kwargs)
 
 class ImportSchemeItem(ImportBaseModel):
     ''' Holds Import Items '''

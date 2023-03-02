@@ -90,6 +90,10 @@ class ModelTests(TestCase):
         self.assertEquals('test1.txt, test2.txt', self.import_scheme.list_files())
         self.assertEquals('test1.txt<br>test2.txt', self.import_scheme.list_files(separator='<br>'))
 
+    def test_import_scheme_file_has_correct_file_type(self):
+        ''' ImportSchemeFile should have the correct type '''
+        
+        self.assertEquals('txt', self.import_file_1.type)
 
 class ToolsTest(TestCase):
     ''' Tests for tools '''
