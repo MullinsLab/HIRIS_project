@@ -28,6 +28,12 @@ class ImportScheme(ImportBaseModel):
         (1, 'File Received'),
     ]
 
+    @classmethod
+    def status_from_label(cls, label) -> str:
+        ''' Returns the status value by lable '''
+
+        return next(key for key, value in dict(cls.STATUSES).items() if value.lower() == label.lower())
+    
     name = models.CharField(max_length=255, null=False, blank=False)
     description = models.TextField(null=True, blank=True)
     importer = models.CharField(max_length=255, null=False, blank=False)
@@ -68,6 +74,12 @@ class ImportFile(ImportBaseModel):
         (5, 'Imported'),
     ]
 
+    @classmethod
+    def status_from_label(cls, label) -> str:
+        ''' Returns the status value by lable '''
+
+        return next(key for key, value in dict(cls.STATUSES).items() if value.lower() == label.lower())
+
     name = models.CharField(max_length=255, null=False, blank=False)
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='files')
     type = models.CharField(max_length=255)
@@ -85,6 +97,7 @@ class ImportFile(ImportBaseModel):
         self.type = Path(self.name).suffix[1:]
 
         super().save(*args, **kwargs)
+
 
 class ImportSchemeItem(ImportBaseModel):
     ''' Holds Import Items '''
