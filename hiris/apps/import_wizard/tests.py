@@ -2,8 +2,9 @@ import logging
 log = logging.getLogger('test')
 
 import json
+from http import HTTPStatus
 
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase, SimpleTestCase
 from django.contrib.auth.models import User
 from django.conf import settings
 
@@ -17,36 +18,7 @@ class InclusionTest(TestCase):
     def test_true_is_true(self):
         ''' Makesure True is True '''
         self.assertTrue(True)
-
-
-class TemplateAndViewTests(TestCase):
-    ''' Test the templates/views in Import Wizard '''
-
-    @classmethod
-    def setUpTestData(cls):
-        ''' Set up whatever objects are going to be needed for all tests '''
-
-        cls.user = User.objects.create(username='testuser')
-        cls.user.set_password('12345')
-        cls.user.save()
-
-    
-    def setUp(self):
-        ''' Log in the user '''
         
-        self.client.login(username=self.user.username, password='12345')
-
-
-    def test_root_should_have_genome_and_integrations_items(self):
-        ''' Make sure we're getting a success status code and hitting the correct template, as well as including the Imports from settings '''
-
-        response = self.client.get("/import/")
-        
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'import_wizard/manager.django-html')
-        self.assertContains(response, 'Genome')
-        self.assertContains(response, 'integration')
-
 
 class ModelTests(TestCase):
     '''  Tests of basic model functionality '''
@@ -156,3 +128,76 @@ class SoundUserNameTests(TestCase):
 
     def test_sound_user_name_with_all_names_returns_first_name_last_name(self):
         self.assertEqual(sound_user_name(self.user4), 'first_name last_name')
+
+    
+class TemplateAndViewTests(SimpleTestCase):
+    ''' Test the templates/views in Import Wizard '''
+
+    databases = '__all__'
+
+    @classmethod
+    def setUpTestData(cls):
+        ''' Set up whatever objects are going to be needed for all tests '''
+
+        cls.user = User.objects.create(username='testuser')
+        cls.user.set_password('12345')
+        cls.user.save()
+
+        # cls.import_scheme = ImportScheme(
+        #     name = 'Test Importer', 
+        #     user = cls.user, 
+        #     importer = 'Genome',
+        #     status = 0,
+        # )
+        # cls.import_scheme.save()
+    
+    def setUp(self):
+        ''' Log in the user '''
+
+        if User.objects.first():
+            self.user = User.objects.first()
+        else:
+            self.user = User.objects.create(username='testuser')
+            self.user.set_password('12345')
+            self.user.save()
+
+        self.client.login(username=self.user.username, password='12345')
+
+
+    def test_root_should_have_genome_and_integrations_items_and_template_is_manager(self):
+        ''' Make sure we're getting a success status code and hitting the correct template, as well as including the Imports from settings '''
+
+        response = self.client.get("/import/")
+        
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'import_wizard/manager.django-html')
+        self.assertContains(response, 'Genome')
+        self.assertContains(response, 'integration')
+
+    def test_genome_should_have_form_name_and_template_is_new_scheme(self):
+        ''' Make sure we're getting a success status code and hitting the correct template, as well as getting a form. '''
+
+        response = self.client.get("/import/Genome")
+        
+        log.debug(response)
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'import_wizard/new_scheme.django-html')
+        self.assertContains(response, '<form class="form-horizontal"')
+
+    def test_genome_post_should_result_in_new_ImportScheme_object_have_template_manager(self):
+        ''' Use /import/Genome to add a genome import, test the return status, '''
+        response = self.client.post("/import/Genome", data={'name': 'Test Importer from Page', 'description': 'testing'})
+
+        import_scheme = ImportScheme.objects.filter(user_id=self.user.id).first()
+
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
+        self.assertEqual(import_scheme.name, 'Test Importer from Page')
+
+    # def test_genome_get_should_list_test_importer(self):
+    #     ''' /import/Genome should have the importer we created in the previous test '''
+        response = self.client.get("/import/")
+
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTemplateUsed(response, 'import_wizard/manager.django-html')
+        self.assertContains(response, 'Test Importer from Page')

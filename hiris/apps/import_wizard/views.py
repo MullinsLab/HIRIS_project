@@ -75,7 +75,7 @@ class NewImportScheme(LoginRequiredMixin, View):
 
             request.session['current_import_scheme_id'] = import_scheme.id
 
-            return HttpResponseRedirect(reverse('import_wizard:import_scheme', kwargs={'import_scheme_id': import_scheme.id}))
+            return HttpResponseRedirect(reverse('import_wizard:scheme', kwargs={'import_scheme_id': import_scheme.id}))
         
         else:
             # Needs to have a better error
@@ -168,16 +168,18 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                     'urgent': True,
                     'start_expanded': True,
                 }
-            elif import_scheme.files.count() == 1:
-                return_data = {
-                    'name': '1 file uploaded',
-                    'description': 'There is 1 file uploaded for this import:<br>',
-                }
             else:
-                return_data = {
-                    'name': f'{import_scheme.files.count()} files uploaded',
-                    'description': f'There are {import_scheme.files.count()} files uploaded for this import:<ul><li>{import_scheme.list_files(separator="</li><li>")}</li></ul>',
-                }
+                if import_scheme.files.count() == 1:
+                    return_data = {
+                        'name': '1 file uploaded',
+                        'description': 'There is 1 file uploaded for this import:',
+                    }
+                else:
+                    return_data = {
+                        'name': f'{import_scheme.files.count()} files uploaded',
+                        'description': f'There are {import_scheme.files.count()} files uploaded for this import:',
+                    }
+                return_data['description'] += f'<ul><li>{import_scheme.list_files(separator="</li><li>")}</li></ul>'
 
         log.debug(f'Sending ImportSchemeItem via AJAX query: {return_data}')      
         return JsonResponse(return_data)   
@@ -209,8 +211,9 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 with open(settings.WORKING_FILES_DIR + import_file.file_name, 'wb+') as destination:
                     for chunk in file.chunks():
                         destination.write(chunk)
+                log.debug(f'Stored file at: {settings.WORKING_FILES_DIR}{import_file.file_name}')
 
-                log.debug('Stored file');
+                import_file.status=ImportFile.STATUSES
                 
                 return JsonResponse({
                     'saved': True,
