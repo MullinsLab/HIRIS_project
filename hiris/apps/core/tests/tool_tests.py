@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse  
 
-from hiris.apps.core.models import GenomeVersion, GenomeSpecies, GeneLocation, GeneType, Gene
+from hiris.apps.core.models import GenomeVersion, GenomeSpecies, FeatureLocation, FeatureType, GeneType, Feature
 
 class ModelTests(TestCase):
     ''' Tests that just test model structure and functions '''
@@ -12,8 +12,9 @@ class ModelTests(TestCase):
         cls.my_genome_species = GenomeSpecies.objects.create(genome_species_name='My Genome Species')
         cls.my_genome_version = GenomeVersion.objects.create(genome_version_name='My Genome', genome_species=cls.my_genome_species)
         cls.my_gene_type = GeneType.objects.create(gene_type_name='My Gene Type')
-        cls.my_gene = Gene.objects.create(gene_name='My Gene', genome_version=cls.my_genome_version, gene_type=cls.my_gene_type)
-        cls.my_gene_location = GeneLocation(gene=cls.my_gene, chromosome='chr1', landmark='NC_00002.2', gene_start=1231, gene_end=234234, gene_orientation='F')
+        cls.my_feature_type = FeatureType.objects.create(feature_type_name='Gene')
+        cls.my_feature = Feature.objects.create(feature_name='My Gene', genome_version=cls.my_genome_version, feature_type=cls.my_feature_type, gene_type=cls.my_gene_type)
+        cls.my_feature_location = FeatureLocation(feature=cls.my_feature, chromosome='chr1', landmark='NC_00002.2', feature_start=1231, feature_end=234234, feature_orientation='F')
 
 
     def test_core_base_class_should_return_names_that_match_objects_name_attribute(self):
@@ -24,7 +25,7 @@ class ModelTests(TestCase):
 
     def test_core_base_class_should_return_correct_str_for_objects_with_no_name_attribute(self):
         ''' When an object doesn't have an ClassName_name attribute but is declaring it's own name @property '''
-        self.assertEqual(str(self.my_gene_location), 'My Gene: NC_00002.2')
+        self.assertEqual(str(self.my_feature_location), 'My Gene: NC_00002.2')
 
 
 class TemplateAndViewTests(TestCase):

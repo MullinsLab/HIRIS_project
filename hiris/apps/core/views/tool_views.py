@@ -22,6 +22,5 @@ class Home(View):
         
         if user is not None:
             login(request, user)
-        # logger.info(request.POST)
 
         return render(request, "about.django-html")

@@ -62,46 +62,56 @@ class GeneType(CoreBaseModel):
         db_table = "gene_types"
 
 
-class Gene(CoreBaseModel):
-    ''' Holds gene data except for locations '''
-    gene_id = models.BigAutoField(primary_key=True)
-    genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE)
-    gene_name = models.CharField(max_length=255)
-    external_gene_id = models.IntegerField(null=True, blank=True)
-    gene_type = models.ForeignKey(GeneType, on_delete=models.CASCADE)
+class FeatureType(CoreBaseModel):
+    ''' Holds feature types, such as Gene, Pseudogene, Exxon, etc. '''
+    feature_type_id = models.BigAutoField(primary_key=True)
+    feature_type_name = models.CharField(max_length=255, unique=True)
 
     class Meta:
-        db_table = "genes"
-        unique_together = ['genome_version', 'gene_name']
+        db_table = 'feature_types'
+
+
+class Feature(CoreBaseModel):
+    ''' Holds gene data except for locations '''
+    feature_id = models.BigAutoField(primary_key=True)
+    genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE)
+    feature_name = models.CharField(max_length=255)
+    external_gene_id = models.IntegerField(null=True, blank=True)
+    feature_type = models.ForeignKey(FeatureType, on_delete=models.CASCADE, null=False)
+    gene_type = models.ForeignKey(GeneType, on_delete=models.CASCADE, null=False)
+
+    class Meta:
+        db_table = "features"
+        unique_together = ['genome_version', 'feature_name']
         indexes = [
-            models.Index(fields=['genome_version', 'gene_name']),
-            models.Index(fields=['gene_name']),
+            models.Index(fields=['genome_version', 'feature_name']),
+            models.Index(fields=['feature_name']),
             models.Index(fields=['genome_version']),
         ]
 
 
 
-class GeneLocation(CoreBaseModel):
+class FeatureLocation(CoreBaseModel):
     ''' Holds gene location data'''
-    gene_location_id = models.BigAutoField(primary_key=True)
-    gene = models.ForeignKey(Gene, on_delete=models.CASCADE)
+    feature_location_id = models.BigAutoField(primary_key=True)
+    feature = models.ForeignKey(Feature, on_delete=models.CASCADE)
     chromosome = models.CharField(max_length=255, null=True)
     landmark = models.CharField(max_length=255, null=True)
-    gene_start = models.IntegerField(null=False)
-    gene_end = models.IntegerField(null=False)
-    gene_orientation = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=False)
+    feature_start = models.IntegerField(null=False)
+    feature_end = models.IntegerField(null=False)
+    feature_orientation = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=False)
 
     @property
     def name(self) -> str:
         ''' Set the name for a GeneLocation to be Gene: Landmark '''
-        return f'{self.gene.name}: {self.landmark}'
+        return f'{self.feature.name}: {self.landmark}'
 
     class Meta:
-        db_table = "gene_locations"
-        unique_together = ('gene', 'landmark')
+        db_table = "feature_locations"
+        unique_together = ('feature', 'landmark')
         indexes = [
-            models.Index(fields=['gene', 'landmark']),
+            models.Index(fields=['feature', 'landmark']),
             models.Index(fields=['landmark']),
-            models.Index(fields=['gene', 'chromosome']),
+            models.Index(fields=['feature', 'chromosome']),
             models.Index(fields=['chromosome']),
         ]
