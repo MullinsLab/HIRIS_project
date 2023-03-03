@@ -66,14 +66,13 @@ class ModelTests(TestCase):
         cls.import_file_1 = ImportFile(name='test1.txt', import_scheme=cls.import_scheme)
         cls.import_file_1.save()
         
-    
-    def test_import_scheme_has_gets_created_correctly(self):
-        ''' A new ImportScheme model should have a hash '''
-
-        log.debug(f'ImporteScheme: Importer {self.import_scheme.importer} has hash {self.import_scheme.importer_hash}.')
-
+    def test_import_scheme_hash_should_be_the_correct_length(self):
         self.assertEquals(32, len(self.import_scheme.importer_hash))
+
+    def test_import_scheme_hash_should_be_the_same_as_the_hash_of_the_raw_dict_from_settings(self):
         self.assertEquals(dict_hash(settings.IMPORT_WIZARD['Importers']['Genome']), self.import_scheme.importer_hash)
+
+    def test_import_file_name_should_be_file_id_padded_to_8_digits(self):
         self.assertEquals('00000001', self.import_file_1.file_name)
     
 
@@ -95,31 +94,65 @@ class ModelTests(TestCase):
         
         self.assertEquals('txt', self.import_file_1.type)
 
-class ToolsTest(TestCase):
-    ''' Tests for tools '''
+    def test_import_scheme_class_returns_correct_status_value_by_label(self):
+        ''' ImportSchemeFile class should return the correct status when given a certain value '''
+
+        self.assertEqual(0, ImportScheme.status_from_label('New'))
+        self.assertEqual(0, ImportScheme.status_from_label('neW'))
+        self.assertEqual(1, ImportScheme.status_from_label('File Received'))
+
+    def test_import_scheme_file_class_returns_correct_status_value_by_lable(self):
+        ''' ImportSchemeFile class should return the correct status when given a certain value '''
+
+        self.assertEquals(0, ImportFile.status_from_label('New'))
+        self.assertEquals(5, ImportFile.status_from_label('Imported'))
+        self.assertEquals(5, ImportFile.status_from_label('importeD'))
+
+
+# Tests for Tools
+class DictHashTest(TestCase):
+    ''' Tests for DictHash '''
+
+    @classmethod
+    def setUpTestData(cls):
+        ''' Set up dome dicts to test with '''
+        cls.dict1 = {'test': {'count': 1, 'number': 89.3, 'name': 'my test'}}
+        cls.dict2 = {'test': {'count': 1, 'name': 'my test', 'number': 89.3}}
+        cls.dict3 = {'test': {'count': 1, 'number': 89.3, 'name': 'my test 3'}}
 
     def test_dict_hash_returns_correct_hash(self):
-        ''' Ensure that the hash for our dictionary is consistant and correct, as well as different from other hashes '''
+        self.assertEqual('c7a98aa3381012984c03edeaf7049096', dict_hash(self.dict1))
 
-        dict1 = {'test': {'count': 1, 'number': 89.3, 'name': 'my test'}}
-        dict2 = {'test': {'count': 1, 'name': 'my test', 'number': 89.3}}
-        dict3 = {'test': {'count': 1, 'number': 89.3, 'name': 'my test 3'}}
+    def test_dict_hash_returns_same_hash_with_different_order(self):
+        self.assertEqual(dict_hash(self.dict1), dict_hash(self.dict2))
 
-        self.assertEqual('c7a98aa3381012984c03edeaf7049096', dict_hash(dict1))
-        self.assertEqual(dict_hash(dict1), dict_hash(dict2))
-        self.assertEqual(dict_hash(dict1), dict_hash(dict1))
-        self.assertNotEqual(dict_hash(dict1), dict_hash(dict3))
+    def test_dict_hash_returns_same_hash_with_the_same_dict(self):
+        self.assertEqual(dict_hash(self.dict1), dict_hash(self.dict1))
+    
+    def test_dict_hash_returns_different_hash_with_the_different_dict(self):
+        self.assertNotEqual(dict_hash(self.dict1), dict_hash(self.dict3))
 
 
-    def test_sound_user_name_returns_correct_value(self):
-        '''  Ensure that the return value for sound_user_name is correct'''
+class SoundUserNameTests(TestCase):
+    ''' Tests for sound_user_name, a function that returns a good name for a user '''
 
-        user1 = User(username='username')
-        user2 = User(username='username', first_name='first_name')
-        user3 = User(username='username', last_name='last_name')
-        user4 = User(username='username', first_name='first_name', last_name='last_name')
+    @classmethod
+    def setUpTestData(cls):
+        ''' Set up some users to test with '''
 
-        self.assertEqual(sound_user_name(user1), 'username')
-        self.assertEqual(sound_user_name(user2), 'first_name')
-        self.assertEqual(sound_user_name(user3), 'last_name')
-        self.assertEqual(sound_user_name(user4), 'first_name last_name')
+        cls.user1 = User(username='username')
+        cls.user2 = User(username='username', first_name='first_name')
+        cls.user3 = User(username='username', last_name='last_name')
+        cls.user4 = User(username='username', first_name='first_name', last_name='last_name')
+
+    def test_sound_user_name_with_only_username_returns_username(self):
+        self.assertEqual(sound_user_name(self.user1), 'username')
+    
+    def test_sound_user_name_with_username_and_first_name_returns_first_name(self):
+        self.assertEqual(sound_user_name(self.user2), 'first_name')
+    
+    def test_sound_user_name_with_username_and_last_name_returns_last_name(self):
+        self.assertEqual(sound_user_name(self.user3), 'last_name')
+
+    def test_sound_user_name_with_all_names_returns_first_name_last_name(self):
+        self.assertEqual(sound_user_name(self.user4), 'first_name last_name')
