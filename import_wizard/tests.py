@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 
 from .models import ImportScheme, ImportFile
-from .tools import dict_hash, sound_user_name
+from .utils.simple import dict_hash, sound_user_name
 
 
 class InclusionTest(TestCase):

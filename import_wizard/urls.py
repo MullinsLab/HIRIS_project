@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.urls import path, include
 
-from hiris.apps.import_wizard.views import ManageImports, NewImportScheme, DoImportScheme, DoImportSchemeItem, ListImportSchemeItems
+from import_wizard.views import ManageImports, NewImportScheme, DoImportScheme, DoImportSchemeItem, ListImportSchemeItems
 
 app_name='import_wizard'
 

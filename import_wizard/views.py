@@ -12,7 +12,7 @@ log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
 
 from .forms import UploadFileForImportForm, NewImportSchemeForm
 from .models import ImportScheme, ImportFile, ImportSchemeItem
-from .tools import sound_user_name
+from .utils.simple import sound_user_name
 
 class ManageImports(LoginRequiredMixin, View):
     ''' The starting place for importing.  Show information on imports, started imports, new import, etc. '''

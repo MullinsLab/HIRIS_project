@@ -3,7 +3,7 @@ from django.db import models
 
 from pathlib import Path
 
-from .tools import dict_hash
+from .utils.simple import dict_hash
 
 
 class ImportBaseModel(models.Model):
@@ -68,7 +68,7 @@ class ImportFile(ImportBaseModel):
     STATUSES: list[tuple] = [
         (0, 'New'),
         (1, 'Uploaded'),
-        (2, 'Inspeting'),
+        (2, 'Inspecting'),
         (3, 'Inspected'),
         (4, 'Importing'),
         (5, 'Imported'),
