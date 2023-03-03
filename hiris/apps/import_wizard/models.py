@@ -99,6 +99,12 @@ class ImportFile(ImportBaseModel):
         super().save(*args, **kwargs)
 
 
+class ImportFileField(ImportBaseModel):
+    ''' Describes a field for an ImportFile '''
+
+    name = models.CharField(max_length=255, null=False, blank=False)
+
+
 class ImportSchemeItem(ImportBaseModel):
     ''' Holds Import Items '''
 
