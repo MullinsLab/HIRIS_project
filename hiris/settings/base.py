@@ -30,9 +30,6 @@ SECRET_KEY = env('SECRET_KEY')
 
 ALLOWED_HOSTS = env('DJANGO_ALLOWED_HOSTS').split(" ")
 
-# Specify location of working files
-WORKING_FILES_DIR = os.path.join('/', env('WORKING_FILES_DIR'), '')
-
 # ALLOWED_HOSTS = []
 # Application definition
 
@@ -285,9 +282,7 @@ logging.config.dictConfig({
     },
 })
 
-# logger = logging.getLogger('app')
-# logger.info('Testing!')
 
-
+# Crispy Forms Settings
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"

@@ -5,9 +5,6 @@ from .base import env
 # For UW_SAML
 from django.urls import reverse_lazy
 
-
-# print(f"Mock Username: {env('MOCK_USERNAME')}")
-
 # For UW_SAML
 LOGIN_URL = reverse_lazy('saml_login')
 
@@ -73,6 +70,7 @@ UW_SAML = {
 
 
 IMPORT_WIZARD = {
+    'Working_Files_Dir': os.path.join('/', env('WORKING_FILES_DIR'), ''),
     'Logger': 'app',
     'Importers': {
         'Genome': {
