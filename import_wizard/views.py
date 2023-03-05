@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.template.loader import render_to_string
 
+import os
 import json
 import logging
 log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
@@ -207,13 +208,16 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 import_file.save()
                 log.debug(f'Stored ImportFile with PKey of {import_file.id}')
 
-                log.debug(f'Getting ready to store file at: {settings.WORKING_FILES_DIR}{import_file.file_name}')
-                with open(settings.WORKING_FILES_DIR + import_file.file_name, 'wb+') as destination:
+                log.debug(f'Getting ready to store file at: {settings.IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
+                with open(settings.IMPORT_WIZARD["Working_Files_Dir"] + import_file.file_name, 'wb+') as destination:
                     for chunk in file.chunks():
                         destination.write(chunk)
-                log.debug(f'Stored file at: {settings.WORKING_FILES_DIR}{import_file.file_name}')
+                log.debug(f'Stored file at: {settings.IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
 
-                import_file.status=ImportFile.STATUSES
+                import_file.status = ImportFile.status_from_label('Uploaded')
+                import_file.save(update_fields=["status"])
+                
+                os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
                 
                 return JsonResponse({
                     'saved': True,
