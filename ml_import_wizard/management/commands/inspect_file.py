@@ -6,7 +6,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError
 from ml_import_wizard.models import ImportSchemeFile
-from ml_import_wizard.utils.gff import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, GFFImporter
+from ml_import_wizard.utils.inspect import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, GFFImporter
 
 class Command(BaseCommand):
     help = "Inspects a file in preperation for importing. This is not intended to be run by humans, it's there for the system to run outside of page views. "
