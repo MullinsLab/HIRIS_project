@@ -118,15 +118,10 @@ class ImportSchemeFileField(ImportBaseModel):
     def import_sample(self, sample: any=None) -> None:
         ''' Import the Sample data and massage it by type '''
 
-        print(f'Type of Sample:{type(sample)}')
-
         if type(sample) in [tuple, list, set]:
-            #self.sample = ', '.join(f"'{item}'" for item in sample)
-            self.sample = ', '.join(sample)
-        elif type(sample) == str:
-            self.sample = sample
-        elif type(sample) == int:
-            self.sample=str(sample)
+            self.sample = ', '.join([str(item) for item in sample])
+        else:
+            self.sample = str(sample)
 
         self.save(update_fields=["sample"])
 
