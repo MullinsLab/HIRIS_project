@@ -4,8 +4,9 @@ from django.core.management.base import BaseCommand, CommandError
 import logging
 log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
 
+from import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError
 from import_wizard.models import ImportFile
-from import_wizard.utils.gff import FileNotSavedError, FileHasBeenInspectedError, GFFImporter
+from import_wizard.utils.gff import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, GFFImporter
 
 class Command(BaseCommand):
     help = "Inspects a file in preperation for importing. This is not intended to be run by humans, it's there for the system to run outside of page views. "
@@ -36,22 +37,25 @@ class Command(BaseCommand):
         for import_file_id in options['import_file_id']:
             try:
                 import_file = ImportFile.objects.get(pk=import_file_id)
-            except ImportFile.DoesNotExist:
+            except ImportFile.DoesNotExist as err:
+                log.warn(f'ImportFile {import_file_id} does not exist')
                 raise CommandError(f'ImportFile {import_file_id} does not exist')
 
             # Create the importer based on the type of the file
             if import_file.type in ['gff', 'gff3']:
                 log.debug('Got gff file type for inspection')
-                file_importer = GFFImporter(import_file=import_file, use_db=options['use_db'], ignore_status=options['ignore_status'])
-            
+
+                try:
+                    file_importer = GFFImporter(import_file=import_file, use_db=options['use_db'], ignore_status=options['ignore_status'])
+                except GFFUtilsNotInstalledError as err:
+                    raise CommandError(err)
+                
             if verbosity > 1:
                 self.stdout.write(f'Starting to inspect {import_file} ({settings.IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}) file.')
 
             try:
                 file_importer.inspect()
-            except FileNotSavedError as err:
-                raise CommandError(err)
-            except FileHasBeenInspectedError as err:
+            except (FileNotSavedError, FileHasBeenInspectedError) as err:
                 raise CommandError(err)
             
             if verbosity > 1:

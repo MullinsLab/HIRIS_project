@@ -4,19 +4,15 @@ import logging
 log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
 
 from itertools import islice
-import gffutils
+
+# Check to see if gffutils is installed
+NO_GFFUTILS: bool = False
+from importlib.util import find_spec
+if (find_spec("gffutils")): import gffutils 
+else: NO_GFFUTILS=True
 
 from import_wizard.models import ImportFile
-
-
-class FileNotSavedError(Exception):
-    """ File can't be operated on because it hasn't been saved. """
-    pass
-
-
-class FileHasBeenInspectedError(Exception):
-    """ File can't be operated on because it has already been inspected. """
-    pass
+from import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError
 
 
 class GFFImporter():
@@ -25,6 +21,10 @@ class GFFImporter():
     def __init__(self, import_file: ImportFile = None, use_db: bool = False, ignore_status: bool = False) -> None:
         ''' Build the object
         args: import_file = the ImportFile object to work with. '''
+
+        # Error out if gffutils is not installed
+        if (NO_GFFUTILS):
+            raise GFFUtilsNotInstalledError("gfutils is not installed: The file can't be inspected because GFFUtils is not installed. (pip install gffutils)")
 
         #self.import_file = kwargs['import_file']
         self.import_file = import_file
