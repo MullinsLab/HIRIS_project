@@ -1,7 +1,7 @@
 from django.conf import settings
 
 import logging
-log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
+log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from itertools import islice
 
@@ -11,14 +11,14 @@ from importlib.util import find_spec
 if (find_spec("gffutils")): import gffutils 
 else: NO_GFFUTILS=True
 
-from import_wizard.models import ImportFile
-from import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError
+from ml_import_wizard.models import ImportSchemeFile
+from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError
 
 
 class GFFImporter():
     ''' Object to work with a GFF file. '''
 
-    def __init__(self, import_file: ImportFile = None, use_db: bool = False, ignore_status: bool = False) -> None:
+    def __init__(self, import_file: ImportSchemeFile = None, use_db: bool = False, ignore_status: bool = False) -> None:
         ''' Build the object
         args: import_file = the ImportFile object to work with. '''
 
@@ -36,20 +36,20 @@ class GFFImporter():
 
         # Error out if the file hasn't been uploaded, or has already been inspected
         if not self.ignore_status and self.import_file.status == 0:
-            raise FileNotSavedError(f'File not marked as saved: {self.import_file} ({settings.IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name})')
+            raise FileNotSavedError(f'File not marked as saved: {self.import_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name})')
         
         if not self.ignore_status and self.import_file.status >= 3:
-            raise FileHasBeenInspectedError(f'File already inspected: {self.import_file} ({settings.IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name})')
+            raise FileHasBeenInspectedError(f'File already inspected: {self.import_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name})')
         
-        self.import_file.status = ImportFile.status_from_label('Inspecting')
+        self.import_file.status = ImportSchemeFile.status_from_label('Inspecting')
         self.import_file.save(update_fields=["status"])
         
         if (self.use_db):
-            db = gffutils.FeatureDB(f'{settings.IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name}.db')
+            db = gffutils.FeatureDB(f'{settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name}.db')
         else:
             db = gffutils.create_db(
-                f'{settings.IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name}', 
-                f'{settings.IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name}.db', 
+                f'{settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name}', 
+                f'{settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name}.db', 
                 merge_strategy="create_unique", 
                 force=True
             )
@@ -79,6 +79,6 @@ class GFFImporter():
 
         self.import_file.import_fields(fields=attributes)
 
-        self.import_file.status = ImportFile.status_from_label('Inspected')
+        self.import_file.status = ImportSchemeFile.status_from_label('Inspected')
         self.import_file.save(update_fields=["status"])
 

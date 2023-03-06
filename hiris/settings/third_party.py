@@ -69,7 +69,7 @@ UW_SAML = {
 # }
 
 
-IMPORT_WIZARD = {
+ML_IMPORT_WIZARD = {
     'Working_Files_Dir': os.path.join('/', env('WORKING_FILES_DIR'), ''),
     'Logger': 'app',
     'Importers': {

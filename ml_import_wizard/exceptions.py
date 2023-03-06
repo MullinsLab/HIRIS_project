@@ -1,7 +1,7 @@
 from django.conf import settings
 
 import logging
-log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
+log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 
 class LoggingException(Exception):
@@ -12,6 +12,7 @@ class LoggingException(Exception):
 
     def __str__(self) -> str:
         return self.message
+    
 
 class GFFUtilsNotInstalledError(LoggingException):
     """ GFF & GFF3 Files can't be inspected because gffutils is not installed """

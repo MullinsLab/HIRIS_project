@@ -1,9 +1,9 @@
 from django.contrib.auth.decorators import login_required
 from django.urls import path, include
 
-from import_wizard.views import ManageImports, NewImportScheme, DoImportScheme, DoImportSchemeItem, ListImportSchemeItems
+from ml_import_wizard.views import ManageImports, NewImportScheme, DoImportScheme, DoImportSchemeItem, ListImportSchemeItems
 
-app_name='import_wizard'
+app_name='ml_import_wizard'
 
 urlpatterns = [
     path('', ManageImports.as_view(), name='import'),

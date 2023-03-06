@@ -8,7 +8,7 @@ from django.test import TestCase, TransactionTestCase, SimpleTestCase
 from django.contrib.auth.models import User
 from django.conf import settings
 
-from .models import ImportScheme, ImportFile
+from .models import ImportScheme, ImportSchemeFile
 from .utils.simple import dict_hash, sound_user_name
 
 
@@ -35,14 +35,14 @@ class ModelTests(TestCase):
         )
         cls.import_scheme.save()
 
-        cls.import_file_1 = ImportFile(name='test1.txt', import_scheme=cls.import_scheme)
+        cls.import_file_1 = ImportSchemeFile(name='test1.txt', import_scheme=cls.import_scheme)
         cls.import_file_1.save()
         
     def test_import_scheme_hash_should_be_the_correct_length(self):
         self.assertEquals(32, len(self.import_scheme.importer_hash))
 
     def test_import_scheme_hash_should_be_the_same_as_the_hash_of_the_raw_dict_from_settings(self):
-        self.assertEquals(dict_hash(settings.IMPORT_WIZARD['Importers']['Genome']), self.import_scheme.importer_hash)
+        self.assertEquals(dict_hash(settings.ML_IMPORT_WIZARD['Importers']['Genome']), self.import_scheme.importer_hash)
 
     def test_import_file_name_should_be_file_id_padded_to_8_digits(self):
         self.assertEquals('00000001', self.import_file_1.file_name)
@@ -55,7 +55,7 @@ class ModelTests(TestCase):
 
         self.assertEquals('test1.txt', self.import_scheme.list_files())
 
-        import_file_2 = ImportFile(name='test2.txt', import_scheme=self.import_scheme)
+        import_file_2 = ImportSchemeFile(name='test2.txt', import_scheme=self.import_scheme)
         import_file_2.save()
 
         self.assertEquals('test1.txt, test2.txt', self.import_scheme.list_files())
@@ -76,9 +76,9 @@ class ModelTests(TestCase):
     def test_import_scheme_file_class_returns_correct_status_value_by_lable(self):
         ''' ImportSchemeFile class should return the correct status when given a certain value '''
 
-        self.assertEquals(0, ImportFile.status_from_label('New'))
-        self.assertEquals(5, ImportFile.status_from_label('Imported'))
-        self.assertEquals(5, ImportFile.status_from_label('importeD'))
+        self.assertEquals(0, ImportSchemeFile.status_from_label('New'))
+        self.assertEquals(5, ImportSchemeFile.status_from_label('Imported'))
+        self.assertEquals(5, ImportSchemeFile.status_from_label('importeD'))
 
 
 # Tests for Tools
@@ -170,7 +170,7 @@ class TemplateAndViewTests(SimpleTestCase):
         response = self.client.get("/import/")
         
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertTemplateUsed(response, 'import_wizard/manager.django-html')
+        self.assertTemplateUsed(response, 'ml_import_wizard/manager.django-html')
         self.assertContains(response, 'Genome')
         self.assertContains(response, 'integration')
 
@@ -182,7 +182,7 @@ class TemplateAndViewTests(SimpleTestCase):
         log.debug(response)
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertTemplateUsed(response, 'import_wizard/new_scheme.django-html')
+        self.assertTemplateUsed(response, 'ml_import_wizard/new_scheme.django-html')
         self.assertContains(response, '<form class="form-horizontal"')
 
     def test_genome_post_should_result_in_new_ImportScheme_object_have_template_manager(self):
@@ -199,5 +199,5 @@ class TemplateAndViewTests(SimpleTestCase):
         response = self.client.get("/import/")
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertTemplateUsed(response, 'import_wizard/manager.django-html')
+        self.assertTemplateUsed(response, 'ml_import_wizard/manager.django-html')
         self.assertContains(response, 'Test Importer from Page')

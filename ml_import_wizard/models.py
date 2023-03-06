@@ -46,7 +46,7 @@ class ImportScheme(ImportBaseModel):
         ''' Override Save to store the importer_hash.  This is used to know if the Importer definition has changed, invalidating this importer  '''
 
         if not self.importer_hash:
-            self.importer_hash = dict_hash(settings.IMPORT_WIZARD['Importers'][self.importer])
+            self.importer_hash = dict_hash(settings.ML_IMPORT_WIZARD['Importers'][self.importer])
         super().save(*args, **kwargs)
 
     def list_files(self, *args, **kwargs) -> str:
@@ -62,7 +62,7 @@ class ImportScheme(ImportBaseModel):
         return separator.join(file_list)
 
 
-class ImportFile(ImportBaseModel):
+class ImportSchemeFile(ImportBaseModel):
     ''' Holds a file to import for an ImportScheme. FIELDS: (name, import_scheme, location) '''
 
     STATUSES: list[tuple] = [
@@ -108,10 +108,10 @@ class ImportFile(ImportBaseModel):
             import_file_field.import_sample(sample=samples)
 
 
-class ImportFileField(ImportBaseModel):
+class ImportSchemeFileField(ImportBaseModel):
     ''' Describes a field for an ImportFile '''
 
-    import_file = models.ForeignKey(ImportFile, related_name='fields', on_delete=models.CASCADE, editable=False)
+    import_scheme_file = models.ForeignKey(ImportSchemeFile, related_name='fields', on_delete=models.CASCADE, editable=False)
     name = models.CharField(max_length=255, null=False, blank=False)
     sample = models.TextField(null=True, blank=True)
 

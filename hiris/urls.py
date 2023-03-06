@@ -9,7 +9,7 @@ urlpatterns = [
     
     path('', include('hiris.apps.core.urls.tool_urls', namespace='core')),
     path('api/', include('hiris.apps.core.urls.api_urls', namespace='api')),
-    path('import/', include('import_wizard.urls', namespace='import_wizard')),
+    path('import/', include('ml_import_wizard.urls', namespace='ml_import_wizard')),
     path('export/', include('hiris.apps.export_wizard.urls', namespace='export_wizard')),
 
     # For UW_SAML

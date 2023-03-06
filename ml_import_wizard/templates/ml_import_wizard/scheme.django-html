@@ -1,11 +1,11 @@
-{% extends "import_wizard/base.django-html" %}
+{% extends "ml_import_wizard/base.django-html" %}
 
 {% load crispy_forms_tags %}
 {% load static %}
 
 {% block header_content %}
-<link rel="stylesheet" type="text/css" href="{% static 'import_wizard/css/import_wizard.css' %}">
-<script src="{% static 'import_wizard/js/import_wizard.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'ml_import_wizard/css/import_wizard.css' %}">
+<script src="{% static 'ml_import_wizard/js/import_wizard.js' %}"></script>
 {% endblock %}
 
 {% block page_content %}
@@ -17,15 +17,15 @@
 </div>
 
 <script type="text/javascript">
-    const ITEM_TEMPLATE = `{% include "import_wizard/fragments/scheme_item.django-html" %}`;
+    const ITEM_TEMPLATE = `{% include "ml_import_wizard/fragments/scheme_item.django-html" %}`;
     // const item_template='test';
     $( document ).ready(
         window.import_scheme = new ImportScheme({
             id: {{ import_scheme.id }},
-            base_url: "{% url 'import_wizard:scheme' import_scheme_id=import_scheme.id %}",
+            base_url: "{% url 'ml_import_wizard:scheme' import_scheme_id=import_scheme.id %}",
             accordion_container: '#import_scheme_accordion',
         })
     );
 </script>
-{% include "import_wizard/fragments/unclosable_progress_modal.django-html" %}
+{% include "ml_import_wizard/fragments/unclosable_progress_modal.django-html" %}
 {% endblock %}

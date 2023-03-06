@@ -9,10 +9,10 @@ from django.template.loader import render_to_string
 import os
 import json
 import logging
-log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
+log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from .forms import UploadFileForImportForm, NewImportSchemeForm
-from .models import ImportScheme, ImportFile, ImportSchemeItem
+from .models import ImportScheme, ImportSchemeFile, ImportSchemeItem
 from .utils.simple import sound_user_name
 
 class ManageImports(LoginRequiredMixin, View):
@@ -24,7 +24,7 @@ class ManageImports(LoginRequiredMixin, View):
         user_import_schemes: list[dict] = []
 
         # Bring in the importers from settings
-        for importer, importer_dict in settings.IMPORT_WIZARD['Importers'].items():
+        for importer, importer_dict in settings.ML_IMPORT_WIZARD['Importers'].items():
             importer_item: dict[str] = {
                 'name': importer_dict.get('long_name', importer_dict['name']),
                 'importer': importer, # Used for URLs
@@ -45,7 +45,7 @@ class ManageImports(LoginRequiredMixin, View):
 
             user_import_schemes.append(user_import_scheme_item)
  
-        return render(request, "import_wizard/manager.django-html", context={'importers': importers, 'user_import_schemes': user_import_schemes})
+        return render(request, "ml_import_wizard/manager.django-html", context={'importers': importers, 'user_import_schemes': user_import_schemes})
 
 
 class NewImportScheme(LoginRequiredMixin, View):
@@ -55,9 +55,9 @@ class NewImportScheme(LoginRequiredMixin, View):
         ''' Build a new Import '''
     
         importer: str = kwargs['importer_slug']
-        importer_name: str = settings.IMPORT_WIZARD['Importers'][importer]['name']
+        importer_name: str = settings.ML_IMPORT_WIZARD['Importers'][importer]['name']
 
-        return render(request, "import_wizard/new_scheme.django-html", context={
+        return render(request, "ml_import_wizard/new_scheme.django-html", context={
             'form': NewImportSchemeForm(importer_slug=importer, initial={'name': f"{sound_user_name(request.user)}'s {importer_name} import"}), 
             'importer': importer_name
         })
@@ -76,11 +76,11 @@ class NewImportScheme(LoginRequiredMixin, View):
 
             request.session['current_import_scheme_id'] = import_scheme.id
 
-            return HttpResponseRedirect(reverse('import_wizard:scheme', kwargs={'import_scheme_id': import_scheme.id}))
+            return HttpResponseRedirect(reverse('ml_import_wizard:scheme', kwargs={'import_scheme_id': import_scheme.id}))
         
         else:
             # Needs to have a better error
-            return HttpResponseRedirect(reverse('import_wizard:import'))
+            return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
 
 class DoImportScheme(View):
@@ -93,13 +93,13 @@ class DoImportScheme(View):
         # Return the user to the /import page if they don't have a valid import_scheme_id to work on
         if import_scheme_id is None:
             log.debug('Got bad import_scheme_id')
-            return HttpResponseRedirect(reverse('import_wizard:import'))
+            return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
         try:
             import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
         except ImportScheme.DoesNotExist:
             # Return the user to the /import page if they don't have a valid import_scheme to work on
-            return HttpResponseRedirect(reverse('import_wizard:import'))
+            return HttpResponseRedirect(reverse('ml_import_wizard:import'))
         
         request.session['current_import_scheme_id'] = import_scheme_id
 
@@ -114,8 +114,8 @@ class DoImportScheme(View):
             }
             actions.append(action)
 
-        return render(request, 'import_wizard/scheme.django-html', context={
-            'importer': settings.IMPORT_WIZARD['Importers'][import_scheme.importer]['name'], 
+        return render(request, 'ml_import_wizard/scheme.django-html', context={
+            'importer': settings.ML_IMPORT_WIZARD['Importers'][import_scheme.importer]['name'], 
             'import_scheme': import_scheme, 
             'actions': actions}
         )
@@ -154,7 +154,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
             import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
         except ImportScheme.DoesNotExist:
             # Return the user to the /import page if they don't have a valid import_scheme to work on
-            return HttpResponseRedirect(reverse('import_wizard:import'))
+            return HttpResponseRedirect(reverse('ml_import_wizard:import'))
         
         if (import_item_id == 0):
             ''' import_item_id 0 always refers to associated files '''
@@ -162,9 +162,9 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 return_data = {
                     'name': 'No data file',
                     'description': "You'll need one or more files to import data from.",
-                    'form': render_to_string('import_wizard/fragments/scheme_file.django-html', request=request, context={
+                    'form': render_to_string('ml_import_wizard/fragments/scheme_file.django-html', request=request, context={
                         'form': UploadFileForImportForm(), 
-                        'path': reverse('import_wizard:scheme_item', kwargs={'import_scheme_id': import_scheme.id, 'import_item_id': 0})
+                        'path': reverse('ml_import_wizard:scheme_item', kwargs={'import_scheme_id': import_scheme.id, 'import_item_id': 0})
                     }),
                     'urgent': True,
                     'start_expanded': True,
@@ -196,7 +196,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
             import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
         except ImportScheme.DoesNotExist:
             # Return the user to the /import page if they don't have a valid import_scheme to work on
-            return HttpResponseRedirect(reverse('import_wizard:import'))
+            return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
         if (import_item_id == 0):
             ''' import_item_id 0 always refers to associated files '''
@@ -204,17 +204,17 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
             file: file = request.FILES['file']
 
             if form.is_valid():
-                import_file = ImportFile(name=file.name, import_scheme=import_scheme)
+                import_file = ImportSchemeFile(name=file.name, import_scheme=import_scheme)
                 import_file.save()
                 log.debug(f'Stored ImportFile with PKey of {import_file.id}')
 
-                log.debug(f'Getting ready to store file at: {settings.IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
-                with open(settings.IMPORT_WIZARD["Working_Files_Dir"] + import_file.file_name, 'wb+') as destination:
+                log.debug(f'Getting ready to store file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
+                with open(settings.ML_IMPORT_WIZARD["Working_Files_Dir"] + import_file.file_name, 'wb+') as destination:
                     for chunk in file.chunks():
                         destination.write(chunk)
-                log.debug(f'Stored file at: {settings.IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
+                log.debug(f'Stored file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
 
-                import_file.status = ImportFile.status_from_label('Uploaded')
+                import_file.status = ImportSchemeFile.status_from_label('Uploaded')
                 import_file.save(update_fields=["status"])
                 
                 os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))

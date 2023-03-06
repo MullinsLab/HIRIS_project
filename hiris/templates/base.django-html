@@ -50,7 +50,7 @@
                 <a class="nav-link {% if request.get_full_path == about_url %}active{% endif %}" aria-current="page" href="{{about_url}}">About</a>
               </li>
               <li>
-                {% url 'import_wizard:import' as import_url %}
+                {% url 'ml_import_wizard:import' as import_url %}
                 <a class="nav-link {% if import_url in request.get_full_path %}active{% endif %}" href="{{import_url}}"> Import</a>
               </li>
               <li class="nav-item">

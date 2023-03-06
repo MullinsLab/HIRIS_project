@@ -2,11 +2,11 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 import logging
-log = logging.getLogger(settings.IMPORT_WIZARD['Logger'])
+log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
-from import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError
-from import_wizard.models import ImportFile
-from import_wizard.utils.gff import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, GFFImporter
+from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError
+from ml_import_wizard.models import ImportSchemeFile
+from ml_import_wizard.utils.gff import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, GFFImporter
 
 class Command(BaseCommand):
     help = "Inspects a file in preperation for importing. This is not intended to be run by humans, it's there for the system to run outside of page views. "
@@ -36,8 +36,8 @@ class Command(BaseCommand):
 
         for import_file_id in options['import_file_id']:
             try:
-                import_file = ImportFile.objects.get(pk=import_file_id)
-            except ImportFile.DoesNotExist as err:
+                import_file = ImportSchemeFile.objects.get(pk=import_file_id)
+            except ImportSchemeFile.DoesNotExist as err:
                 log.warn(f'ImportFile {import_file_id} does not exist')
                 raise CommandError(f'ImportFile {import_file_id} does not exist')
 
@@ -51,7 +51,7 @@ class Command(BaseCommand):
                     raise CommandError(err)
                 
             if verbosity > 1:
-                self.stdout.write(f'Starting to inspect {import_file} ({settings.IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}) file.')
+                self.stdout.write(f'Starting to inspect {import_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}) file.')
 
             try:
                 file_importer.inspect()
@@ -59,7 +59,7 @@ class Command(BaseCommand):
                 raise CommandError(err)
             
             if verbosity > 1:
-                self.stdout.write(f'You done inspected that {import_file} ({settings.IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}) file!')
+                self.stdout.write(f'You done inspected that {import_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}) file!')
 
             files_count += 1
 

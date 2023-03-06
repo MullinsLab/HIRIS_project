@@ -1,4 +1,4 @@
-{% extends "import_wizard/base.django-html" %}
+{% extends "ml_import_wizard/base.django-html" %}
 {% load crispy_forms_tags %}
 
 {% block page_content %}
