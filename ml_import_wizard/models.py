@@ -3,7 +3,7 @@ from django.db import models
 
 from pathlib import Path
 
-from .utils.simple import dict_hash
+from ml_import_wizard.utils.simple import dict_hash, stringilize
 
 
 class ImportBaseModel(models.Model):
@@ -118,10 +118,7 @@ class ImportSchemeFileField(ImportBaseModel):
     def import_sample(self, sample: any=None) -> None:
         ''' Import the Sample data and massage it by type '''
 
-        if type(sample) in [tuple, list, set]:
-            self.sample = ', '.join([str(item) for item in sample])
-        else:
-            self.sample = str(sample)
+        self.sample = stringilize(sample)
 
         self.save(update_fields=["sample"])
 
@@ -129,8 +126,9 @@ class ImportSchemeFileField(ImportBaseModel):
 class ImportSchemeItem(ImportBaseModel):
     ''' Holds Import Items '''
 
-    name = models.CharField(max_length=255, null=False, blank=False)
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='items', null=True, editable=False)
     import_scheme_item = models.ForeignKey('self', on_delete=models.CASCADE, related_name='items', null=True, editable=False)
+    name = models.CharField(max_length=255, null=False, blank=False)
+    value = models.TextField(null=True, blank=True)
     added_date = models.DateField(auto_now_add=True, editable=False)
     updated_date = models.DateField(auto_now=True, editable=False)

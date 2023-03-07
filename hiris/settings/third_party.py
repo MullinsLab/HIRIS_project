@@ -76,29 +76,27 @@ ML_IMPORT_WIZARD = {
         'Genome': {
             'name': 'Genome',
             'description': 'Import an entire genome',
-            'app': 'hiris.apps.core',
-            'models': [
+            'apps': [
                 {
-                    'name': 'GenomeSpecies',
-                    'restriction': 'deferred',
-                },
-                {
-                    'name': 'GenomeVersion',
-                },
-                {
-                    'name': 'GeneType',
-                    'restriction': 'deferred',
-                    'fields': {
-                        'gene_type_name': {
-                            'approved_values': ['CDS', 'exon', 'gene', 'start_codon', 'stop_codon']
+                    'name': 'core',
+                    # 'include_models': ('GeneType', 'GenomeSpecies'),
+                    # 'exclude_models': ('Feature'),
+                    'models': {
+                        'GenomeSpecies':{
+                            'restriction': 'deferred',
                         },
+                        'GeneType': {
+                            'restriction': 'deferred',
+                            'fields': {
+                                'gene_type_name': {
+                                    'approved_values': ['CDS', 'exon', 'gene', 'start_codon', 'stop_codon']
+                                },
+                            },
+                        },
+                        # 'FeatureLocation': {
+                        #     'exclude_fields': ('landmark'),
+                        # },
                     },
-                },
-                {
-                    'name': 'FeatureType',
-                },
-                {
-                    'name': 'Feature',
                 },
             ],
         },

@@ -27,10 +27,18 @@ Actual possible sites
 
 Host genome names
 
-Best Practices Suggestions
-https://www.toptal.com/django/django-top-10-mistakes
-
 ```
+
+What should be brought in from gff3
+	Genes
+	Psudeogenes
+	Exxons
+	CDS
+	Stop and Start codons
+
+exclude
+	transcripts
+	five_prime_UTR
 
 # Notes on DB Reorg:
 

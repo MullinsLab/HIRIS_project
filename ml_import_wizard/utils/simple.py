@@ -21,3 +21,23 @@ def sound_user_name(user: User) -> str:
        return f'{user.first_name} {user.last_name}'
     
     return user.first_name or user.last_name or user.username
+
+
+def mached_name_choices(choices: list) -> list:
+    """ Functin to return a list of tuples that contains the origional list doubled
+    ['thing1', 'thing2'] becomes [('thing1', 'thing1'), ('thing2', thing2')] """
+    
+    tuple_choices: list = []
+    for choice in choices:
+        tuple_choices.append((choice, choice))
+        
+    return tuple_choices
+
+
+def stringilize(value: any = None) -> str:
+    """ Make sure a value is a string.  Doesn't include enclosures ([{}]) """
+
+    if type(value) in [tuple, list, set]:
+        return', '.join([str(item) for item in value])
+    else:
+        return str(value)

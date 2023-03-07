@@ -50,7 +50,6 @@ INSTALLED_APPS = [
 
     # HIRIS apps
     'hiris.apps.core',
-    #'hiris.apps.import_wizard',
     'ml_import_wizard',
     'hiris.apps.export_wizard',
 ]
