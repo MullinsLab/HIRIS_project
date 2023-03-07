@@ -79,8 +79,8 @@ ML_IMPORT_WIZARD = {
             'apps': [
                 {
                     'name': 'core',
-                    # 'include_models': ('GeneType', 'GenomeSpecies'),
-                    # 'exclude_models': ('Feature'),
+                    # 'include_models': ['GeneType', 'GenomeSpecies'],
+                    # 'exclude_models': ['Feature'],
                     'models': {
                         'GenomeSpecies':{
                             'restriction': 'deferred',

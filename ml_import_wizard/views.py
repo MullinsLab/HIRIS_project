@@ -14,7 +14,6 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 from ml_import_wizard.forms import UploadFileForImportForm, NewImportSchemeForm
 from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem
 from ml_import_wizard.utils.simple import sound_user_name
-from ml_import_wizard.utils.inspect import inspect_models
 
 class ManageImports(LoginRequiredMixin, View):
     ''' The starting place for importing.  Show information on imports, started imports, new import, etc. '''
@@ -76,8 +75,6 @@ class NewImportScheme(LoginRequiredMixin, View):
             log.debug(f'Stored ImportScheme with PKey of {import_scheme.id}')
 
             request.session['current_import_scheme_id'] = import_scheme.id
-            
-            inspect_models(import_scheme_id=import_scheme.id)
 
             return HttpResponseRedirect(reverse('ml_import_wizard:scheme', kwargs={'import_scheme_id': import_scheme.id}))
         
@@ -196,6 +193,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
             return_data = {
                 'name': item.fancy_value,
                 'description': item.items_for_html(),
+                'start_expanded': True,
             }
 
         log.debug(f'Sending ImportSchemeItem via AJAX query: {return_data}')      
