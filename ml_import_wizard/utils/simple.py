@@ -37,8 +37,10 @@ def mached_name_choices(choices: list) -> list[tuple]:
 def stringalize(value: any = None) -> str:
     """ Forces a value into a string.  Doesn't include enclosures ([{}]) """
 
-    if type(value) in [tuple, list, set]:
+    if type(value) in [tuple, list]:
         return', '.join([str(item) for item in value])
+    if type(value) == set:
+        return', '.join([str(item) for item in sorted(value, key=str)])
     else:
         return str(value)
     
