@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 
 from .models import ImportScheme, ImportSchemeFile
-from .utils.simple import dict_hash, sound_user_name
+from .utils.simple import dict_hash, sound_user_name, split_by_caps, stringalize, mached_name_choices, fancy_name
 
 
 class InclusionTest(TestCase):
@@ -81,9 +81,9 @@ class ModelTests(TestCase):
         self.assertEquals(5, ImportSchemeFile.status_from_label('importeD'))
 
 
-# Tests for Tools
-class DictHashTest(TestCase):
-    ''' Tests for DictHash '''
+# Tests for simple utils
+class SimpleUtilsTest(TestCase):
+    ''' Tests for functions from the utils.simple module '''
 
     @classmethod
     def setUpTestData(cls):
@@ -92,17 +92,73 @@ class DictHashTest(TestCase):
         cls.dict2 = {'test': {'count': 1, 'name': 'my test', 'number': 89.3}}
         cls.dict3 = {'test': {'count': 1, 'number': 89.3, 'name': 'my test 3'}}
 
+    # dict_hash() tests
     def test_dict_hash_returns_correct_hash(self):
+        """ dict_hash() should return c7a98aa3381012984c03edeaf7049096 when the input is self.dict1 """
         self.assertEqual('c7a98aa3381012984c03edeaf7049096', dict_hash(self.dict1))
 
     def test_dict_hash_returns_same_hash_with_different_order(self):
+        """ dict_hash() should return the same hash when the input is the same except for the order of the elements """
         self.assertEqual(dict_hash(self.dict1), dict_hash(self.dict2))
 
     def test_dict_hash_returns_same_hash_with_the_same_dict(self):
+        """ dict_hash() should return the same hash when the input is the same """
         self.assertEqual(dict_hash(self.dict1), dict_hash(self.dict1))
     
     def test_dict_hash_returns_different_hash_with_the_different_dict(self):
+        """ dict_hash() should return different hashes when the input is different """
         self.assertNotEqual(dict_hash(self.dict1), dict_hash(self.dict3))
+    
+    # Stringalization tests
+    def test_stringalize_returns_a_string_when_given_an_int(self):
+        """ stringalize() should return a string when given an int """
+        self.assertEqual("1", stringalize(1))
+
+    def test_stringalize_returns_a_string_when_given_a_string(self):
+        """ stringalize() should return a string when given a string """
+        self.assertEqual("string", stringalize("string"))
+
+    def test_stringalize_returns_a_string_when_given_a_set(self):
+        """ stringalize() should return a string when given a set """
+        self.assertEqual("1, 2", stringalize({1, "2"}))
+
+    def test_stringalize_returns_a_string_when_given_a_list(self):
+        """ stringalize() should return a string when given a list """
+        self.assertEqual("1, 2", stringalize(["1", 3-1]))
+
+    def test_stringalize_returns_a_string_when_given_a_tuple(self):
+        """ stringalize() should return a string when given a tuple """
+        self.assertEqual("1, 2", stringalize((1, '2')))
+
+    # List manipulation tests
+    def test_mached_name_choices_should_return_doubled_list_of_tuples(self):
+        """ mached_name_choices() should return a list that is composed of the members of the input list duplicated as a tuple """
+        self.assertEqual([(1, 1), ("test", "test")], mached_name_choices([1, "test"]))
+
+    # string formatting tests
+    def test_split_by_caps_returns_list_of_words_split_by_capital_letters(self):
+        """ split_by_caps() should return a list of words split by capital letters """
+        self.assertEqual(split_by_caps('MyTest'), ['My', 'Test'])
+    
+    def test_split_by_caps_returns_a_one_item_list_when_given_a_string_with_no_caps(self):
+        """ split_by_caps() should return a list of one word when given a string with no capital letters """
+        self.assertEqual(split_by_caps("mytest"), ["mytest"])
+
+    def test_fancy_name_returns_string_initial_caps_when_given_a_string(self):
+        """ fancy_name() should return a string with initial caps when given a string """
+        self.assertEqual("My Test!", fancy_name("my test!"))
+
+    def test_fancy_name_returns_string_initial_caps_when_given_a_string(self):
+        """ fancy_name() should return a string with initial caps when given a string """
+        self.assertEqual("My Test", fancy_name("my test"))
+
+    def test_fancy_name_returns_string_initial_caps_when_given_a_underscored_string(self):
+        """ fancy_name() should return a string with initial caps when given an underscored string """
+        self.assertEqual("My Test", fancy_name("my_test"))
+
+    def test_fancy_name_returns_string_initial_caps_when_given_a_camelcased_string(self):
+        """ fancy_name() should return a string with initial caps when given a CamelCased string """
+        self.assertEqual("My Test", fancy_name("myTest"))
 
 
 class SoundUserNameTests(TestCase):

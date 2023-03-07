@@ -8,7 +8,7 @@ class ImportScheme {
     _this = this;
 
     constructor(args){
-        // Set up the ImportScheme and get it's items
+        // Set up the ImportScheme and get its items
         this.id = args.id;
         this.base_url = args.base_url;
         this.accordion_container = args.accordion_container;
@@ -30,7 +30,10 @@ class ImportScheme {
             success: function(data){
                 let items = data.import_scheme_items;
                 for (let item in items){
-                    this.caller.items.push(new ImportSchemeItem({id: items[item], parent: this.caller}))
+                    this.caller.items.push(new ImportSchemeItem({id: items[item], index: this.caller.items.length, parent: this.caller}))
+                    
+                    // Set up a base_accordion_X as a placeholder for the accordion block
+                    $(this.caller.accordion_container).append("<div id='base_accordion_" + (this.caller.items.length-1) + "'>");
                 };
             },
         });
@@ -39,6 +42,7 @@ class ImportScheme {
 
 class ImportSchemeItem{
     id;                     // ID from the database.  Used for loading
+    index;                  // Index number of the list of items from the parent
     name;                   // Name to be displayed in the accoridon button
     description;            // Description to be displayed in the accordion body - placeholder for HTML form or whatnot
     form;                   // The form to use to collect informatoin about this item
@@ -55,6 +59,7 @@ class ImportSchemeItem{
 
     constructor(args){
         this.id = args.id;
+        this.index = args.index;
         this.parent = args.parent;
 
         this.load();
@@ -92,7 +97,8 @@ class ImportSchemeItem{
 
         // If the accordion item doesn't exist yet, create it
         if (! $('#accordion_'+this.id).length){
-            $(this.parent.accordion_container).append(ITEM_TEMPLATE.replaceAll("!ACCORDION_ID!", this.id));
+            // Replace base_accordion_X with the actual accordion from template
+            $("#base_accordion_"+this.index).replaceWith(ITEM_TEMPLATE.replaceAll("!ACCORDION_ID!", this.id))
 
             // Assign the dom object refrences for this item
             this.accordion = $('#accordion_'+this.id)

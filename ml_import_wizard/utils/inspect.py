@@ -15,7 +15,7 @@ else: NO_GFFUTILS=True
 
 from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem
 from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError
-from ml_import_wizard.utils.simple import stringilize
+from ml_import_wizard.utils.simple import stringalize
 
 # Should probably move to being a function since it is only interacted with once.
 class GFFImporter():
@@ -128,4 +128,4 @@ def inspect_models(import_scheme: ImportScheme=None, import_scheme_id: int=None)
                 exclude_keys: tuple = ()
                 for key in filter(lambda key: key not in exclude_keys, field_settings.keys()):
                     
-                    field_item.items.create(name=key, value=stringilize(field_settings[key]))
+                    field_item.items.create(name=key, value=stringalize(field_settings[key]))

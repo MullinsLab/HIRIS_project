@@ -3,7 +3,7 @@ from django.db import models
 
 from pathlib import Path
 
-from ml_import_wizard.utils.simple import dict_hash, stringilize
+from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name
 
 
 class ImportBaseModel(models.Model):
@@ -115,10 +115,16 @@ class ImportSchemeFileField(ImportBaseModel):
     name = models.CharField(max_length=255, null=False, blank=False)
     sample = models.TextField(null=True, blank=True)
 
+    @property
+    def fancy_name(self) -> str:
+        """ Returns the 'fancy name' of the item.  Words separated by spaces, and initial caps """
+
+        return fancy_name(self.name)
+
     def import_sample(self, sample: any=None) -> None:
         ''' Import the Sample data and massage it by type '''
 
-        self.sample = stringilize(sample)
+        self.sample = stringalize(sample)
 
         self.save(update_fields=["sample"])
 
@@ -130,5 +136,28 @@ class ImportSchemeItem(ImportBaseModel):
     import_scheme_item = models.ForeignKey('self', on_delete=models.CASCADE, related_name='items', null=True, editable=False)
     name = models.CharField(max_length=255, null=False, blank=False)
     value = models.TextField(null=True, blank=True)
+    field = models.ForeignKey(ImportSchemeFileField, on_delete=models.DO_NOTHING, null=True, blank=True)
     added_date = models.DateField(auto_now_add=True, editable=False)
     updated_date = models.DateField(auto_now=True, editable=False)
+
+    @property
+    def fancy_name(self) -> str:
+        """ Returns the 'fancy name' of the item.  Words separated by spaces, and initial caps """
+
+        return fancy_name(self.name)
+    
+    @property
+    def fancy_value(self) -> str:
+        """ Returns the 'fancy value' of the item.  Words separated by spaces, and initial caps """
+
+        return fancy_name(self.value)
+
+    def items_for_html(self) -> str:
+        """ Returns a string containing the HTML to show all elements of this items items collection """
+
+        html: str = ''
+
+        for item in self.items.all():
+            html += f"<li>{item.fancy_value}</li>"
+
+        return f"<ul>{html}</ul>"

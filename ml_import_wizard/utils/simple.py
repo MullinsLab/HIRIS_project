@@ -3,10 +3,10 @@ from django.contrib.auth.models import User
 from typing import Dict, Any
 import hashlib
 import json
-
+import re
 
 def dict_hash(dictionary: Dict[str, Any]) -> str:
-    """MD5 hash of a dictionary."""
+    """ MD5 hash of a dictionary """
     dhash = hashlib.md5()
     # We need to sort arguments so {'a': 1, 'b': 2} is
     # the same as {'b': 2, 'a': 1}
@@ -23,21 +23,36 @@ def sound_user_name(user: User) -> str:
     return user.first_name or user.last_name or user.username
 
 
-def mached_name_choices(choices: list) -> list:
+def mached_name_choices(choices: list) -> list[tuple]:
     """ Functin to return a list of tuples that contains the origional list doubled
     ['thing1', 'thing2'] becomes [('thing1', 'thing1'), ('thing2', thing2')] """
     
-    tuple_choices: list = []
+    tuple_choices: list[tuple] = []
     for choice in choices:
         tuple_choices.append((choice, choice))
         
     return tuple_choices
 
 
-def stringilize(value: any = None) -> str:
-    """ Make sure a value is a string.  Doesn't include enclosures ([{}]) """
+def stringalize(value: any = None) -> str:
+    """ Forces a value into a string.  Doesn't include enclosures ([{}]) """
 
     if type(value) in [tuple, list, set]:
         return', '.join([str(item) for item in value])
     else:
         return str(value)
+    
+
+def split_by_caps(value: str = '') -> list[str]:
+    """ Returns a list of strings split by capitol letters """
+    
+    return [s for s in re.split("([A-Z][^A-Z]*)", value) if s]
+
+
+def fancy_name(value: str = '') -> str:
+    """ returns the 'Fancy Name' of a string """
+
+    value = " ".join(value.split("_"))
+    value = " ".join(split_by_caps(value))
+
+    return value.title()
