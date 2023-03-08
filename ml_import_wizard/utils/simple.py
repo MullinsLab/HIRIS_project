@@ -1,9 +1,10 @@
-from django.contrib.auth.models import User
+# from django.contrib.auth.models import User # Caused circular import
 
 from typing import Dict, Any
 import hashlib
 import json
 import re
+
 
 def dict_hash(dictionary: Dict[str, Any]) -> str:
     """ MD5 hash of a dictionary """
@@ -15,7 +16,7 @@ def dict_hash(dictionary: Dict[str, Any]) -> str:
     return dhash.hexdigest()
 
 
-def sound_user_name(user: User) -> str:
+def sound_user_name(user: object) -> str: # object should be user, but importing user caused a circular import
     ''' Get a sound name for the user.  First match of "first_name last_name", "first_name", "last_name", "username"'''
     if user.first_name and user.last_name:
        return f'{user.first_name} {user.last_name}'

@@ -1,0 +1,6 @@
+{{ model.fancy_name }}<br>
+<ul>
+{% for field in model.fields %}
+{% include "ml_import_wizard/fragments/field.django-html" with field=field %}
+{% endfor %}
+</ul>

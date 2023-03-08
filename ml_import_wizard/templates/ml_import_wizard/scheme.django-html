@@ -26,6 +26,9 @@
             accordion_container: '#import_scheme_accordion',
         })
     );
+    
+    // setTimeout($('.selectpicker').selectpicker(), 3000);
+    
 </script>
 {% include "ml_import_wizard/fragments/unclosable_progress_modal.django-html" %}
 {% endblock %}

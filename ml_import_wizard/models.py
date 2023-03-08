@@ -115,6 +115,9 @@ class ImportSchemeFileField(ImportBaseModel):
     name = models.CharField(max_length=255, null=False, blank=False)
     sample = models.TextField(null=True, blank=True)
 
+    class Meta:
+        ordering = ['name']
+
     @property
     def fancy_name(self) -> str:
         """ Returns the 'fancy name' of the item.  Words separated by spaces, and initial caps """
@@ -133,31 +136,11 @@ class ImportSchemeItem(ImportBaseModel):
     ''' Holds Import Items '''
 
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='items', null=True, editable=False)
-    import_scheme_item = models.ForeignKey('self', on_delete=models.CASCADE, related_name='items', null=True, editable=False)
-    name = models.CharField(max_length=255, null=False, blank=False)
-    value = models.TextField(null=True, blank=True)
-    field = models.ForeignKey(ImportSchemeFileField, on_delete=models.DO_NOTHING, null=True, blank=True)
+    app = models.CharField("App this import item is for", max_length=255)
+    model = models.CharField("Model this import item is for", max_length=255)
+    field = models.CharField("DB Field this import item is for", max_length=255)
+    strategy = models.CharField("Strategy for doing this import", max_length=255)
+    file_fieled = models.ForeignKey(ImportSchemeFileField, on_delete=models.DO_NOTHING, null=True, blank=True)
+    settings = models.JSONField("Settins specific to this import")
     added_date = models.DateField(auto_now_add=True, editable=False)
     updated_date = models.DateField(auto_now=True, editable=False)
-
-    @property
-    def fancy_name(self) -> str:
-        """ Returns the 'fancy name' of the item.  Words separated by spaces, and initial caps """
-
-        return fancy_name(self.name)
-    
-    @property
-    def fancy_value(self) -> str:
-        """ Returns the 'fancy value' of the item.  Words separated by spaces, and initial caps """
-
-        return fancy_name(self.value)
-
-    def items_for_html(self) -> str:
-        """ Returns a string containing the HTML to show all elements of this items items collection """
-
-        html: str = ''
-
-        for item in self.items.all():
-            html += f"<li>{item.fancy_value}</li>"
-
-        return f"<ul>{html}</ul>"

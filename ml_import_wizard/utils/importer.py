@@ -4,61 +4,81 @@ from django.apps import apps
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
+from ml_import_wizard.utils.simple import fancy_name
+# import ml_import_wizard.utils.simple
 
 importers: dict = {}
 
 
-class Importer(object):
+class BaseImporter(object):
+    """ Base class to inherit from """
+
+    def __init__(self, parent: object = None, name: str = '', **settings) -> None:
+        self.parent = parent
+        self.name = name
+        self.settings = {}
+        
+        for setting, value in settings.items():
+            self.settings[setting] = [value]
+            
+    @property
+    def fancy_name(self) -> str:
+        return fancy_name(self.name)
+    
+        
+class Importer(BaseImporter):
     """ Class to hold the importers from settings.ML_IMPORT_WIZARD """
 
     def __init__(self, parent: object = None, name: str = '', type: str = '', description: str = '', long_name: str = '', **settings) -> None:
         """ Initalize the object """
-        self.name = name
+        super().__init__(parent, name, **settings)
+
         self.long_name = long_name
         self.type = type
-        self.settings = {}
         self.apps = []
+        self.apps_by_name = {}
 
 
-class ImporterApp(object):
+class ImporterApp(BaseImporter):
     """ Class to hold apps to import into """
 
     def __init__(self, parent: object = None, name: str='', **settings) -> None:
         """ Initialize the object """
-        self.parent = parent
-        self.name = name
-        self.settings = {}
+        super().__init__(parent, name, **settings)
+        
         self.models = []
-
-        for setting, value in settings.items():
-            self.settings[setting] = [value]
+        self.models_by_name = {}
 
         parent.apps.append(self)
+        parent.apps_by_name[self.name] = self
 
 
-class ImporterModel(object):
+class ImporterModel(BaseImporter):
     """ Holds information about a model that should be imported from files """
 
     def __init__(self, parent: object = None, name: str = '', **settings) -> None:
         """ Initialize the object """
-        self.parent = parent
-        self.name = name
-        self.settings = {}
+        super().__init__(parent, name, **settings)
+        
         self.fields = []
+        self.fields_by_name = {}
+
+        for setting, value in settings.items():
+            self.settings[setting] = [value]
 
         parent.models.append(self)
+        parent.models_by_name[self.name] = self
 
 
-class ImporterField(object):
+class ImporterField(BaseImporter):
     """ Holds information about a field that should be imported from files """
 
-    def __init__(self, parent: object = None, name: str = '', **settings):
+    def __init__(self, parent: object = None, name: str = '', **settings) -> None:
         """ Initialize the object """
-        self.parent = parent
-        self.name = name
-        self.settings = {}
-
+        super().__init__(parent, name, **settings)
+        
         parent.fields.append(self)
+        parent.fields_by_name[self.name] = self
 
 
 def inspect_models() -> None:
@@ -73,7 +93,6 @@ def inspect_models() -> None:
 
         for app in importer_value.get("apps", []):
             working_app: ImporterApp = ImporterApp(parent=working_importer, name=app.get('name', ''))
-            print(f"Working app parent name: {working_app.parent.name}, parent apps: {working_app.parent.apps}")
 
             # Get settingsfor the app and save them in the object, except keys in exclude_keys
             exclude_keys: tuple = ("name", "models")
@@ -112,6 +131,3 @@ def inspect_models() -> None:
                     exclude_keys: tuple = ()
                     for key in filter(lambda key: key not in exclude_keys, field_settings.keys()):
                         working_field.settings[key] = field_settings[key]
-    
-    # serialized = jsonpickle.encode(importers)
-    # print(json.dumps(json.loads(serialized), indent=2))

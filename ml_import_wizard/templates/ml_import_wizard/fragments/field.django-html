@@ -1,0 +1,7 @@
+<li>
+    import <strong>{{ field.fancy_name }}</strong> from <select name='field.name' class="selectpicker">
+        {% for file in scheme.files.all %}
+        {% include "ml_import_wizard/fragments/field_file_fields_select.django-html" with file=file %}
+        {% endfor %}
+    </select>
+</li>

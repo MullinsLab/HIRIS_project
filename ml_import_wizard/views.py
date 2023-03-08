@@ -5,6 +5,7 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.template.loader import render_to_string
+from django.utils.text import slugify
 
 import os
 import json
@@ -14,6 +15,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 from ml_import_wizard.forms import UploadFileForImportForm, NewImportSchemeForm
 from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem
 from ml_import_wizard.utils.simple import sound_user_name
+from ml_import_wizard.utils.importer import importers
 
 class ManageImports(LoginRequiredMixin, View):
     ''' The starting place for importing.  Show information on imports, started imports, new import, etc. '''
@@ -129,15 +131,15 @@ class ListImportSchemeItems(LoginRequiredMixin, View):
 
         import_scheme = ImportScheme.objects.get(pk=kwargs['import_scheme_id'])
         # Initialize with a 0 for 
-        import_scheme_items: list[int] = [0]
+        import_scheme_items: list[int|str] = [0]
 
         if import_scheme.files.count():
-            for item in import_scheme.items.all():
-
-                # Refactor me when you have a better idea of where we're going
-                if item.name == "app":
-                    for model in item.items.filter(name="model"):
-                        import_scheme_items.append(model.id)
+            # Display fields from the importer
+            importer = importers[import_scheme.importer]
+            
+            for app in importer.apps:
+                for model in app.models:
+                    import_scheme_items.append(f"{app.name}-{model.name}")
 
         return JsonResponse({
             'import_scheme_items': import_scheme_items
@@ -197,7 +199,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
             }
 
         log.debug(f'Sending ImportSchemeItem via AJAX query: {return_data}')      
-        return JsonResponse(return_data)   
+        return JsonResponse(return_data)
 
 
     def post(self, request, *args, **kwargs):
@@ -236,3 +238,36 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 return JsonResponse({
                     'saved': True,
                 })
+            
+
+class DoImporterField(LoginRequiredMixin, View):
+    ''' Show and store ImportItems '''
+
+    def get(self, request, *args, **kwargs):
+        ''' Get information about an Import Item '''
+
+        import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
+        app, model = kwargs['field_name'].split("-")
+
+        log.debug(f'Starting DoImporterField.  App: {app}, Model: {model}')
+
+        return_data: dict = {}
+
+        try:
+            import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
+        except ImportScheme.DoesNotExist:
+            # Return the user to the /import page if they don't have a valid import_scheme to work on
+            return HttpResponseRedirect(reverse('ml_import_wizard:import'))
+        
+        model = importers[import_scheme.importer].apps_by_name[app].models_by_name[model] # .fields_by_name[field]
+        return_data = {
+            'name': model.fancy_name,
+            'description': render_to_string('ml_import_wizard/fragments/model.django-html', 
+                                            request=request, 
+                                            context={'model': model, "scheme": import_scheme}),
+            'start_expanded': True,
+            'selectpicker': True,   # Needs to trigger the selectpicker from jquery to reformat the options
+        }
+
+        log.debug(f'Sending Field via AJAX query: {return_data}')      
+        return JsonResponse(return_data)

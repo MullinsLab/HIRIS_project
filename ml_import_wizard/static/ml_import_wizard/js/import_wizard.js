@@ -50,7 +50,8 @@ class ImportSchemeItem{
     start_expanded;         // If true, the accordion will start in an expanded state
     dirty;                  // Indicates that the item is dirty and needs to be rerendered
     parent;                 // ImportScheme this Item belongs to
-    
+    selectpicker;        // If true, executes $('.selectpicker').selectpicker();
+
     // objects that corrispond with the dom objects for this item
     accordion;
     button;
@@ -63,21 +64,27 @@ class ImportSchemeItem{
         this.parent = args.parent;
 
         this.load();
+
+        // console.log("Name: " + this.name);
     };
 
     load(args){
         // Load the ImportSchemeItem from the backend
-        $.ajax(this.parent.base_url+'/'+this.id, {
+        let load_url = this.parent.base_url+'/'+this.id;
+        $.ajax(load_url, {
             // pass this to caller so it's referrable inside the success function
             caller: this,
             dataType: 'json',
             cache: false,
             success: function(data){
+                
+                // console.log(data);
                 this.caller.set_with_dirty({field: 'name', value: data.name});
                 this.caller.set_with_dirty({field: 'description', value: data.description});
                 this.caller.set_with_dirty({field: 'form', value: data.form});
                 this.caller.set_with_dirty({field: 'urgent', value: data.urgent});
                 this.caller.set_with_dirty({field: 'start_expanded', value: data.start_expanded});
+                this.caller.set_with_dirty({field: 'selectpicker', value: data.selectpicker});
 
                 this.caller.render();
             },
@@ -137,6 +144,11 @@ class ImportSchemeItem{
         } else {
             this.collapse.collapse('hide');
         };
+        
+        if (this.selectpicker){
+            $('.selectpicker').selectpicker();
+            console.log('Hit selectpicker')
+        };
 
         // Set dirty to false so it won't rerender if it doesn't need to
         this.dirty = false;
@@ -146,21 +158,14 @@ class ImportSchemeItem{
 function prep_upload_progress_bar(args){
     const input_file = document.getElementById(args.file_input_name);
     const progress_bar = document.getElementById(args.progress_bar_name);
-    // const progress_modal = document.getElementById(args.progress_bar_name+'_modal_control');
-
-    // const input_file = $('#'+args.file_input_name);
-    // const progress_bar = $('#'+args.progress_bar_name);
     const progress_modal = $('#'+args.progress_bar_name+'_modal_control');
     const progress_content = $('#'+args.progress_content);
-    console.log('started script');
 
     $("#"+args.form_name).bind( "submit", function(e) {
-        console.log('hit form');
         e.preventDefault();
         var formData = new FormData(this);
         const media_data = input_file.files[0];
         if(media_data != null){
-            console.log(media_data);
             progress_content.html(media_data.name+'<br><br>')
             progress_modal.modal('show');
         }
