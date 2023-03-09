@@ -147,13 +147,25 @@ class ImportSchemeItem{
         
         if (this.selectpicker){
             $('.selectpicker').selectpicker();
-            console.log('Hit selectpicker')
         };
 
         // Set dirty to false so it won't rerender if it doesn't need to
         this.dirty = false;
     }
 };
+
+
+function manage_file_field_input(file_field){
+    console.log("Hit manage_file_field_input for file_field"+file_field+", which has the value of: " + $("#file_field_" + file_field).find(":selected").val());
+
+    if($("#file_field_" + file_field).find(":selected").val() == 'raw_text'){
+        $("#raw_text_" + file_field).removeClass('not-visible');
+    }
+    else {
+        $("#raw_text_" + file_field).addClass('not-visible');
+    };
+};
+
 
 function prep_upload_progress_bar(args){
     const input_file = document.getElementById(args.file_input_name);

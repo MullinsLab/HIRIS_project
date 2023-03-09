@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Lower
 
 from pathlib import Path
 
@@ -116,13 +117,21 @@ class ImportSchemeFileField(ImportBaseModel):
     sample = models.TextField(null=True, blank=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = [Lower('name')]
 
     @property
     def fancy_name(self) -> str:
         """ Returns the 'fancy name' of the item.  Words separated by spaces, and initial caps """
 
         return fancy_name(self.name)
+    
+    @property
+    def short_sample(self) -> str:
+        """ Returns only 80 characters of the sample, with elipses if it's cut off """
+
+        if len(self.sample) <= 80: return self.sample
+        return f"{self.sample[:77]}..."
+        
 
     def import_sample(self, sample: any=None) -> None:
         ''' Import the Sample data and massage it by type '''

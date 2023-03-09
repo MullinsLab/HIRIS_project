@@ -1,7 +1,15 @@
 <li>
-    import <strong>{{ field.fancy_name }}</strong> from <select name='field.name' class="selectpicker">
+    import <strong>{{ field.fancy_name }}</strong> from 
+    <select 
+        onchange="manage_file_field_input('{{ field.name }}')" 
+        name='file_field_{{ field.name }}' 
+        id='file_field_{{ field.name }}' 
+        class="selectpicker border rounded-3 file-fields-dropdown" 
+        title="Select how to import...">
+
+        <option></option><option data-divider="true"></option><option value='raw_text' data-content="Specify Text"></option><option data-divider="true"></option>
         {% for file in scheme.files.all %}
         {% include "ml_import_wizard/fragments/field_file_fields_select.django-html" with file=file %}
         {% endfor %}
-    </select>
+    </select> <input type="text" placeholder="Specify text..." name="raw_text_{{ field.name }}" id="raw_text_{{ field.name }}" class="not-visible">
 </li>

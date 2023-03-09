@@ -17,3 +17,21 @@
 .accordion-urgent{
     background-color: rgb(255, 240, 240);
 }
+
+.file-fields-sample{
+    color: orange;
+    font-size: 30%;
+    font-weight: bold;
+
+}
+
+.file-fields-sample::before{
+    content: "Sample values: ";
+    color: blue;
+    font-weight: normal;
+}
+
+.file-fields-dropdown{
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
