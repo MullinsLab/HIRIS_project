@@ -50,7 +50,8 @@ class ImportSchemeItem{
     start_expanded;         // If true, the accordion will start in an expanded state
     dirty;                  // Indicates that the item is dirty and needs to be rerendered
     parent;                 // ImportScheme this Item belongs to
-    selectpicker;        // If true, executes $('.selectpicker').selectpicker();
+    selectpicker;           // If true, executes $('.selectpicker').selectpicker();
+    tooltip;                // If true, executes $('[data-toggle="tooltip"]').tooltip()
 
     // objects that corrispond with the dom objects for this item
     accordion;
@@ -85,6 +86,7 @@ class ImportSchemeItem{
                 this.caller.set_with_dirty({field: 'urgent', value: data.urgent});
                 this.caller.set_with_dirty({field: 'start_expanded', value: data.start_expanded});
                 this.caller.set_with_dirty({field: 'selectpicker', value: data.selectpicker});
+                this.caller.set_with_dirty({field: 'tooltip', value: data.tooltip});
 
                 this.caller.render();
             },
@@ -147,6 +149,10 @@ class ImportSchemeItem{
         
         if (this.selectpicker){
             $('.selectpicker').selectpicker();
+        };
+
+        if (this.tooltip){
+            $('[data-toggle="tooltip"]').tooltip()
         };
 
         // Set dirty to false so it won't rerender if it doesn't need to

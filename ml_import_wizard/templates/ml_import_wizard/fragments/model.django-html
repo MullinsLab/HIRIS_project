@@ -1,6 +1,8 @@
-{{ model.fancy_name }}<br>
-<ul>
+{% if model.settings.restriction == "deferred"%}
+<span class="field-annotation" data-toggle="tooltip" data-html="true" title="New data placed into DEFERRED data fields will be reviewed by an administrator, and may be changed or rejected.">Defer</span>
+{% elif model.settings.restriction == "rejected"%}
+<span class="field-annotation" data-toggle="tooltip" data-html="true" title="Data that does not coform with REJECTED rules will result in the entire record not being imported.">Reject</span>
+{% endif %}
 {% for field in model.fields %}
 {% include "ml_import_wizard/fragments/field.django-html" with field=field %}
 {% endfor %}
-</ul>

@@ -4,8 +4,12 @@ from django.apps import apps
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
+from weakref import proxy
+import json
+import jsonpickle
+
 from ml_import_wizard.utils.simple import fancy_name
-# import ml_import_wizard.utils.simple
+
 
 importers: dict = {}
 
@@ -14,7 +18,7 @@ class BaseImporter(object):
     """ Base class to inherit from """
 
     def __init__(self, parent: object = None, name: str = '', **settings) -> None:
-        self.parent = parent
+        if parent: self.parent = proxy(parent)  # Use a weakref so we don't have a circular refrence, defeating garbage collection
         self.name = name
         self.settings = {}
         
@@ -56,15 +60,14 @@ class ImporterApp(BaseImporter):
 class ImporterModel(BaseImporter):
     """ Holds information about a model that should be imported from files """
 
-    def __init__(self, parent: object = None, name: str = '', **settings) -> None:
+    def __init__(self, parent: object = None, name: str = '', model: object = '', **settings) -> None:
         """ Initialize the object """
         super().__init__(parent, name, **settings)
         
+        log.debug(f"Model from ImporterModel, Type: {type(model)}, Name: {model.__name__}, My type (ImporterModel): {type(self)}")
+        self.model = model # Get the Django model so we can do queries against it
         self.fields = []
         self.fields_by_name = {}
-
-        for setting, value in settings.items():
-            self.settings[setting] = [value]
 
         parent.models.append(self)
         parent.models_by_name[self.name] = self
@@ -113,7 +116,7 @@ def inspect_models() -> None:
                 )
 
             for model in models:
-                working_model: ImporterModel = ImporterModel(parent=working_app, name=model.__name__)
+                working_model: ImporterModel = ImporterModel(parent=working_app, name=model.__name__, model=model)
 
                 # Get settingsfor the model and save them in the object, except keys in exclude_keys
                 model_settings: dict = app["models"].get(model.__name__, {})
@@ -121,8 +124,13 @@ def inspect_models() -> None:
                 exclude_keys: tuple = ("exclude_fields", "fields")
                 for key in filter(lambda key: key not in exclude_keys, model_settings.keys()):
                     working_model.settings[key]=model_settings[key]
-
+                
                 for field in filter(lambda field: field.editable and (field.name not in model_settings.get("exclude_fields", [])), model._meta.get_fields()):
+                    
+                    # Skip field if it is a foreign key
+                    if field.get_internal_type() in ('ForeignKey'):
+                        continue
+                    
                     working_field: ImporterField = ImporterField(parent=working_model, name=field.name)
 
                     # Get settings for the field and save them in the object, except keys in exclude_keys

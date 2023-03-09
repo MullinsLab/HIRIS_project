@@ -82,11 +82,16 @@ ML_IMPORT_WIZARD = {
                     # 'include_models': ['GeneType', 'GenomeSpecies'],
                     # 'exclude_models': ['Feature'],
                     'models': {
-                        'GenomeSpecies':{
+                        'GenomeSpecies': {
                             'restriction': 'deferred',
+                            "load_value_fields": ["genome_species_name"],
+                        },
+                        "GenomeVersion": {
+                            "exclude_fields": ['external_gene_id_source'],
+                            "default_option": "raw_text",
                         },
                         'GeneType': {
-                            'restriction': 'deferred',
+                            'restriction': 'rejected',
                             'fields': {
                                 'gene_type_name': {
                                     'approved_values': ['CDS', 'exon', 'gene', 'start_codon', 'stop_codon']

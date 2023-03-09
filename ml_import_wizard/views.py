@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.template.loader import render_to_string
 from django.utils.text import slugify
+from django.apps import apps
 
 import os
 import json
@@ -259,15 +260,28 @@ class DoImporterField(LoginRequiredMixin, View):
             # Return the user to the /import page if they don't have a valid import_scheme to work on
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
         
+        log.debug(f"Confirm import_schem type: {type(import_scheme)}")
+
         model = importers[import_scheme.importer].apps_by_name[app].models_by_name[model] # .fields_by_name[field]
+        
+        field_values: dict[str: list] = {}
+        for field in  model.settings.get("load_value_fields", []):
+            log.debug(f"Type of model: {type(model.model)}, Field: {field}")
+            field_values[field] = model.model.objects.values_list(field, flat=True)
+        
         return_data = {
             'name': model.fancy_name,
             'description': render_to_string('ml_import_wizard/fragments/model.django-html', 
                                             request=request, 
-                                            context={'model': model, "scheme": import_scheme}),
+                                            context={"model": model, 
+                                                     "scheme": import_scheme,
+                                                     "field_values": field_values
+                                            },
+            ),
+            'urgent': True,
             'start_expanded': True,
+            'tooltip': True,        # Needs to trigger tooltip
             'selectpicker': True,   # Needs to trigger the selectpicker from jquery to reformat the options
         }
 
-        log.debug(f'Sending Field via AJAX query: {return_data}')      
         return JsonResponse(return_data)

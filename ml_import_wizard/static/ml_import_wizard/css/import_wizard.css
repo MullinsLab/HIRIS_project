@@ -11,7 +11,6 @@
     width: 25px;
     height: 20px;
     padding-right: 5px;
-    /* filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(330deg) brightness(118%) contrast(119%); */
 }
 
 .accordion-urgent{
@@ -22,7 +21,6 @@
     color: orange;
     font-size: 30%;
     font-weight: bold;
-
 }
 
 .file-fields-sample::before{
@@ -35,3 +33,22 @@
     margin-top: 2px;
     margin-bottom: 2px;
 }
+
+.field-annotation{
+    color: orange;
+    font-size: 30%;
+    font-weight: bold;
+}
+
+.field-annotation::before{
+    content: "Restriction: ";
+    color: blue;    
+    font-weight: normal;
+}
+
+/* .field-annotation::before{
+    content: url('../images/notice-outline-red.svg');
+    width: 25px;
+    height: 20px;
+    padding-right: 5px;
+} */
