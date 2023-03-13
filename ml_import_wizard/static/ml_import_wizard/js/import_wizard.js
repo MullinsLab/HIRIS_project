@@ -5,7 +5,7 @@ class ImportScheme {
     items = [];             // ImportSchemeItem objects
     base_url;               // Base URL for loading from the system
     accordion_container;    // ID of the DOM object being used to hold the accordion
-    _this = this;
+    // _this = this;
 
     constructor(args){
         // Set up the ImportScheme and get its items
@@ -17,7 +17,13 @@ class ImportScheme {
     };
 
     find_item_by_id(id){
+        /// Get an item from the list by the database id
         return this.items.find(item => item.id == id);
+    };
+
+    find_item_by_model(model){
+        /// Get an item from the list by model name
+        return this.items.find(item => item.model == model);
     };
 
     get_items(){
@@ -41,17 +47,19 @@ class ImportScheme {
 };
 
 class ImportSchemeItem{
-    id;                     // ID from the database.  Used for loading
+    id;                     // ID from the database or name.  Used for loading
     index;                  // Index number of the list of items from the parent
     name;                   // Name to be displayed in the accoridon button
     description;            // Description to be displayed in the accordion body - placeholder for HTML form or whatnot
-    form;                   // The form to use to collect informatoin about this item
+    form;                   // The form to use to collect information about this item
     urgent = false;         // Is the Item urgent, meaning that it needs to be dealt with before the import can happen
     start_expanded;         // If true, the accordion will start in an expanded state
     dirty;                  // Indicates that the item is dirty and needs to be rerendered
     parent;                 // ImportScheme this Item belongs to
     selectpicker;           // If true, executes $('.selectpicker').selectpicker();
     tooltip;                // If true, executes $('[data-toggle="tooltip"]').tooltip()
+    fields = []             // Holds a list of all the fields in this item
+    model;                  // name of the model this item represents
 
     // objects that corrispond with the dom objects for this item
     accordion;
@@ -65,8 +73,6 @@ class ImportSchemeItem{
         this.parent = args.parent;
 
         this.load();
-
-        // console.log("Name: " + this.name);
     };
 
     load(args){
@@ -78,8 +84,6 @@ class ImportSchemeItem{
             dataType: 'json',
             cache: false,
             success: function(data){
-                
-                // console.log(data);
                 this.caller.set_with_dirty({field: 'name', value: data.name});
                 this.caller.set_with_dirty({field: 'description', value: data.description});
                 this.caller.set_with_dirty({field: 'form', value: data.form});
@@ -87,6 +91,8 @@ class ImportSchemeItem{
                 this.caller.set_with_dirty({field: 'start_expanded', value: data.start_expanded});
                 this.caller.set_with_dirty({field: 'selectpicker', value: data.selectpicker});
                 this.caller.set_with_dirty({field: 'tooltip', value: data.tooltip});
+                this.caller.set_with_dirty({field: 'model', value: data.model});
+                this.caller.set_with_dirty({field: 'fields', value: data.fields});
 
                 this.caller.render();
             },
@@ -123,8 +129,12 @@ class ImportSchemeItem{
         
         this.button.html(this.name);
 
-        let body_bit = this.description;
-        if (this.form){body_bit += '<br><br>'+this.form}
+        let body_bit = "";
+        if (this.description){body_bit += this.description}
+        if (this.form){
+            if (this.description){body_bit += "<br><br>"}
+            body_bit += this.form
+        }
         this.body.html(body_bit);
 
         // Set the propper css classes and open/close if item is urgent
@@ -158,32 +168,87 @@ class ImportSchemeItem{
         // Set dirty to false so it won't rerender if it doesn't need to
         this.dirty = false;
     }
+
+    check_submittable(){
+        // Check to see if the form is good to be submitted
+        // If it is set the submit button to enabled
+
+        for (let field_id in this.fields){
+            let field = this.fields[field_id];
+
+            // Reject if field is blank
+            if($("#file_field_" + field).find(":selected").val() == ""){
+                return false;
+            };
+
+            // Reject if field is 'raw_text' and 'raw_text' input is blank
+            if($("#file_field_" + field).find(":selected").val() == 'raw_text'){
+                if ($("#file_field_" + field + "_raw_text").val() == ""){
+                    return false;
+                };
+            }; 
+
+            // Reject if field is 'select_first' and 'select_first' input is blank
+            if($("#file_field_" + field).find(":selected").val() == 'select_first'){
+                if ($("#file_field_" + field + "_first").val().length <=1){
+                    return false;
+                };
+            }; 
+
+            // Reject if field is 'split_field' and '_split_field', '_split_splitter', or '_split_position' input is blank
+            if($("#file_field_" + field).find(":selected").val() == 'split_field'){
+                if (! $("#file_field_" + field + "_split").val() ||
+                    ! $("#file_field_" + field + "_split_splitter").val() ||
+                    ! $("#file_field_" + field + "_split_position").val()
+                ){
+                    return false;
+                };
+            }; 
+        };
+
+        // Accept if we get to this point
+        return true;
+    }
 };
 
 
-function manage_file_field_input(file_field){
-    console.log("Hit manage_file_field_input for file_field"+file_field+", which has the value of: " + $("#file_field_" + file_field).find(":selected").val());
+function check_submittable(model){
+    /// Check to see if the form is good to be submitted
 
-    if($("#file_field_" + file_field).find(":selected").val() == 'raw_text'){
-        $("#raw_text_" + file_field).removeClass('not-visible');
+    if (window.import_scheme.find_item_by_model(model).check_submittable()) {
+        $("#submit_" + model).removeClass('disabled');
     }
     else {
-        $("#raw_text_" + file_field).addClass('not-visible');
+        $("#submit_" + model).addClass('disabled');
     };
+}
 
-    if($("#file_field_" + file_field).find(":selected").val() == 'select_first'){
-        $("#file_field_first_hider_" + file_field).removeClass('not-visible');
+
+function manage_file_field_input(field, model){
+    /// Run when selects are updated to show or hide cascading fields
+
+    if($("#file_field_" + field).find(":selected").val() == 'raw_text'){
+        $("#file_field_" + field + "_raw_text").removeClass('not-visible');
     }
     else {
-        $("#file_field_first_hider_" + file_field).addClass('not-visible');
+        $("#file_field_" + field + "_raw_text").addClass('not-visible');
     };
 
-    if($("#file_field_" + file_field).find(":selected").val() == 'split_field'){
-        $("#split_field_hider_" + file_field).removeClass('not-visible');
+    if($("#file_field_" + field).find(":selected").val() == 'select_first'){
+        $("#file_field_" + field + "_first_hider").removeClass('not-visible');
     }
     else {
-        $("#split_field_hider_" + file_field).addClass('not-visible');
+        $("#file_field_" + field + "_first_hider").addClass('not-visible');
     };
+
+    if($("#file_field_" + field).find(":selected").val() == 'split_field'){
+        $("#file_field_" + field + "_split_hider").removeClass('not-visible');
+    }
+    else {
+        $("#file_field_" + field + "_split_hider").addClass('not-visible');
+    };
+
+    check_submittable(model);
 };
 
 

@@ -176,6 +176,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                     }),
                     'urgent': True,
                     'start_expanded': True,
+                    "model": "ml_import_wizard_file_uploader",
                 }
             else:
                 if import_scheme.files.count() == 1:
@@ -262,26 +263,38 @@ class DoImporterField(LoginRequiredMixin, View):
         
         log.debug(f"Confirm import_schem type: {type(import_scheme)}")
 
-        model = importers[import_scheme.importer].apps_by_name[app].models_by_name[model] # .fields_by_name[field]
+        model_object = importers[import_scheme.importer].apps_by_name[app].models_by_name[model] # .fields_by_name[field]
         
         field_values: dict[str: list] = {}
-        for field in  model.settings.get("load_value_fields", []):
-            log.debug(f"Type of model: {type(model.model)}, Field: {field}")
-            field_values[field] = model.model.objects.values_list(field, flat=True)
+        fields: list[str] = []
+
+        # field_values holds a list of values that a field is limited to
+        for field in  model_object.settings.get("load_value_fields", []):
+            # log.debug(f"Type of model: {type(model_object.model)}, Field: {field}")
+            field_values[field] = model_object.model.objects.values_list(field, flat=True)
+
+        # fields lists the field names so the form can check that they are complete
+        for field in model_object.fields:
+            fields.append(f"{model_object.name}__-__{field.name}")
         
+        # log.debug(fields)
+
         return_data = {
-            'name': model.fancy_name,
-            'description': render_to_string('ml_import_wizard/fragments/model.django-html', 
+            'name': model_object.fancy_name,
+            'model': model_object.name,
+            'description': '',
+            "fields": fields,
+            'form': render_to_string('ml_import_wizard/fragments/model.django-html', 
                                             request=request, 
-                                            context={"model": model, 
+                                            context={"model": model_object, 
                                                      "scheme": import_scheme,
                                                      "field_values": field_values
                                             },
             ),
             'urgent': True,
             'start_expanded': True,
-            'tooltip': True,        # Needs to trigger tooltip
-            'selectpicker': True,   # Needs to trigger the selectpicker from jquery to reformat the options
+            'tooltip': True,        # Needed to trigger tooltip
+            'selectpicker': True,   # Needed to trigger the selectpicker from jquery to reformat the options
         }
 
         return JsonResponse(return_data)

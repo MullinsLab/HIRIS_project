@@ -77,7 +77,9 @@ class GFFImporter():
                     elif getattr(feature, attribute) is not None:
                         attributes[attribute] = set([getattr(feature, attribute)])
 
-
+        # Remove any existing fields
+        self.import_file.fields.all().delete()
+        
         self.import_file.import_fields(fields=attributes)
 
         self.import_file.status = ImportSchemeFile.status_from_label('Inspected')

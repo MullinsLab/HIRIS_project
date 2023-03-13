@@ -51,5 +51,5 @@ class FileField(forms.Form):
     """" Get a small form that allows selecting the field from an import file """
 
     def __init__(self, *args, **kwargs):
-        ''' Specify information about the display of the form '''
+        """ Specify information about the display of the form """
         super().__init__(*args, **kwargs)
