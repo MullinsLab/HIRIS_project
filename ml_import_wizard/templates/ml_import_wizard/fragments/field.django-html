@@ -1,12 +1,12 @@
 {% load ml_import_wizard_tags %}
 
-<br><strong>{{ field.fancy_name }}: </strong>
+<br><strong>{{ field|verbose_name}}: </strong>
 <select 
     onchange="manage_file_field_input('{{ field.name }}')" 
     name='file_field_{{ field.name }}' 
     id='file_field_{{ field.name }}' 
     class="selectpicker border rounded-3 file-fields-dropdown" 
-    title="Select how to import...">
+    title="How to import...">
 
     <option></option>
     {% if field.name in model.settings.load_value_fields %}
@@ -20,7 +20,8 @@
     {% endif %}
     <optgroup label="Specify Text...">
         <option value='raw_text' data-content="Specify Text" {% if model.settings.default_option == "raw_text"%}selected{% endif %}></option>
-        <option data-divider="true"></option>
+        <option value='select_first' data-content="Select First Item"></option>
+        <option value='split_field' data-content="Split Field"></option>
     </optgroup>
     <optgroup label="File Fields...">
         {% for file in scheme.files.all %}
@@ -29,3 +30,35 @@
     </optgroup>
 </select> 
 <input type="text" placeholder="Specify text..." name="raw_text_{{ field.name }}" id="raw_text_{{ field.name }}" {% if model.settings.default_option != "raw_text"%}class="not-visible"{% endif %}>
+
+<span id="file_field_first_hider_{{ field.name }}"{% if model.settings.default_option != "select_first" %} class="not-visible"{% endif %}>
+<select 
+    name='file_field_first_{{ field.name }}' 
+    id='file_field_first_{{ field.name }}' 
+    class="selectpicker border rounded-3 file-fields-dropdown" 
+    title="First item from..."
+    multiple>
+    {% for file in scheme.files.all %}
+        {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file title=True %}
+    {% endfor %}
+</select>
+</span>
+
+<span id="split_field_hider_{{ field.name }}"{% if model.settings.default_option != "split_field" %} class="not-visible"{% endif %}>
+    Split field 
+    <select 
+    name='split_field_{{ field.name }}' 
+    class="selectpicker border rounded-3 file-fields-dropdown" 
+    title="Field to split values from...">
+    {% for file in scheme.files.all %}
+        {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file %}
+    {% endfor %}
+</select>
+using the character <input name="split_field_splitter" type="text" size=1 maxlength=1> keeping value in position 
+<select name="split_field_position" class="slectpicker border rounded-3">
+    <option>1</option>
+    <option>2</option>
+    <option>3</option>
+    <option>4</option>
+</select>
+</span>

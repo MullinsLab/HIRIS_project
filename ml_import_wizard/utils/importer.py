@@ -5,8 +5,6 @@ import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from weakref import proxy
-import json
-import jsonpickle
 
 from ml_import_wizard.utils.simple import fancy_name
 
@@ -64,7 +62,7 @@ class ImporterModel(BaseImporter):
         """ Initialize the object """
         super().__init__(parent, name, **settings)
         
-        log.debug(f"Model from ImporterModel, Type: {type(model)}, Name: {model.__name__}, My type (ImporterModel): {type(self)}")
+        # log.debug(f"Model from ImporterModel, Type: {type(model)}, Name: {model.__name__}, My type (ImporterModel): {type(self)}")
         self.model = model # Get the Django model so we can do queries against it
         self.fields = []
         self.fields_by_name = {}
@@ -76,9 +74,11 @@ class ImporterModel(BaseImporter):
 class ImporterField(BaseImporter):
     """ Holds information about a field that should be imported from files """
 
-    def __init__(self, parent: object = None, name: str = '', **settings) -> None:
+    def __init__(self, parent: object = None, name: str = '', field: object = '', **settings) -> None:
         """ Initialize the object """
         super().__init__(parent, name, **settings)
+        
+        self.field = field # Get the Django field so we can do queries against it
         
         parent.fields.append(self)
         parent.fields_by_name[self.name] = self
@@ -131,7 +131,7 @@ def inspect_models() -> None:
                     if field.get_internal_type() in ('ForeignKey'):
                         continue
                     
-                    working_field: ImporterField = ImporterField(parent=working_model, name=field.name)
+                    working_field: ImporterField = ImporterField(parent=working_model, name=field.name, field=field)
 
                     # Get settings for the field and save them in the object, except keys in exclude_keys
                     field_settings: dict = model_settings.get("fields", {}).get(field.name, {})

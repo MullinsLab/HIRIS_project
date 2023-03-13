@@ -160,6 +160,22 @@ class SimpleUtilsTest(TestCase):
         """ fancy_name() should return a string with initial caps when given a CamelCased string """
         self.assertEqual("My Test", fancy_name("myTest"))
 
+    def test_fancy_name_returns_string_with_capital_id(self):
+        """ fancy_name should return the word ID as caps, instead of title case (Id) """
+        self.assertEqual("My ID Test", fancy_name("my_id test"))
+
+    def test_fancy_name_returns_string_with_capital_id_at_the_beginning_of_a_string(self):
+        """ fancy_name should return the word ID as caps, instead of title case (Id) at the beginning of a string """
+        self.assertEqual("ID My ID Test", fancy_name("Id my_id test"))
+
+    def test_fancy_name_returns_string_with_capital_id_at_the_end_of_a_string(self):
+        """ fancy_name should return the word ID as caps, instead of title case (Id) at the end of a string """
+        self.assertEqual("My ID Test ID", fancy_name("my_id test_id"))
+
+    def test_fancy_name_returns_capital_id_if_string_is_id(self):
+        """ fancy_name() should return ID if the string is just id """
+        self.assertEqual("ID", fancy_name("id"))
+
 
 class SoundUserNameTests(TestCase):
     ''' Tests for sound_user_name, a function that returns a good name for a user '''

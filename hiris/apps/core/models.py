@@ -32,7 +32,7 @@ class CoreBaseModel(models.Model):
 class GenomeSpecies(CoreBaseModel):
     ''' Holds genome hosts.  Initially should contain: Homo Sapiens'''
     genome_species_id = models.BigAutoField(primary_key=True, editable=False)
-    genome_species_name = models.CharField(max_length=255, unique=True)
+    genome_species_name = models.CharField("Name of the species.", max_length=255, unique=True)
     
     class Meta:
         db_table = "genome_species"

@@ -90,7 +90,7 @@ ML_IMPORT_WIZARD = {
                             "exclude_fields": ['external_gene_id_source'],
                             "default_option": "raw_text",
                         },
-                        'GeneType': {
+                        'FeatureType': {
                             'restriction': 'rejected',
                             'fields': {
                                 'gene_type_name': {

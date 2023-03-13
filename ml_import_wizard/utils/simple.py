@@ -1,8 +1,13 @@
 # from django.contrib.auth.models import User # Caused circular import
+from django.conf import settings
+
+import logging
+log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from typing import Dict, Any
 import hashlib
 import json
+import jsonpickle
 import re
 
 
@@ -57,5 +62,18 @@ def fancy_name(value: str = '') -> str:
 
     value = " ".join(value.split("_"))
     value = " ".join(split_by_caps(value))
+    value = value.title()
 
-    return value.title()
+    # Capitalize ID so it doesn't show as Id
+    value = value.replace(" Id ", " ID ")
+    value = re.sub("^Id ", "ID ", value)
+    value = re.sub(" Id$", " ID", value)
+    if value == "Id": value = "ID"
+
+    return value
+
+
+def json_dump(object: object) -> str:
+    """ Returns a json dump of the object, mostly for logging """
+
+    return json.dumps(jsonpickle.encode(object, unpicklable=False))

@@ -170,6 +170,20 @@ function manage_file_field_input(file_field){
     else {
         $("#raw_text_" + file_field).addClass('not-visible');
     };
+
+    if($("#file_field_" + file_field).find(":selected").val() == 'select_first'){
+        $("#file_field_first_hider_" + file_field).removeClass('not-visible');
+    }
+    else {
+        $("#file_field_first_hider_" + file_field).addClass('not-visible');
+    };
+
+    if($("#file_field_" + file_field).find(":selected").val() == 'split_field'){
+        $("#split_field_hider_" + file_field).removeClass('not-visible');
+    }
+    else {
+        $("#split_field_hider_" + file_field).addClass('not-visible');
+    };
 };
 
 
