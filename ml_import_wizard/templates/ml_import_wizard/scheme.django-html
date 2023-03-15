@@ -13,7 +13,7 @@
     <fieldset class="accordion" id="import_scheme_accordion">
         <legend id='accordion_container'>{{import_scheme}}</legend>
     </fieldset>
-    <br>
+    <button type="button" class="btn btn-primary mt-2 mb-2 disabled">Preview Data</button>
 </div>
 
 <script type="text/javascript">

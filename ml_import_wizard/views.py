@@ -17,6 +17,7 @@ from ml_import_wizard.forms import UploadFileForImportForm, NewImportSchemeForm
 from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem
 from ml_import_wizard.utils.simple import sound_user_name
 from ml_import_wizard.utils.importer import importers
+from ml_import_wizard.utils.import_files import get_importer, CSVImporter, GFFImporter
 
 class ManageImports(LoginRequiredMixin, View):
     ''' The starting place for importing.  Show information on imports, started imports, new import, etc. '''
@@ -382,3 +383,37 @@ class DoImporterModel(LoginRequiredMixin, View):
         return_data = {'saved': True,}
 
         return JsonResponse(return_data)
+    
+
+class PreviewImportScheme(LoginRequiredMixin, View):
+    """ Preview the import with data """
+
+    def get(self, request, *args, **kwargs):
+        """ Show the data """
+
+        import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
+        try:
+            import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
+        except ImportScheme.DoesNotExist:
+            # Return the user to the /import page if they don't have a valid import_scheme to work on
+            return HttpResponseRedirect(reverse('ml_import_wizard:import'))
+        
+        files: dict[int, object]= [] # List of the files and their associated importer
+        output = ""
+
+        importer = importers[import_scheme.importer]
+        for app in importer.apps:
+            for model in app.models:
+                for field in model.fields:
+                    try:
+                        import_scheme_item = ImportSchemeItem.objects.get(import_scheme_id = import_scheme.id,
+                                                                          app = app.name,
+                                                                          model = model.name,
+                                                                          field = field.name
+                        )
+                    except ImportSchemeItem.DoesNotExist:
+                        continue
+                    
+                    output += f"{import_scheme_item.strategy}<br>"
+
+        return render(request, "ml_import_wizard/scheme_preview.django-html", context={"stuff": output})

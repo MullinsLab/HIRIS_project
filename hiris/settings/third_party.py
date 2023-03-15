@@ -79,7 +79,7 @@ ML_IMPORT_WIZARD = {
             'apps': [
                 {
                     'name': 'core',
-                    # 'include_models': ['GeneType', 'GenomeSpecies'],
+                    'include_models': ['GenomeSpecies', "GenomeVersion", "GeneType", "FeatureType", "Feature", "FeatureLocation"],
                     # 'exclude_models': ['Feature'],
                     'models': {
                         'GenomeSpecies': {
@@ -97,6 +97,9 @@ ML_IMPORT_WIZARD = {
                                     'approved_values': ['CDS', 'exon', 'gene', 'start_codon', 'stop_codon']
                                 },
                             },
+                        },
+                        "Feature": {
+                            "exclude_fields": ["external_gene_id"],
                         },
                         # 'FeatureLocation': {
                         #     'exclude_fields': ('landmark'),

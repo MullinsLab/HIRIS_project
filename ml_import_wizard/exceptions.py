@@ -24,3 +24,7 @@ class FileNotSavedError(LoggingException):
 
 class FileHasBeenInspectedError(LoggingException):
     """ File can't be operated on because it has already been inspected. """
+
+
+class FileNotInspectedError(LoggingException):
+    """ File can't be operated on because it has not been inspected """

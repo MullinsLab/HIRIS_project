@@ -174,7 +174,7 @@ class ImportSchemeItem(ImportBaseModel):
     model = models.CharField("Model this import item is for", max_length=255)
     field = models.CharField("DB Field this import item is for", max_length=255)
     strategy = models.CharField("Strategy for doing this import", max_length=255, null=True)
-    # file_field = models.ForeignKey(ImportSchemeFileField, on_delete=models.DO_NOTHING, null=True, blank=True)
+    # import_scheme_file = models.ForeignKey(ImportSchemeFile, on_delete=models.CASCADE, null=True, blank=True)
     settings = models.JSONField("Settings specific to this import", null=True)
     added = models.DateTimeField(auto_now_add=True, editable=False)
     updated = models.DateTimeField(auto_now=True, editable=False)

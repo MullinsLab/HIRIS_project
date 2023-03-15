@@ -4,6 +4,7 @@ import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from itertools import islice
+from csv import reader
 
 # Check to see if gffutils is installed
 NO_GFFUTILS: bool = False
@@ -12,10 +13,25 @@ if (find_spec("gffutils")): import gffutils
 else: NO_GFFUTILS=True
 
 from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem
-from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError
+from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, FileNotInspectedError
 from ml_import_wizard.utils.simple import stringalize
 
-# Should probably move to being a function since it is only interacted with once.
+
+def get_importer(import_file: ImportSchemeFile = None):
+    """ Returns an importer based on the file format """
+
+    if import_file.type in ["gff", "gff3"]:
+        return GFFImporter(import_file = import_file)
+    
+    if import_file.type in ["csv"]:
+        return CSVImporter(import_file=import_file)
+    
+
+class CSVImporter():
+    """ Object to work with a CSV file. """
+    pass
+
+
 class GFFImporter():
     ''' Object to work with a GFF file. '''
 
@@ -27,10 +43,31 @@ class GFFImporter():
         if (NO_GFFUTILS):
             raise GFFUtilsNotInstalledError("gfutils is not installed: The file can't be inspected because GFFUtils is not installed. (pip install gffutils)")
 
-        #self.import_file = kwargs['import_file']
         self.import_file = import_file
         self.use_db = use_db
         self.ignore_status = ignore_status
+
+    def features(self, limit_count: int = 0) -> gffutils.Feature:
+        """ A wrapper for the GFFUtils allfeatures()  """
+        
+        # Error out if the file hasn't been uploaded, or hasn't been inspected
+        if not self.ignore_status and self.import_file.status == 0:
+            raise FileNotSavedError(f'File not marked as saved: {self.import_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name})')
+        
+        if not self.ignore_status and self.import_file.status >= 3:
+            raise FileNotInspectedError(f'File has not been inspected: {self.import_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name})')
+        
+        db = gffutils.FeatureDB(f'{settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.import_file.file_name}.db')
+
+        counter: int = 1
+
+        for feature in db.all_features:
+            yield feature
+
+            if limit_count:
+                counter += 1
+                if counter == limit_count:
+                    break
 
     def inspect(self) -> None:
         ''' Inspect the file by importing to the db '''
