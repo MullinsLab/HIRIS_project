@@ -44,7 +44,7 @@ class GenomeVersion(CoreBaseModel):
     genome_version_name = models.CharField(max_length=255, unique=True)
     # The name of the external_gene_id field in the outside source.  For example, a gene from NCBi would have an external_gene_id_name of 'NCBI_Gene_ID'
     external_gene_id_source = models.CharField(max_length=255, null=True, blank=True)
-    genome_species = models.ForeignKey(GenomeSpecies, on_delete=models.CASCADE)
+    genome_species = models.ForeignKey(GenomeSpecies, on_delete=models.CASCADE, related_name='versions')
 
     class Meta:
         db_table = "genome_versions"
@@ -72,11 +72,11 @@ class FeatureType(CoreBaseModel):
 class Feature(CoreBaseModel):
     ''' Holds gene data except for locations '''
     feature_id = models.BigAutoField(primary_key=True, editable=False)
-    genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE)
+    genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="features")
     feature_name = models.CharField(max_length=255)
     external_gene_id = models.IntegerField(null=True, blank=True)
-    feature_type = models.ForeignKey(FeatureType, on_delete=models.CASCADE, null=False)
-    gene_type = models.ForeignKey(GeneType, on_delete=models.CASCADE, null=False)
+    feature_type = models.ForeignKey(FeatureType, on_delete=models.CASCADE, null=False, related_name="features")
+    gene_type = models.ForeignKey(GeneType, on_delete=models.CASCADE, null=False, related_name="features")
 
     class Meta:
         db_table = "features"
@@ -91,7 +91,7 @@ class Feature(CoreBaseModel):
 class FeatureLocation(CoreBaseModel):
     ''' Holds gene location data '''
     feature_location_id = models.BigAutoField(primary_key=True, editable=False)
-    feature = models.ForeignKey(Feature, on_delete=models.CASCADE, editable=False)
+    feature = models.ForeignKey(Feature, on_delete=models.CASCADE, editable=False, related_name="feature_locations")
     chromosome = models.CharField(max_length=255, null=True)
     landmark = models.CharField(max_length=255, null=True)
     feature_start = models.IntegerField(null=False)
@@ -112,3 +112,162 @@ class FeatureLocation(CoreBaseModel):
             models.Index(fields=['feature', 'chromosome']),
             models.Index(fields=['chromosome']),
         ]
+
+
+class DataSet(CoreBaseModel):
+    """ Holds core data about a data set """
+    data_set_id = models.BigAutoField(primary_key=True, editable=False)
+    daa_set_name = models.CharField(max_length=255)
+    genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="data_sets")
+
+    class Meta:
+        db_table='data_sets'
+
+
+class DataSetSource(CoreBaseModel):
+    """ Holds data about the source of a data set """
+    data_set = models.OneToOneField(DataSet, on_delete=models.CASCADE, primary_key=True, editable=False)
+    data_set_source_name = models.CharField(max_length=255)
+    revision_data_path = models.TextField(null=True, blank=True)
+    revision_data_hash = models.CharField(max_length=40, null=True, blank=True)
+    revision_metadata_path = models.TextField(null=True, blank=True)
+    revision_metadata_hash = models.CharField(max_length=40, null=True, blank=True)
+    revision_git_hash = models.CharField(max_length=40, null=True, blank=True)
+    document_name = models.CharField(max_length=250, null=True, blank=True)
+    document_pubmed_id = models.IntegerField(null=True, blank=True)
+    document_uri = models.TextField(null=True, blank=True)
+    document_citation_url = models.TextField(null=True, blank=True)
+    document_citation_doi = models.TextField(null=True, blank=True)
+    document_citation_issn = models.CharField(max_length=255, null=True, blank=True)
+    document_citation_year = models.IntegerField(null=True, blank=True)
+    document_citation_type = models.CharField(max_length=255, null=True, blank=True)
+    document_citation_pages = models.CharField(max_length=255, null=True, blank=True)
+    document_citation_title = models.TextField(null=True, blank=True)
+    document_citation_author = models.TextField(null=True, blank=True)
+    document_citation_issue_number = models.CharField(max_length=255, null=True, blank=True)
+    document_citation_volume = models.IntegerField(null=True, blank=True)
+    document_citation_journal = models.TextField(null=True, blank=True)
+    document_citation_citekey = models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = "data_set_sources"
+
+
+class Subject(CoreBaseModel):
+    """ Holds data about the subject the samples were collected from """
+    subject_id = models.BigAutoField(primary_key=True, editable=False)
+    subject_identifier = models.CharField(max_length=255)
+
+    name_field = "subject_identifier"
+
+    class Meta:
+        db_table = "subjects"
+
+
+class Sample(CoreBaseModel):
+    """ Holds data about a specific sample """
+    sample_id = models.BigAutoField(primary_key=True, editable=False)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, editable=False, related_name="samples")
+    culture = models.CharField(max_length=255, null=True, blank=True)
+    culture_day = models.IntegerField(null=True, blank=True)
+    date = models.DateField(null=True, blank=True)
+    disease = models.CharField(max_length=255, null=True, blank=True)
+    genbank = models.CharField(max_length=255, null=True, blank=True)
+    original_id = models.CharField(max_length=255, null=True, blank=True)
+    provirus_activity = models.CharField(max_length=255, null=True, blank=True)
+    pubmed_id = models.IntegerField(null=True, blank=True)
+    replicates = models.IntegerField(null=True, blank=True)
+    tissue = models.CharField(max_length=255, null=True, blank=True)
+    tissue_url = models.TextField(null=True, blank=True)
+    type = models.CharField(max_length=255, null=True, blank=True)
+    visit = models.IntegerField(null=True, blank=True)
+    years_on_art = models.FloatField(null=True, blank=True)
+
+    name_field = "culture"
+
+    class Meta:
+        db_table = "sample"
+
+
+class Preparation(CoreBaseModel):
+    """ Holds data about how thesample was prepared """
+    preparation_id = models.BigAutoField(primary_key=True, editable=False)
+    sample = models.ForeignKey(Sample, on_delete=models.CASCADE, editable=False, related_name="preparations")
+    description = models.TextField()
+
+    name_field =  "description"
+
+    class Meta:
+        db_table = "preparations"
+
+    
+class SequencingMethod(CoreBaseModel):
+    """ Holds data about how the samples were sequenced """
+    sequence_method_id = models.BigAutoField(primary_key=True, editable=False)
+    sequencing_method_name = models.CharField(max_length=255)
+    preparation = models.ForeignKey(Preparation, on_delete=models.CASCADE, editable=False, related_name="sequencing_methods")
+
+    class Meta:
+        db_table = "sequencing_methods"
+
+
+class IntegrationEnvironment(CoreBaseModel):
+    """ Holds data about the environment the sample was collected from """
+    integration_environment_id = models.BigAutoField(primary_key=True, editable=False)
+    integration_envirnment_name = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "integration_environments"
+
+
+class Integration(CoreBaseModel):
+    """ Holds data about an individual integration """
+    integration_id = models.BigAutoField(primary_key=True, editable=False)
+    integration_environment = models.ForeignKey(IntegrationEnvironment, on_delete=models.CASCADE, editable=False, related_name="integrations")
+    data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, editable=False, related_name="integrations")
+    multiple_integration = models.BooleanField(null=True, blank=True)
+    multiple_integration_count = models.IntegerField(null=True, blank=True)
+    sequence = models.TextField(null=True, blank=True)
+    junction_5p = models.IntegerField(null=True, blank=True)
+    junction_3p = models.IntegerField(null=True, blank=True)
+    sequence_name = models.TextField(null=True, blank=True)
+    sequence_uri = models.TextField(null=True, blank=True)
+    replicate = models.IntegerField(null=True, blank=True)
+    replicates = models.IntegerField(null=True, blank=True)
+    note = models.IntegerField(null=True, blank=True)
+
+    name_field = "integration_id"
+
+    class Meta:
+        db_table = "integrations"
+
+
+class IntegrationLocation(CoreBaseModel):
+    """ Holds data about the locations of a specific integration """
+    integration_location_id = models.BigAutoField(primary_key=True, editable=False)
+    integration = models.ForeignKey(Integration, on_delete=models.CASCADE, editable=False, related_name="integration_locations")
+    feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING, editable=False, related_name="integration_locations")
+    landmark = models.CharField(max_length=255)
+    location = models.IntegerField()
+    orientation_in_landmark = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=False)
+
+    class Meta:
+        db_table = "integration_locations"
+
+    @property
+    def name(self) -> str:
+        return f"{self.landmark}: {self.location}"
+
+
+class BlastInfo(CoreBaseModel):
+    """ Holds blast data about an individual location """
+    integration_location = models.OneToOneField(IntegrationLocation, on_delete=models.CASCADE, primary_key=True)
+    identity = models.CharField(max_length=255, null=True, blank=True)
+    q_start = models.IntegerField(null=True, blank=True)
+    gaps = models.CharField(max_length=255, null=True, blank=True)
+    score = models.FloatField(null=True, blank=True)
+
+    name_field = "identity"
+
+    class Meta:
+        db_table = "blast_info"
