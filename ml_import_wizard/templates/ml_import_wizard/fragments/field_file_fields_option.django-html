@@ -1,7 +1,7 @@
 {% load cache %}
 {% comment %} {% cache None file-fields request.file.id %} {% endcomment %}
 {% for field in file.fields.all %}
-<option value='field_{{ field.id }}' data-content="{{ field.name }}<br>
+<option value='**field**{{ field.id }}' data-content="{{ field.name }}<br>
     <span class='file-fields-sample'>{{ field.short_sample }}</span>"
     {% if title %}title="{{ field.name }}"{% endif %}></option>
 {% endfor %}

@@ -19,6 +19,15 @@ class ImportBaseModel(models.Model):
     def __str__(self) -> str:
         ''' Generic stringify function.  Most objects will have a name so it's the default. '''
         return self.name                    # type: ignore   # pragma: no cover
+    
+    def set_with_dirty(self, field: str, value: any) -> bool:
+        """ Sets a value if it's changed, and returns True for dirty, or False for clean """
+
+        if getattr(self, field) != value:
+            setattr(self, field, value)
+            return True
+        
+        return False
 
 
 class ImportScheme(ImportBaseModel):
@@ -50,18 +59,34 @@ class ImportScheme(ImportBaseModel):
             self.importer_hash = dict_hash(settings.ML_IMPORT_WIZARD['Importers'][self.importer])
         super().save(*args, **kwargs)
 
-    def list_files(self, *args, **kwargs) -> str:
-        ''' Return a string that contains a list of file names for this ImportScheme 
-        kwargs = separator '''
-
-        separator: str = kwargs.get('separator', ', ')
+    def list_files(self, separator: str = ", ") -> str:
+        """ Return a string that contains a list of file names for this ImportScheme """
         file_list: list[str] = []
         
         for file in self.files.all():
             file_list.append(file.name)
 
         return separator.join(file_list)
+    
+    def create_or_update_item(self, app: str, model: str, field: str, strategy: str, settings: dict) -> ImportBaseModel:
+        """ Create or update an ImportSchemeItem.  Keys by app, model, and field """
 
+        dirty: bool = False
+
+        items = self.items.filter(app=app, model=model, field=field)
+        if items.count() == 0:
+            item = self.items.create(app=app, model=model, field=field)
+            dirty = True
+        else:
+            item = items[0]
+
+        dirty = item.set_with_dirty("strategy", strategy)
+        dirty = item.set_with_dirty("settings", settings)
+
+        if dirty: item.save()
+
+        return item
+        
 
 class ImportSchemeFile(ImportBaseModel):
     ''' Holds a file to import for an ImportScheme. FIELDS: (name, import_scheme, location) '''
@@ -148,8 +173,11 @@ class ImportSchemeItem(ImportBaseModel):
     app = models.CharField("App this import item is for", max_length=255)
     model = models.CharField("Model this import item is for", max_length=255)
     field = models.CharField("DB Field this import item is for", max_length=255)
-    strategy = models.CharField("Strategy for doing this import", max_length=255)
-    file_fieled = models.ForeignKey(ImportSchemeFileField, on_delete=models.DO_NOTHING, null=True, blank=True)
-    settings = models.JSONField("Settins specific to this import")
-    added_date = models.DateField(auto_now_add=True, editable=False)
-    updated_date = models.DateField(auto_now=True, editable=False)
+    strategy = models.CharField("Strategy for doing this import", max_length=255, null=True)
+    # file_field = models.ForeignKey(ImportSchemeFileField, on_delete=models.DO_NOTHING, null=True, blank=True)
+    settings = models.JSONField("Settings specific to this import", null=True)
+    added = models.DateTimeField(auto_now_add=True, editable=False)
+    updated = models.DateTimeField(auto_now=True, editable=False)
+
+    class Meta:
+        unique_together = ["app", "model", "field"]

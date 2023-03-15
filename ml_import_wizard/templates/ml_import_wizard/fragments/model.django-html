@@ -1,3 +1,5 @@
+{% load ml_import_wizard_tags %}
+
 {% if model.settings.restriction == "deferred"%}
 <span class="field-annotation" 
     data-toggle="tooltip" 
@@ -13,9 +15,12 @@
         Reject
 </span>
 {% endif %}
-<form id='item_form_{{ model.name }}'
-{% for field in model.fields %}
-{% include "ml_import_wizard/fragments/field.django-html" with field=field %}
-{% endfor %}>
+<form id="item_form_{{ model.name }}"
+    data-url="{{ app }}-{{ model.name }}"
+    data-model="{{ model.name }}"
+    {% comment %} data-csrf="{% csrf_token %}" {% endcomment %}
+    {% for field in model.fields %}
+    {% include "ml_import_wizard/fragments/field.django-html" with field=field %}
+    {% endfor %}>
 <br><input type="submit" class="btn btn-primary disabled" id="submit_{{ model.name }}">
 </form>

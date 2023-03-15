@@ -19,9 +19,9 @@
         </optgroup>
     {% endif %}
     <optgroup label="Specify Text...">
-        <option value='raw_text' data-content="Specify Text" {% if model.settings.default_option == "raw_text"%}selected{% endif %}></option>
-        <option value='select_first' data-content="Select First Item"></option>
-        <option value='split_field' data-content="Split Field"></option>
+        <option value='**raw_text**' data-content="Specify Text" {% if model.settings.default_option == "raw_text"%}selected{% endif %}></option>
+        <option value='**select_first**' data-content="Select First From"></option>
+        <option value='**split_field**' data-content="Split Field"></option>
     </optgroup>
     <optgroup label="File Fields...">
         {% for file in scheme.files.all %}

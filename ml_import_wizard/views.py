@@ -242,16 +242,15 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 })
             
 
-class DoImporterField(LoginRequiredMixin, View):
-    ''' Show and store ImportItems '''
+class DoImporterModel(LoginRequiredMixin, View):
+    ''' Show and store Models for imort '''
 
     def get(self, request, *args, **kwargs):
-        ''' Get information about an Import Item '''
+        ''' Get information about a Model for import '''
 
         import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
-        app, model = kwargs['field_name'].split("-")
-
-        log.debug(f'Starting DoImporterField.  App: {app}, Model: {model}')
+        app, model = kwargs['model_name'].split("-")
+        # log.debug(f'Starting model display.  App: {app}, Model: {model}')
 
         return_data: dict = {}
 
@@ -261,24 +260,19 @@ class DoImporterField(LoginRequiredMixin, View):
             # Return the user to the /import page if they don't have a valid import_scheme to work on
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
         
-        log.debug(f"Confirm import_schem type: {type(import_scheme)}")
-
-        model_object = importers[import_scheme.importer].apps_by_name[app].models_by_name[model] # .fields_by_name[field]
+        model_object = importers[import_scheme.importer].apps_by_name[app].models_by_name[model]
         
         field_values: dict[str: list] = {}
         fields: list[str] = []
 
         # field_values holds a list of values that a field is limited to
         for field in  model_object.settings.get("load_value_fields", []):
-            # log.debug(f"Type of model: {type(model_object.model)}, Field: {field}")
             field_values[field] = model_object.model.objects.values_list(field, flat=True)
 
         # fields lists the field names so the form can check that they are complete
         for field in model_object.fields:
             fields.append(f"{model_object.name}__-__{field.name}")
         
-        # log.debug(fields)
-
         return_data = {
             'name': model_object.fancy_name,
             'model': model_object.name,
@@ -288,7 +282,8 @@ class DoImporterField(LoginRequiredMixin, View):
                                             request=request, 
                                             context={"model": model_object, 
                                                      "scheme": import_scheme,
-                                                     "field_values": field_values
+                                                     "field_values": field_values,
+                                                     "app": app,
                                             },
             ),
             'urgent': True,
@@ -296,5 +291,80 @@ class DoImporterField(LoginRequiredMixin, View):
             'tooltip': True,        # Needed to trigger tooltip
             'selectpicker': True,   # Needed to trigger the selectpicker from jquery to reformat the options
         }
+
+        return JsonResponse(return_data)
+
+
+    def post(self, request, *args, **kwargs):
+        ''' Store information about a Model to import '''
+
+        import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
+        try:
+            import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
+        except ImportScheme.DoesNotExist:
+            # Return the user to the /import page if they don't have a valid import_scheme to work on
+            return HttpResponseRedirect(reverse('ml_import_wizard:import'))
+        
+        app, model = kwargs.get('model_name', '').split("-")
+
+        fields: dict[str, dict[str, any]] = {}
+        for attribute, value in request.POST.items():
+            if attribute == 'csrfmiddlewaretoken': continue
+
+            # Get the value if it's a list, and rename our field to not include the []
+            if attribute[-2:] == "[]":
+                value = request.POST.getlist(attribute)
+                attribute = attribute[0:-2]
+
+            field, attribute = attribute.split(":")
+            if field in fields: fields[field][attribute] = value 
+            else: fields[field] = {attribute: value}
+
+            # log.debug(f"field: {field}, attribute: {attribute}, value: {value}")
+
+        for field, values in fields.items():
+            strategy: str = ''
+            settings: dict = {}
+
+            if values["file_field"] == "**raw_text**":
+                log.debug(f"file_field ({values['file_field']}) contains **raw_text**")
+                strategy = "Raw Text"
+                settings["raw_text"] = values["file_field_raw_text"]
+
+            elif values["file_field"] == "**select_first**":
+                log.debug(f"file_field ({values['file_field']}) contains **select_first**")
+                strategy = "Select First"
+                settings["keys"] = []
+
+                for first_field in values["file_field_first"]:
+                    settings["keys"].append(int(first_field.split("**field**")[1]))
+
+            elif values["file_field"] == "**split_field**":
+                log.debug(f"file_field ({values['file_field']}) contains **split_field**")
+                strategy = "Split Field"
+                
+                settings["key"] = int(values['file_field_split'].split("**field**")[1])
+                settings["splitter"] = values["file_field_split_splitter"]
+                settings["position"] = values["file_field_split_position"]
+
+            elif "**field**" in values["file_field"]:
+                log.debug(f"file_field ({values['file_field']}) contains **field**")
+                strategy = "File Field"
+                settings["key"] = int(values['file_field'].split("**field**")[1])
+                
+            else:
+                log.debug(f"file field ({values['file_field']}) is a table row")
+                strategy = "Table Row"
+                settings["row"] = values['file_field']
+
+            log.debug(f"Settings: {settings}")
+            import_scheme_item = import_scheme.create_or_update_item(app=app, 
+                                                                     model= model, 
+                                                                     field=field, 
+                                                                     strategy=strategy, 
+                                                                     settings=settings)
+        
+
+        return_data = {'saved': True,}
 
         return JsonResponse(return_data)

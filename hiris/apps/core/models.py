@@ -10,8 +10,8 @@ class CoreBaseModel(models.Model):
     class Meta:
         abstract = True
     
-    added_date = models.DateField(auto_now_add=True, editable=False)
-    updated_date = models.DateField(auto_now=True, editable=False)
+    added = models.DateTimeField(auto_now_add=True, editable=False)
+    updated = models.DateTimeField(auto_now=True, editable=False)
     
     @property
     def name(self) -> str:
@@ -46,8 +46,6 @@ class GenomeVersion(CoreBaseModel):
     external_gene_id_source = models.CharField(max_length=255, null=True, blank=True)
     genome_species = models.ForeignKey(GenomeSpecies, on_delete=models.CASCADE)
 
-    # name_field = 'genome_version_name'
-    
     class Meta:
         db_table = "genome_versions"
 

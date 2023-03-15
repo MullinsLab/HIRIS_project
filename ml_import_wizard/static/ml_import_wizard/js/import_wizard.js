@@ -29,19 +29,18 @@ class ImportScheme {
     get_items(){
         // Get a list of import_scheme_items from the backend
         $.ajax(this.base_url+'/list', {
-            // pass this to caller so it's referrable inside the success function
+            // pass this to caller so it's referrable inside the done function
             caller: this,
             dataType: 'json',
             cache: false,
-            success: function(data){
-                let items = data.import_scheme_items;
-                for (let item in items){
-                    this.caller.items.push(new ImportSchemeItem({id: items[item], index: this.caller.items.length, parent: this.caller}))
-                    
-                    // Set up a base_accordion_X as a placeholder for the accordion block
-                    $(this.caller.accordion_container).append("<div id='base_accordion_" + (this.caller.items.length-1) + "'>");
-                };
-            },
+        }).done(function(data){
+            let items = data.import_scheme_items;
+            for (let item in items){
+                this.caller.items.push(new ImportSchemeItem({id: items[item], index: this.caller.items.length, parent: this.caller}))
+                
+                // Set up a base_accordion_X as a placeholder for the accordion block
+                $(this.caller.accordion_container).append("<div id='base_accordion_" + (this.caller.items.length-1) + "'>");
+            };
         });
     };
 };
@@ -78,30 +77,35 @@ class ImportSchemeItem{
     load(args){
         // Load the ImportSchemeItem from the backend
         let load_url = this.parent.base_url+'/'+this.id;
+        console.log("Loading: " + load_url);
+
         $.ajax(load_url, {
             // pass this to caller so it's referrable inside the success function
             caller: this,
             dataType: 'json',
             cache: false,
-            success: function(data){
-                this.caller.set_with_dirty({field: 'name', value: data.name});
-                this.caller.set_with_dirty({field: 'description', value: data.description});
-                this.caller.set_with_dirty({field: 'form', value: data.form});
-                this.caller.set_with_dirty({field: 'urgent', value: data.urgent});
-                this.caller.set_with_dirty({field: 'start_expanded', value: data.start_expanded});
-                this.caller.set_with_dirty({field: 'selectpicker', value: data.selectpicker});
-                this.caller.set_with_dirty({field: 'tooltip', value: data.tooltip});
-                this.caller.set_with_dirty({field: 'model', value: data.model});
-                this.caller.set_with_dirty({field: 'fields', value: data.fields});
+        }).done(function(data){
+            this.caller.set_with_dirty({field: 'name', value: data.name});
+            this.caller.set_with_dirty({field: 'description', value: data.description});
+            this.caller.set_with_dirty({field: 'form', value: data.form});
+            this.caller.set_with_dirty({field: 'urgent', value: data.urgent});
+            this.caller.set_with_dirty({field: 'start_expanded', value: data.start_expanded});
+            this.caller.set_with_dirty({field: 'selectpicker', value: data.selectpicker});
+            this.caller.set_with_dirty({field: 'tooltip', value: data.tooltip});
+            this.caller.set_with_dirty({field: 'model', value: data.model});
+            this.caller.set_with_dirty({field: 'fields', value: data.fields});
 
-                this.caller.render();
-            },
-        });
+            // console.log(data.fields);
+            // console.log(this.caller.fields);
+
+            this.caller.render();
+        })
     };
 
     set_with_dirty(args){
         // Sets the field value if different from current, and if so sets dirty to true
-        if (this[args.field] != args.value){
+        if ((Array.isArray(args.value) && ! arraysEqual(args.value, this[args.field])) || (! Array.isArray(args.value) && this[args.field] != args.value)){
+            // console.log("Dirtying " + args.field + ". Old: " + this[args.field] + ", New: " + args.value)
             this[args.field] = args.value;
             this.dirty=true;
         }
@@ -165,6 +169,51 @@ class ImportSchemeItem{
             $('[data-toggle="tooltip"]').tooltip()
         };
 
+        // Attach ajax function to submit the form
+        if (this.form){
+            $("#item_form_"+this.model).submit(function (event) {
+                event.preventDefault();
+                // console.log("BaseURL: " + window.import_scheme.base_url + "/" +  $(this).attr("data-url"));
+
+                let model = window.import_scheme.find_item_by_model($(this).attr("data-model"));
+
+                let form_data = {
+                    csrfmiddlewaretoken: getCookie('csrftoken'),
+                };
+
+                for (let field_index in model.fields){
+                    let field = model.fields[field_index];
+                    let field_name = field.split("__-__")[1];
+
+                    form_data[field_name + ":file_field"] = $("#file_field_"+field).find(":selected").val();
+
+                    form_data[field_name + ":file_field_raw_text"] = $("#file_field_" + field + "_raw_text").val();
+
+                    form_data[field_name + ":file_field_first"] = $("#file_field_" + field + "_first").val();
+
+                    form_data[field_name + ":file_field_split"] = $("#file_field_" + field + "_split").val();
+                    form_data[field_name + ":file_field_split_splitter"] = $("#file_field_" + field + "_split_splitter").val();
+                    form_data[field_name + ":file_field_split_position"] = $("#file_field_" + field + "_split_position").val();
+                };
+
+                console.log(form_data);
+
+                $.ajax({
+                    type: "POST",
+                    url: window.import_scheme.base_url + "/" +  $(this).attr("data-url"),
+                    data: form_data,
+                    // contentType: 'application/json',
+                    dataType: "json",
+                    encode: true,
+                    caller: this,
+                }).done(function (data) {
+                    console.log(data);
+                    window.import_scheme.find_item_by_model($(this.caller).attr("data-model")).load();
+                });
+
+            });
+        };
+
         // Set dirty to false so it won't rerender if it doesn't need to
         this.dirty = false;
     }
@@ -181,22 +230,22 @@ class ImportSchemeItem{
                 return false;
             };
 
-            // Reject if field is 'raw_text' and 'raw_text' input is blank
-            if($("#file_field_" + field).find(":selected").val() == 'raw_text'){
+            // Reject if field is "**raw_text**" and "raw_text" input is blank
+            if($("#file_field_" + field).find(":selected").val() == "**raw_text**"){
                 if ($("#file_field_" + field + "_raw_text").val() == ""){
                     return false;
                 };
             }; 
 
-            // Reject if field is 'select_first' and 'select_first' input is blank
-            if($("#file_field_" + field).find(":selected").val() == 'select_first'){
+            // Reject if field is "**select_first**" and 'select_first' input is blank
+            if($("#file_field_" + field).find(":selected").val() == "**select_first**"){
                 if ($("#file_field_" + field + "_first").val().length <=1){
                     return false;
                 };
             }; 
 
-            // Reject if field is 'split_field' and '_split_field', '_split_splitter', or '_split_position' input is blank
-            if($("#file_field_" + field).find(":selected").val() == 'split_field'){
+            // Reject if field is "**split_field**" and '_split_field', '_split_splitter', or '_split_position' input is blank
+            if($("#file_field_" + field).find(":selected").val() == "**split_field**"){
                 if (! $("#file_field_" + field + "_split").val() ||
                     ! $("#file_field_" + field + "_split_splitter").val() ||
                     ! $("#file_field_" + field + "_split_position").val()
@@ -227,21 +276,21 @@ function check_submittable(model){
 function manage_file_field_input(field, model){
     /// Run when selects are updated to show or hide cascading fields
 
-    if($("#file_field_" + field).find(":selected").val() == 'raw_text'){
+    if($("#file_field_" + field).find(":selected").val() == "**raw_text**"){
         $("#file_field_" + field + "_raw_text").removeClass('not-visible');
     }
     else {
         $("#file_field_" + field + "_raw_text").addClass('not-visible');
     };
 
-    if($("#file_field_" + field).find(":selected").val() == 'select_first'){
+    if($("#file_field_" + field).find(":selected").val() == "**select_first**"){
         $("#file_field_" + field + "_first_hider").removeClass('not-visible');
     }
     else {
         $("#file_field_" + field + "_first_hider").addClass('not-visible');
     };
 
-    if($("#file_field_" + field).find(":selected").val() == 'split_field'){
+    if($("#file_field_" + field).find(":selected").val() == "**split_field**"){
         $("#file_field_" + field + "_split_hider").removeClass('not-visible');
     }
     else {
@@ -287,8 +336,6 @@ function prep_upload_progress_bar(args){
                 return xhr
             },
             success: function(response){
-                // window.location = response.redirect_url;
-                console.log('Saved file');
                 progress_modal.modal('hide');
                 window.import_scheme.find_item_by_id(0).load();
             },
@@ -301,3 +348,42 @@ function prep_upload_progress_bar(args){
         });
     });
 };
+
+
+function getCookie(name) {
+    /// Django's get cookie function from https://docs.djangoproject.com/en/4.1/howto/csrf/
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+// Borrowed from https://stackoverflow.com/questions/3115982/how-to-check-if-two-arrays-are-equal-with-javascript
+function arraysEqual(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;
+  
+    // If you don't care about the order of the elements inside
+    // the array, you should sort both arrays here.
+    // Please note that calling sort on an array will modify that array.
+    // you might want to clone your array first.
+  
+    for (var i = 0; i < a.length; ++i) {
+      if (a[i] !== b[i]){
+        consol.log("|" + a[i] + "| is different from |" + b[i] + "|");
+        return false;
+      }
+    }
+    return true;
+  }
