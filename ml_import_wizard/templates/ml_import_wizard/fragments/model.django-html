@@ -18,7 +18,6 @@
 <form id="item_form_{{ model.name }}"
     data-url="{{ app }}-{{ model.name }}"
     data-model="{{ model.name }}"
-    {% comment %} data-csrf="{% csrf_token %}" {% endcomment %}
     {% for field in model.fields %}
     {% include "ml_import_wizard/fragments/field.django-html" with field=field %}
     {% endfor %}>

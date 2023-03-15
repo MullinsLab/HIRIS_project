@@ -259,38 +259,57 @@ class DoImporterModel(LoginRequiredMixin, View):
         except ImportScheme.DoesNotExist:
             # Return the user to the /import page if they don't have a valid import_scheme to work on
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
-        
+
         model_object = importers[import_scheme.importer].apps_by_name[app].models_by_name[model]
         
-        field_values: dict[str: list] = {}
-        fields: list[str] = []
+        field_values: dict[str: list] = {}          # Allowable values for fields
+        field_list: list[str] = []                  # List of fields for the javascript to itterate through
+        field_strategies: dict[str: any] = {}       # List of field strategies to fill the form from
 
-        # field_values holds a list of values that a field is limited to
-        for field in  model_object.settings.get("load_value_fields", []):
+        # fill field_values
+        for field in model_object.settings.get("load_value_fields", []):
             field_values[field] = model_object.model.objects.values_list(field, flat=True)
 
-        # fields lists the field names so the form can check that they are complete
+        # fill field_list and field_stragegies
         for field in model_object.fields:
-            fields.append(f"{model_object.name}__-__{field.name}")
-        
+            field_list.append(f"{model_object.name}__-__{field.name}")
+
+            log.debug(f"app: {app}, model: {model}, field: {field.name}")
+            items = import_scheme.items.filter(app=app, model=model, field=field.name)
+            if items.count() == 0:
+                continue
+            
+            item = items[0]
+
+            field_strategies[field.name] = item.settings
+            field_strategies[field.name]["strategy"] = item.strategy
+
         return_data = {
             'name': model_object.fancy_name,
             'model': model_object.name,
             'description': '',
-            "fields": fields,
+            "fields": field_list,
             'form': render_to_string('ml_import_wizard/fragments/model.django-html', 
                                             request=request, 
                                             context={"model": model_object, 
                                                      "scheme": import_scheme,
                                                      "field_values": field_values,
                                                      "app": app,
+                                                     "strategies": field_strategies
                                             },
             ),
-            'urgent': True,
-            'start_expanded': True,
+            # 'urgent': True,
+            #'start_expanded': True,
             'tooltip': True,        # Needed to trigger tooltip
             'selectpicker': True,   # Needed to trigger the selectpicker from jquery to reformat the options
         }
+
+        if field.name in field_strategies: 
+            return_data["urgent"] = False
+            return_data["start_expanded"] = False
+        else: 
+            return_data["urgent"] = True
+            return_data["start_expanded"] = True
 
         return JsonResponse(return_data)
 
@@ -327,42 +346,37 @@ class DoImporterModel(LoginRequiredMixin, View):
             settings: dict = {}
 
             if values["file_field"] == "**raw_text**":
-                log.debug(f"file_field ({values['file_field']}) contains **raw_text**")
                 strategy = "Raw Text"
                 settings["raw_text"] = values["file_field_raw_text"]
 
             elif values["file_field"] == "**select_first**":
-                log.debug(f"file_field ({values['file_field']}) contains **select_first**")
                 strategy = "Select First"
-                settings["keys"] = []
+                settings["first_keys"] = []
 
                 for first_field in values["file_field_first"]:
-                    settings["keys"].append(int(first_field.split("**field**")[1]))
+                    settings["first_keys"].append(int(first_field.split("**field**")[1]))
 
             elif values["file_field"] == "**split_field**":
-                log.debug(f"file_field ({values['file_field']}) contains **split_field**")
                 strategy = "Split Field"
                 
-                settings["key"] = int(values['file_field_split'].split("**field**")[1])
+                settings["split_key"] = int(values['file_field_split'].split("**field**")[1])
                 settings["splitter"] = values["file_field_split_splitter"]
-                settings["position"] = values["file_field_split_position"]
+                settings["splitter_position"] = int(values["file_field_split_position"])
 
             elif "**field**" in values["file_field"]:
-                log.debug(f"file_field ({values['file_field']}) contains **field**")
                 strategy = "File Field"
                 settings["key"] = int(values['file_field'].split("**field**")[1])
                 
             else:
-                log.debug(f"file field ({values['file_field']}) is a table row")
                 strategy = "Table Row"
                 settings["row"] = values['file_field']
 
-            log.debug(f"Settings: {settings}")
-            import_scheme_item = import_scheme.create_or_update_item(app=app, 
-                                                                     model= model, 
-                                                                     field=field, 
-                                                                     strategy=strategy, 
-                                                                     settings=settings)
+            # log.debug(f"Settings: {settings}")
+            import_scheme.create_or_update_item(app=app, 
+                                                model= model, 
+                                                field=field, 
+                                                strategy=strategy, 
+                                                settings=settings)
         
 
         return_data = {'saved': True,}

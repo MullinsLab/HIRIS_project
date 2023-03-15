@@ -216,6 +216,7 @@ class ImportSchemeItem{
 
         // Set dirty to false so it won't rerender if it doesn't need to
         this.dirty = false;
+        check_submittable(this.model);
     }
 
     check_submittable(){

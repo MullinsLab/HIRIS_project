@@ -1,8 +1,9 @@
-{% load cache %}
-{% comment %} {% cache None file-fields request.file.id %} {% endcomment %}
+{% load ml_import_wizard_tags %}
+
 {% for field in file.fields.all %}
 <option value='**field**{{ field.id }}' data-content="{{ field.name }}<br>
     <span class='file-fields-sample'>{{ field.short_sample }}</span>"
-    {% if title %}title="{{ field.name }}"{% endif %}></option>
+    {% if title %}title="{{ field.name }}"{% endif %}
+    {% if key == field.id or field.id in key_list %}selected{% endif %}>
+</option>
 {% endfor %}
-{% comment %} {% endcache %} {% endcomment %}
