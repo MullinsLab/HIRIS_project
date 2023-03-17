@@ -10,6 +10,8 @@ from django.apps import apps
 
 import os
 import json
+import pandas as pd
+
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
@@ -17,7 +19,7 @@ from ml_import_wizard.forms import UploadFileForImportForm, NewImportSchemeForm
 from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem
 from ml_import_wizard.utils.simple import sound_user_name
 from ml_import_wizard.utils.importer import importers
-from ml_import_wizard.utils.import_files import get_importer, CSVImporter, GFFImporter
+# from ml_import_wizard.utils.import_files import get_importer, CSVImporter, GFFImporter
 
 class ManageImports(LoginRequiredMixin, View):
     ''' The starting place for importing.  Show information on imports, started imports, new import, etc. '''
@@ -201,7 +203,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 'start_expanded': True,
             }
 
-        log.debug(f'Sending ImportSchemeItem via AJAX query: {return_data}')      
+        # log.debug(f'Sending ImportSchemeItem via AJAX query: {return_data}')      
         return JsonResponse(return_data)
 
 
@@ -275,7 +277,7 @@ class DoImporterModel(LoginRequiredMixin, View):
         for field in model_object.fields:
             field_list.append(f"{model_object.name}__-__{field.name}")
 
-            log.debug(f"app: {app}, model: {model}, field: {field.name}")
+            # log.debug(f"app: {app}, model: {model}, field: {field.name}")
             items = import_scheme.items.filter(app=app, model=model, field=field.name)
             if items.count() == 0:
                 continue
@@ -399,7 +401,9 @@ class PreviewImportScheme(LoginRequiredMixin, View):
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
         
         files: dict[int, object]= [] # List of the files and their associated importer
-        output = ""
+        data: dict[str, list[any]] = {}
+
+        output: str = ""
 
         importer = importers[import_scheme.importer]
         for app in importer.apps:
@@ -414,6 +418,17 @@ class PreviewImportScheme(LoginRequiredMixin, View):
                     except ImportSchemeItem.DoesNotExist:
                         continue
                     
+                    if field.name not in data:
+                        data[field.name] = []
+
                     output += f"{import_scheme_item.strategy}<br>"
 
+        for import_scheme_file in import_scheme.files.all():
+            for row in import_scheme_file.rows(limit_count=5):
+                log.debug(row.id)
+
+        # https://stackoverflow.com/questions/39003732/display-django-pandas-dataframe-in-a-django-template
+        # https://getbootstrap.com/docs/5.0/content/tables/
+        # https://pandas.pydata.org/docs/getting_started/intro_tutorials/01_table_oriented.html
+        
         return render(request, "ml_import_wizard/scheme_preview.django-html", context={"stuff": output})

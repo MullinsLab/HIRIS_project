@@ -6,7 +6,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from ml_import_wizard.models import ImportSchemeFile
 from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError
-from ml_import_wizard.utils.import_files import GFFImporter
+# from ml_import_wizard.utils.import_files import GFFImporter
 
 class Command(BaseCommand):
     help = "Inspects a file in preperation for importing. This is not intended to be run by humans, it's there for the system to run outside of page views. "
@@ -36,30 +36,30 @@ class Command(BaseCommand):
 
         for import_file_id in options['import_file_id']:
             try:
-                import_file = ImportSchemeFile.objects.get(pk=import_file_id)
+                import_scheme_file = ImportSchemeFile.objects.get(pk=import_file_id)
             except ImportSchemeFile.DoesNotExist as err:
                 log.warn(f'ImportFile {import_file_id} does not exist')
                 raise CommandError(f'ImportFile {import_file_id} does not exist')
 
             # Create the importer based on the type of the file
-            if import_file.type in ['gff', 'gff3']:
-                log.debug('Got gff file type for inspection')
+            # if import_file.type in ['gff', 'gff3']:
+            #     log.debug('Got gff file type for inspection')
 
-                try:
-                    file_importer = GFFImporter(import_file=import_file, use_db=options['use_db'], ignore_status=options['ignore_status'])
-                except GFFUtilsNotInstalledError as err:
-                    raise CommandError(err)
+            #     try:
+            #         file_importer = GFFImporter(import_file=import_file, use_db=options['use_db'], ignore_status=options['ignore_status'])
+            #     except GFFUtilsNotInstalledError as err:
+            #         raise CommandError(err)
                 
             if verbosity > 1:
-                self.stdout.write(f'Starting to inspect {import_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}) file.')
+                self.stdout.write(f'Starting to inspect {import_scheme_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_scheme_file.file_name}) file.')
 
             try:
-                file_importer.inspect()
-            except (FileNotSavedError, FileHasBeenInspectedError) as err:
+                import_scheme_file.inspect(use_db=options['use_db'], ignore_status=options['ignore_status'])
+            except (FileNotSavedError, FileHasBeenInspectedError, GFFUtilsNotInstalledError) as err:
                 raise CommandError(err)
             
             if verbosity > 1:
-                self.stdout.write(f'You done inspected that {import_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}) file!')
+                self.stdout.write(f'You done inspected that {import_scheme_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_scheme_file.file_name}) file!')
 
             files_count += 1
 

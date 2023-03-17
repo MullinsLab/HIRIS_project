@@ -2,9 +2,20 @@ from django.conf import settings
 from django.db import models
 from django.db.models.functions import Lower
 
+import logging
+log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
+
 from pathlib import Path
+from itertools import islice
+
+# Check to see if gffutils is installed
+NO_GFFUTILS: bool = False
+from importlib.util import find_spec
+if (find_spec("gffutils")): import gffutils 
+else: NO_GFFUTILS=True
 
 from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name
+from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, FileNotInspectedError
 
 
 class ImportBaseModel(models.Model):
@@ -59,7 +70,7 @@ class ImportScheme(ImportBaseModel):
             self.importer_hash = dict_hash(settings.ML_IMPORT_WIZARD['Importers'][self.importer])
         super().save(*args, **kwargs)
 
-    def list_files(self, separator: str = ", ") -> str:
+    def list_files(self, *, separator: str = ", ") -> str:
         """ Return a string that contains a list of file names for this ImportScheme """
         file_list: list[str] = []
         
@@ -68,7 +79,7 @@ class ImportScheme(ImportBaseModel):
 
         return separator.join(file_list)
     
-    def create_or_update_item(self, app: str, model: str, field: str, strategy: str, settings: dict) -> ImportBaseModel:
+    def create_or_update_item(self, *, app: str, model: str, field: str, strategy: str, settings: dict) -> ImportBaseModel:
         """ Create or update an ImportSchemeItem.  Keys by app, model, and field """
 
         dirty: bool = False
@@ -124,7 +135,7 @@ class ImportSchemeFile(ImportBaseModel):
 
         super().save(*args, **kwargs)
 
-    def import_fields(self, fields: dict=None) -> None:
+    def import_fields(self, *, fields: dict=None) -> None:
         ''' Import the fields contained in the file, along with sample '''
 
         if fields is None: return
@@ -132,6 +143,93 @@ class ImportSchemeFile(ImportBaseModel):
         for field, samples in fields.items():
             import_file_field = self.fields.create(name=field)
             import_file_field.import_sample(sample=samples)
+
+    def _confirm_file_is_ready(self, *, ignore_status: bool = False, inspected: bool = False) -> None:
+        """ Make sure that the file is ready to operate on """
+        
+        log.debug(f"Ignore Status: {ignore_status}")
+
+        # Error out if gffutils is not installed
+        if (NO_GFFUTILS):
+            raise GFFUtilsNotInstalledError("gfutils is not installed: The file can't be inspected because GFFUtils is not installed. (pip install gffutils)")
+
+        # Error out if the file hasn't been uploaded
+        if not ignore_status and self.status == 0:
+            raise FileNotSavedError(f'File not marked as saved: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+        
+        # Error out if the file shouldn't be inspected and is
+        if not ignore_status and not inspected and self.status >= 3:
+            raise FileHasBeenInspectedError(f'File already inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+        
+        # Error out if the file should be inspected and isn't
+        if not ignore_status and inspected and self.status < 3:
+            raise FileNotInspectedError(f'File has not been inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+        
+
+    def rows(self, *, limit_count: int = 0) -> dict[str: any]:
+        """ Iterates through the rows of the file, returning a dict for each row """
+
+        self._confirm_file_is_ready(inspected=True)
+
+        db = gffutils.FeatureDB(f'{settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name}.db')
+
+        counter: int = 1
+
+        for feature in db.all_features():
+            yield feature
+
+            if limit_count:
+                counter += 1
+                if counter == limit_count:
+                    break
+
+    def inspect(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
+        ''' Inspect the file by importing to the db '''
+
+        self._confirm_file_is_ready(ignore_status=ignore_status)
+
+        self.status = self.status_from_label('Inspecting')
+        self.save(update_fields=["status"])
+        
+        if (use_db):
+            db = gffutils.FeatureDB(f'{settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name}.db')
+        else:
+            db = gffutils.create_db(
+                f'{settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name}', 
+                f'{settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name}.db', 
+                merge_strategy="create_unique", 
+                force=True
+            )
+
+        # Look at five of each featuretype to make a master list of attributes
+        attributes: dict = {}
+
+        fixed_attributes=('seqid', 'source', 'featuretype', 'start', 'end', 'score', 'strand', 'frame', 'bin')
+
+        for feature_type in db.featuretypes():
+            for feature in islice(db.features_of_type(featuretype=feature_type), 5):
+
+                # Get the arbitrary attributes
+                for attribute in feature.attributes:
+                    if attribute in attributes:
+                        attributes[attribute] = attributes[attribute] | set(feature.attributes[attribute])
+                    else:
+                        attributes[attribute] = set(feature.attributes[attribute])
+
+                # Get the fixed attributes
+                for attribute in fixed_attributes:
+                    if attribute in attributes:
+                        attributes[attribute].add(getattr(feature, attribute))
+                    elif getattr(feature, attribute) is not None:
+                        attributes[attribute] = set([getattr(feature, attribute)])
+
+        # Remove any existing fields
+        self.fields.all().delete()
+        
+        self.import_fields(fields=attributes)
+
+        self.status = self.status_from_label('Inspected')
+        self.save(update_fields=["status"])
 
 
 class ImportSchemeFileField(ImportBaseModel):
@@ -158,7 +256,7 @@ class ImportSchemeFileField(ImportBaseModel):
         return f"{self.sample[:77]}..."
         
 
-    def import_sample(self, sample: any=None) -> None:
+    def import_sample(self, *, sample: any=None) -> None:
         ''' Import the Sample data and massage it by type '''
 
         self.sample = stringalize(sample)
@@ -181,3 +279,4 @@ class ImportSchemeItem(ImportBaseModel):
 
     class Meta:
         unique_together = ["app", "model", "field"]
+        
