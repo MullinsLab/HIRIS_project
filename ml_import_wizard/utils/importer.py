@@ -31,7 +31,7 @@ class BaseImporter(object):
 class Importer(BaseImporter):
     """ Class to hold the importers from settings.ML_IMPORT_WIZARD """
 
-    def __init__(self, parent: object = None, name: str = '', type: str = '', description: str = '', long_name: str = '', **settings) -> None:
+    def __init__(self, *, parent: object = None, name: str = '', type: str = '', description: str = '', long_name: str = '', **settings) -> None:
         """ Initalize the object """
         super().__init__(parent, name, **settings)
 
@@ -44,7 +44,7 @@ class Importer(BaseImporter):
 class ImporterApp(BaseImporter):
     """ Class to hold apps to import into """
 
-    def __init__(self, parent: object = None, name: str='', **settings) -> None:
+    def __init__(self, *, parent: object = None, name: str='', **settings) -> None:
         """ Initialize the object """
         super().__init__(parent, name, **settings)
         
@@ -58,7 +58,7 @@ class ImporterApp(BaseImporter):
 class ImporterModel(BaseImporter):
     """ Holds information about a model that should be imported from files """
 
-    def __init__(self, parent: object = None, name: str = '', model: object = '', **settings) -> None:
+    def __init__(self, *, parent: object = None, name: str = '', model: object = '', **settings) -> None:
         """ Initialize the object """
         super().__init__(parent, name, **settings)
         
@@ -74,7 +74,7 @@ class ImporterModel(BaseImporter):
 class ImporterField(BaseImporter):
     """ Holds information about a field that should be imported from files """
 
-    def __init__(self, parent: object = None, name: str = '', field: object = '', **settings) -> None:
+    def __init__(self, *, parent: object = None, name: str = '', field: object = '', **settings) -> None:
         """ Initialize the object """
         super().__init__(parent, name, **settings)
         
