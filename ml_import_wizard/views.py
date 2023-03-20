@@ -400,7 +400,7 @@ class PreviewImportScheme(LoginRequiredMixin, View):
             # Return the user to the /import page if they don't have a valid import_scheme to work on
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
-        log.debug(import_scheme.get_preview_data_table())
+        log.debug(import_scheme.preview_data_table())
         output = 'test'
 
         return render(request, "ml_import_wizard/scheme_preview.django-html", context={"stuff": output})

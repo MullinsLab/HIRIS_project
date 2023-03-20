@@ -100,17 +100,33 @@ class ImportScheme(ImportBaseModel):
 
         return item
     
-    def get_preview_data_table(self) -> dict:
+    def preview_data_table(self) -> dict:
         """ Get preview data for showing to the user """
         
         log.debug("getting preview data table.")
 
-        table: dict = {"columns": [],
-                       "data": []               
+        table: dict = {"columns": self.data_structure(),
+                       "data": []            
         }
 
-        column_id = 0
+        for row in self.data_rows(columns = table["columns"], limit_count=100):
+            table["data"].append(row)
+      
+        # https://stackoverflow.com/questions/39003732/display-django-pandas-dataframe-in-a-django-template
+        # https://getbootstrap.com/docs/5.0/content/tables/
+        # https://pandas.pydata.org/docs/getting_started/intro_tutorials/01_table_oriented.html
+
+        log.debug(f"data length: {len(table['data'])}")
+        log.debug(json.dumps(table["data"]))
+
+        return table
+
+    def data_structure(self) -> list[dict[str: any]]:
+        """ Returns a list of columns for a data table or import """
+        columns: list = []
+        column_id: int = 0
         importer = importers[self.importer]
+
         for app in importer.apps:
             for model in app.models:
                 for field in model.fields:
@@ -123,37 +139,39 @@ class ImportScheme(ImportBaseModel):
                     except ImportSchemeItem.DoesNotExist:
                         continue
 
-                    table["columns"].append({})
-                    table["columns"][column_id]["name"] = field.name
-                    table["columns"][column_id]["import_scheme_item"] = import_scheme_item
+                    columns.append({})
+                    columns[column_id]["name"] = field.name
+                    columns[column_id]["import_scheme_item"] = import_scheme_item
 
                     column_id += 1
-
+        return columns
+    
+    def data_rows(self, *, columns: list, limit_count: int = None) -> dict[str: any]:
         fields: dict[int: any] = {}
+        log.debug(columns)
         
         for import_scheme_file in self.files.all():
             row_id = 0
 
-            for row in import_scheme_file.rows(limit_count=100):
-                for column in table["columns"]:
+            for row in import_scheme_file.rows(limit_count=limit_count):
+                row_dict: dict = {}
 
-                    table["data"].append({})
-
+                for column in columns:    
                     strategy = column["import_scheme_item"].strategy
                     settings = column["import_scheme_item"].settings
 
                     if strategy == "Raw Text":
-                        table["data"][row_id][column["name"]] = settings["raw_text"]
+                        row_dict[column["name"]] = settings["raw_text"]
 
                     elif strategy == "Table Row":
-                        table["data"][row_id][column["name"]] = settings["row"]
+                        row_dict[column["name"]] = settings["row"]
 
                     elif strategy == "File Field":
                         if settings["key"] not in fields:
                             import_scheme_file_field = ImportSchemeFileField.objects.get(pk=settings["key"])
                             fields[import_scheme_file_field.id] = import_scheme_file_field.name
                             
-                        table["data"][row_id][column["name"]] = row[fields[settings["key"]]]
+                        row_dict[column["name"]] = row[fields[settings["key"]]]
                     
                     elif strategy == "Split Field":
                         if settings["split_key"] not in fields:
@@ -163,23 +181,12 @@ class ImportScheme(ImportBaseModel):
                         value = row[fields[settings["split_key"]]]
 
                         if settings["splitter"] in value:
-                            table["data"][row_id][column["name"]] = value.split(settings["splitter"])[settings["splitter_position"]-1]
+                            row_dict[column["name"]] = value.split(settings["splitter"])[settings["splitter_position"]-1]
                         else:
-                            table["data"][row_id][column["name"]] = value
+                            row_dict[column["name"]] = value
 
                 row_id += 1
-                log.debug(f"column_id: {row_id}")
-
-        
-        # https://stackoverflow.com/questions/39003732/display-django-pandas-dataframe-in-a-django-template
-        # https://getbootstrap.com/docs/5.0/content/tables/
-        # https://pandas.pydata.org/docs/getting_started/intro_tutorials/01_table_oriented.html
-
-        log.debug(f"data length: {len(table['data'])}")
-        log.debug(json.dumps(table["data"]))
-
-        return table
-
+                yield row_dict
 
 class ImportSchemeFile(ImportBaseModel):
     ''' Holds a file to import for an ImportScheme. FIELDS: (name, import_scheme, location) '''
