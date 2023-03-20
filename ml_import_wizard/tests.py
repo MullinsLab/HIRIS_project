@@ -108,7 +108,6 @@ class ModelTests(TestCase):
         self.assertEquals("file_field", import_scheme_item_2.strategy)
 
         self.assertEquals(self.import_scheme.items.count(), 1)
-        # self.assertIs(import_scheme_item_1, import_scheme_item_2)
 
         import_scheme_item_3 = self.import_scheme.create_or_update_item(app="app", model= "model", field="field2", strategy="stupid_test", settings={"file_field": 102})
         self.assertEquals("stupid_test", import_scheme_item_3.strategy)

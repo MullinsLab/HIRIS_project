@@ -399,36 +399,8 @@ class PreviewImportScheme(LoginRequiredMixin, View):
         except ImportScheme.DoesNotExist:
             # Return the user to the /import page if they don't have a valid import_scheme to work on
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
-        
-        files: dict[int, object]= [] # List of the files and their associated importer
-        data: dict[str, list[any]] = {}
 
-        output: str = ""
+        log.debug(import_scheme.get_preview_data_table())
+        output = 'test'
 
-        importer = importers[import_scheme.importer]
-        for app in importer.apps:
-            for model in app.models:
-                for field in model.fields:
-                    try:
-                        import_scheme_item = ImportSchemeItem.objects.get(import_scheme_id = import_scheme.id,
-                                                                          app = app.name,
-                                                                          model = model.name,
-                                                                          field = field.name
-                        )
-                    except ImportSchemeItem.DoesNotExist:
-                        continue
-                    
-                    if field.name not in data:
-                        data[field.name] = []
-
-                    output += f"{import_scheme_item.strategy}<br>"
-
-        for import_scheme_file in import_scheme.files.all():
-            for row in import_scheme_file.rows(limit_count=5):
-                log.debug(row.id)
-
-        # https://stackoverflow.com/questions/39003732/display-django-pandas-dataframe-in-a-django-template
-        # https://getbootstrap.com/docs/5.0/content/tables/
-        # https://pandas.pydata.org/docs/getting_started/intro_tutorials/01_table_oriented.html
-        
         return render(request, "ml_import_wizard/scheme_preview.django-html", context={"stuff": output})

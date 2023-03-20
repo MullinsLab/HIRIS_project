@@ -7,6 +7,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from pathlib import Path
 from itertools import islice
+import json
 
 # Check to see if gffutils is installed
 NO_GFFUTILS: bool = False
@@ -16,6 +17,7 @@ else: NO_GFFUTILS=True
 
 from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name
 from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, FileNotInspectedError
+from ml_import_wizard.utils.importer import importers
 
 
 class ImportBaseModel(models.Model):
@@ -97,7 +99,87 @@ class ImportScheme(ImportBaseModel):
         if dirty: item.save()
 
         return item
+    
+    def get_preview_data_table(self) -> dict:
+        """ Get preview data for showing to the user """
         
+        log.debug("getting preview data table.")
+
+        table: dict = {"columns": [],
+                       "data": []               
+        }
+
+        column_id = 0
+        importer = importers[self.importer]
+        for app in importer.apps:
+            for model in app.models:
+                for field in model.fields:
+                    try:
+                        import_scheme_item = ImportSchemeItem.objects.get(import_scheme_id = self.id,
+                                                                          app = app.name,
+                                                                          model = model.name,
+                                                                          field = field.name
+                        )
+                    except ImportSchemeItem.DoesNotExist:
+                        continue
+
+                    table["columns"].append({})
+                    table["columns"][column_id]["name"] = field.name
+                    table["columns"][column_id]["import_scheme_item"] = import_scheme_item
+
+                    column_id += 1
+
+        fields: dict[int: any] = {}
+        
+        for import_scheme_file in self.files.all():
+            row_id = 0
+
+            for row in import_scheme_file.rows(limit_count=100):
+                for column in table["columns"]:
+
+                    table["data"].append({})
+
+                    strategy = column["import_scheme_item"].strategy
+                    settings = column["import_scheme_item"].settings
+
+                    if strategy == "Raw Text":
+                        table["data"][row_id][column["name"]] = settings["raw_text"]
+
+                    elif strategy == "Table Row":
+                        table["data"][row_id][column["name"]] = settings["row"]
+
+                    elif strategy == "File Field":
+                        if settings["key"] not in fields:
+                            import_scheme_file_field = ImportSchemeFileField.objects.get(pk=settings["key"])
+                            fields[import_scheme_file_field.id] = import_scheme_file_field.name
+                            
+                        table["data"][row_id][column["name"]] = row[fields[settings["key"]]]
+                    
+                    elif strategy == "Split Field":
+                        if settings["split_key"] not in fields:
+                            import_scheme_file_field = ImportSchemeFileField.objects.get(pk=settings["split_key"])
+                            fields[import_scheme_file_field.id] = import_scheme_file_field.name
+                        
+                        value = row[fields[settings["split_key"]]]
+
+                        if settings["splitter"] in value:
+                            table["data"][row_id][column["name"]] = value.split(settings["splitter"])[settings["splitter_position"]-1]
+                        else:
+                            table["data"][row_id][column["name"]] = value
+
+                row_id += 1
+                log.debug(f"column_id: {row_id}")
+
+        
+        # https://stackoverflow.com/questions/39003732/display-django-pandas-dataframe-in-a-django-template
+        # https://getbootstrap.com/docs/5.0/content/tables/
+        # https://pandas.pydata.org/docs/getting_started/intro_tutorials/01_table_oriented.html
+
+        log.debug(f"data length: {len(table['data'])}")
+        log.debug(json.dumps(table["data"]))
+
+        return table
+
 
 class ImportSchemeFile(ImportBaseModel):
     ''' Holds a file to import for an ImportScheme. FIELDS: (name, import_scheme, location) '''
@@ -146,8 +228,6 @@ class ImportSchemeFile(ImportBaseModel):
 
     def _confirm_file_is_ready(self, *, ignore_status: bool = False, inspected: bool = False) -> None:
         """ Make sure that the file is ready to operate on """
-        
-        log.debug(f"Ignore Status: {ignore_status}")
 
         # Error out if gffutils is not installed
         if (NO_GFFUTILS):
@@ -173,14 +253,24 @@ class ImportSchemeFile(ImportBaseModel):
 
         db = gffutils.FeatureDB(f'{settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name}.db')
 
+        base_fields = ('seqid', 'source', 'featuretype', 'start', 'end', 'score', 'strand', 'frame')
         counter: int = 1
 
         for feature in db.all_features():
-            yield feature
+            row: dict[str, any] = {}
+
+            for field in base_fields:
+                row[field] = getattr(feature, field)
+
+            for key, value in feature.attributes.items():
+                row[key] = value
+                if len(row[key]) == 1: row[key] = row[key][0]
+
+            yield row
 
             if limit_count:
                 counter += 1
-                if counter == limit_count:
+                if counter > limit_count:
                     break
 
     def inspect(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
