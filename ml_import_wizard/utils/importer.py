@@ -120,9 +120,10 @@ def inspect_models() -> None:
             # Get explicit list from include_models if it exists
             models: list = []
             if app.get('include_models', []):
-                models = filter(lambda model: model.__name__ in app.get('include_models', []), 
-                                apps.get_app_config(app['name']).get_models()
-                )
+                models = [apps.get_model(app_label=app['name'], model_name=model) 
+                          for model in app.get('include_models', [])
+                          if model in [app_model.__name__ for app_model in apps.get_app_config(app['name']).get_models()]
+                ]
 
             # Get list of models from Django if the models list is still empty, excluding models in "exclude_models"
             if not models:
