@@ -400,7 +400,13 @@ class PreviewImportScheme(LoginRequiredMixin, View):
             # Return the user to the /import page if they don't have a valid import_scheme to work on
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
-        log.debug(import_scheme.preview_data_table())
-        output = 'test'
+        table = import_scheme.preview_data_table()
+        columns = json.dumps([{'field': column["name"], 'title': column["name"]} for column in table["columns"]])
+        rows = json.dumps(table["rows"])
+        #log.debug(columns)
 
-        return render(request, "ml_import_wizard/scheme_preview.django-html", context={"stuff": output})
+        return render(request, "ml_import_wizard/scheme_preview.django-html", context={"columns": columns, "rows": rows})
+    
+        # https://stackoverflow.com/questions/39003732/display-django-pandas-dataframe-in-a-django-template
+        # https://getbootstrap.com/docs/5.0/content/tables/
+        # https://pandas.pydata.org/docs/getting_started/intro_tutorials/01_table_oriented.html

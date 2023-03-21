@@ -100,29 +100,26 @@ class ImportScheme(ImportBaseModel):
 
         return item
     
-    def preview_data_table(self) -> dict:
+    def preview_data_table(self, limit_count: int=100) -> dict:
         """ Get preview data for showing to the user """
         
         log.debug("getting preview data table.")
 
-        table: dict = {"columns": self.data_structure(),
-                       "data": []            
+        table: dict = {"columns": self.data_columns(),
+                       "rows": []            
         }
 
-        for row in self.data_rows(columns = table["columns"], limit_count=100):
-            table["data"].append(row)
-      
-        # https://stackoverflow.com/questions/39003732/display-django-pandas-dataframe-in-a-django-template
-        # https://getbootstrap.com/docs/5.0/content/tables/
-        # https://pandas.pydata.org/docs/getting_started/intro_tutorials/01_table_oriented.html
+        for row in self.data_rows(columns = table["columns"], limit_count=limit_count):
+            table["rows"].append(row)
 
-        log.debug(f"data length: {len(table['data'])}")
-        log.debug(json.dumps(table["data"]))
+        # log.debug(f"data length: {len(table['data'])}")
+        # log.debug(json.dumps(table["data"]))
+        # log.debug(json.dumps(table["columns"]))
 
         return table
 
-    def data_structure(self) -> list[dict[str: any]]:
-        """ Returns a list of columns for a data table or import """
+    def data_columns(self) -> list[dict[str: any]]:
+        """ Returns a list of columns each set of models in the target importer """
         columns: list = []
         column_id: int = 0
         importer = importers[self.importer]
@@ -146,13 +143,13 @@ class ImportScheme(ImportBaseModel):
                     column_id += 1
         return columns
     
-    def data_rows(self, *, columns: list, limit_count: int = None) -> dict[str: any]:
+    def data_rows(self, *, columns: list = [], limit_count: int = None) -> dict[str: any]:
+        """ Yields a row for each set of models in the target importer """
         fields: dict[int: any] = {}
-        log.debug(columns)
+        if not columns:
+            columns = self.data_columns
         
         for import_scheme_file in self.files.all():
-            row_id = 0
-
             for row in import_scheme_file.rows(limit_count=limit_count):
                 row_dict: dict = {}
 
@@ -185,11 +182,10 @@ class ImportScheme(ImportBaseModel):
                         else:
                             row_dict[column["name"]] = value
 
-                row_id += 1
                 yield row_dict
 
 class ImportSchemeFile(ImportBaseModel):
-    ''' Holds a file to import for an ImportScheme. FIELDS: (name, import_scheme, location) '''
+    ''' Holds a file to import for an ImportScheme. '''
 
     STATUSES: list[tuple] = [
         (0, 'New'),

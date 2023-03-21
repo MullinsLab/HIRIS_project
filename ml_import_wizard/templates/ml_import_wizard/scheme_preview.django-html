@@ -1,8 +1,25 @@
-{% extends "base.django-html" %}
+{% extends "ml_import_wizard/base.django-html" %}
 
 {% block page_content %}
 Looking to preview:<br>
-{% autoescape off %}
-    {{ stuff }}
-{% endautoescape %}
+<table id='datatable'></table>
+
+<script type="text/javascript">
+// $(function() {
+$( document ).ready(
+    $('#datatable').bootstrapTable({
+      striped: true,
+      pagination: true,
+      showColumns: true,
+      showToggle: true,
+      showExport: true,
+      sortable: true,
+      paginationVAlign: 'both',
+      pageSize: 25,
+      pageList: [10, 25, 50, 100, 'ALL'],
+      columns: {{ columns|safe }},
+      data: {{ rows|safe }},
+    })
+  );
+</script>
 {% endblock %}
