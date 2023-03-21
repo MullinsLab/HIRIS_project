@@ -12,7 +12,11 @@ class LoggingException(Exception):
 
     def __str__(self) -> str:
         return self.message
-    
+
+
+class MLImportWizardNotReady(LoggingException):
+    """ ML Import Wizard is not ready.  Invalid ML_IMPORT_WIZARD setting, or ml_import_wizard.utils.importer.import.inspect_models not run. """
+
 
 class GFFUtilsNotInstalledError(LoggingException):
     """ GFF & GFF3 Files can't be inspected because gffutils is not installed """
@@ -29,5 +33,10 @@ class FileHasBeenInspectedError(LoggingException):
 class FileNotInspectedError(LoggingException):
     """ File can't be operated on because it has not been inspected """
 
+
 class UnresolvedInspectionOrder(LoggingException):
     """ Inspection can't resolve the order of models for importing """
+
+
+class ImportSchemeNotReady(LoggingException):
+    """ The import scheme isn't ready for some reason """

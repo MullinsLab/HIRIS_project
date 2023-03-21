@@ -10,6 +10,7 @@ from weakref import proxy
 from ml_import_wizard.utils.simple import fancy_name
 from ml_import_wizard.exceptions import UnresolvedInspectionOrder
 
+
 importers: dict = {}
 
 
@@ -62,6 +63,7 @@ class ImporterModel(BaseImporter):
 
     def __init__(self, *, parent: object = None, name: str = '', model: object = '', **settings) -> None:
         """ Initialize the object """
+
         super().__init__(parent, name, **settings)
         
         # log.debug(f"Model from ImporterModel, Type: {type(model)}, Name: {model.__name__}, My type (ImporterModel): {type(self)}")
@@ -72,13 +74,15 @@ class ImporterModel(BaseImporter):
         parent.models.append(self)
         parent.models_by_name[self.name] = self
 
-    def list_foreign_keys(self) -> list:
+    def foreign_key_fields(self) -> list:
         """ Returns a list of fields that refer to foreign keys """
+
         return [field for field in self.fields if field.is_foreign_key()]
     
     def has_foreign_key(self) -> bool:
         """ Returns true if the model has one or more foreign keys """
-        if self.list_foreign_keys(): return True
+
+        if self.foreign_key_fields(): return True
         return False
     
     @property
@@ -91,6 +95,7 @@ class ImporterField(BaseImporter):
 
     def __init__(self, *, parent: object = None, name: str = '', field: object = '', **settings) -> None:
         """ Initialize the object """
+
         super().__init__(parent, name, **settings)
         
         self.field = field # Get the Django field so we can do queries against it
@@ -100,6 +105,7 @@ class ImporterField(BaseImporter):
 
     def is_foreign_key(self) -> bool:
         """ returns true if the field has a foreign key """
+
         return isinstance(self.field, ForeignKey)
 
 
@@ -165,7 +171,7 @@ def inspect_models() -> None:
                         continue
 
                     # Check to see if the model has any foreign keys
-                    foreign_keys = model.list_foreign_keys()
+                    foreign_keys = model.foreign_key_fields()
                     if not foreign_keys:
                         working_app.models_by_import_order.append(model)
                         continue
@@ -179,8 +185,8 @@ def inspect_models() -> None:
                     if dependancy_satisfied:
                         working_app.models_by_import_order.append(model)
                 
+                # Raise an exception if we make a loop and haven't increased the number of models in models_by_import_order
                 if model_by_import_count >= len(working_app.models_by_import_order):
-                    # Raise an exception if we make a loop and haven't increased the number of models in models_by_import_order
                     raise UnresolvedInspectionOrder("Order of importing models can't be resolved.  Potential circular ForeignKeys?")
                     
             # log.debug(f"Import Order: {[model.name for model in working_app.models_by_import_order]}")

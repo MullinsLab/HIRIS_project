@@ -16,7 +16,7 @@ if (find_spec("gffutils")): import gffutils
 else: NO_GFFUTILS=True
 
 from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name
-from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, FileNotInspectedError
+from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, FileNotInspectedError, ImportSchemeNotReady
 from ml_import_wizard.utils.importer import importers
 
 
@@ -47,8 +47,12 @@ class ImportScheme(ImportBaseModel):
     '''  Import scheme holds all required information to import a specific file format. FIELDS:(name, importer, user) '''
 
     STATUSES: list[tuple] = [
-        (0, 'New'),
-        (1, 'File Received'),
+        (0, "New"),
+        (1, "Files Received"),
+        (2, "Import Defined"),
+        (3, "Data Previewed"),
+        (4, "Import Started"),
+        (5, "Import Completed"),
     ]
 
     @classmethod
@@ -103,6 +107,9 @@ class ImportScheme(ImportBaseModel):
     def preview_data_table(self, limit_count: int=100) -> dict:
         """ Get preview data for showing to the user """
         
+        if self.status < 2:
+            raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has not been set up.")
+
         log.debug("getting preview data table.")
 
         table: dict = {"columns": self.data_columns(),
@@ -111,10 +118,6 @@ class ImportScheme(ImportBaseModel):
 
         for row in self.data_rows(columns = table["columns"], limit_count=limit_count):
             table["rows"].append(row)
-
-        # log.debug(f"data length: {len(table['data'])}")
-        # log.debug(json.dumps(table["data"]))
-        # log.debug(json.dumps(table["columns"]))
 
         return table
 
@@ -184,6 +187,48 @@ class ImportScheme(ImportBaseModel):
 
                 yield row_dict
 
+    def execute(self, *, ignore_status: bool = False) -> None:
+        """ Execute the actual import and store the data """
+
+        if not ignore_status and self.status < 2:
+            raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has not been set up.")
+        
+        if not ignore_status and self.status < 4:
+            raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has already been imported.")
+        
+        columns = self.data_columns()
+        print("Columns")
+        print(columns)
+
+        for row in self.data_rows(columns=columns):
+            print("Row")
+            print(row)
+
+            for app in importers[self.importer].apps:
+                working_objects: dict[str: dict[str: any]] = {}
+                for model in app.models_by_import_order:
+                    working_attributes = {}
+                    print(f"Model: {model.name}")
+
+                    for field in model.fields:
+                        print(f"Field: {field.name}")
+                        if field.is_foreign_key():
+                            # print(f"Field: {field.name}, points to: {field.field.related_model.__name__}")
+                            # print(field.field.__dict__)
+                            working_attributes[field.name] = working_objects[field.field.related_model.__name__]
+                        else:
+                           working_attributes[field.name] = row[field.name]
+                        
+                    print(f"Attributes: {working_attributes}")
+
+                    # Should load on all unique fields
+                    working_objects[model.name] = model.model.objects.filter(**working_attributes).first()
+                    if not working_objects[model.name]:
+                        working_objects[model.name] = model.model(**working_attributes)
+                        working_objects[model.name].save()
+                return
+
+
 class ImportSchemeFile(ImportBaseModel):
     ''' Holds a file to import for an ImportScheme. '''
 
@@ -247,7 +292,6 @@ class ImportSchemeFile(ImportBaseModel):
         # Error out if the file should be inspected and isn't
         if not ignore_status and inspected and self.status < 3:
             raise FileNotInspectedError(f'File has not been inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
-        
 
     def rows(self, *, limit_count: int = 0) -> dict[str: any]:
         """ Iterates through the rows of the file, returning a dict for each row """
@@ -365,11 +409,21 @@ class ImportSchemeItem(ImportBaseModel):
     model = models.CharField("Model this import item is for", max_length=255)
     field = models.CharField("DB Field this import item is for", max_length=255)
     strategy = models.CharField("Strategy for doing this import", max_length=255, null=True)
-    # import_scheme_file = models.ForeignKey(ImportSchemeFile, on_delete=models.CASCADE, null=True, blank=True)
     settings = models.JSONField("Settings specific to this import", null=True)
     added = models.DateTimeField(auto_now_add=True, editable=False)
     updated = models.DateTimeField(auto_now=True, editable=False)
 
+    @property
+    def name(self) -> str:
+        return f"{self.app}{self.model}{self.field}"
+
     class Meta:
         unique_together = ["app", "model", "field"]
-        
+
+
+class ImportSchemeRejectedRows(ImportBaseModel):
+    """ Holds all rejected rows for an import, and the reason they were rejected """
+
+    import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='rejected_rows', null=True, editable=False)
+    errors = models.JSONField("Why was this row rejected by the importer?")
+    row = models.JSONField("Complete data for the row that was rejected")
