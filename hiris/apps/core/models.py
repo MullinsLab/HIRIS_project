@@ -91,7 +91,7 @@ class Feature(CoreBaseModel):
 class FeatureLocation(CoreBaseModel):
     ''' Holds gene location data '''
     feature_location_id = models.BigAutoField(primary_key=True, editable=False)
-    feature = models.ForeignKey(Feature, on_delete=models.CASCADE, editable=False, related_name="feature_locations")
+    feature = models.ForeignKey(Feature, on_delete=models.CASCADE, related_name="feature_locations")
     chromosome = models.CharField(max_length=255, null=True)
     landmark = models.CharField(max_length=255, null=True)
     feature_start = models.IntegerField(null=False)
@@ -167,7 +167,7 @@ class Subject(CoreBaseModel):
 class Sample(CoreBaseModel):
     """ Holds data about a specific sample """
     sample_id = models.BigAutoField(primary_key=True, editable=False)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, editable=False, related_name="samples")
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="samples")
     culture = models.CharField(max_length=255, null=True, blank=True)
     culture_day = models.IntegerField(null=True, blank=True)
     date = models.DateField(null=True, blank=True)
@@ -192,7 +192,7 @@ class Sample(CoreBaseModel):
 class Preparation(CoreBaseModel):
     """ Holds data about how thesample was prepared """
     preparation_id = models.BigAutoField(primary_key=True, editable=False)
-    sample = models.ForeignKey(Sample, on_delete=models.CASCADE, editable=False, related_name="preparations")
+    sample = models.ForeignKey(Sample, on_delete=models.CASCADE, related_name="preparations")
     description = models.TextField()
 
     name_field =  "description"
@@ -205,7 +205,7 @@ class SequencingMethod(CoreBaseModel):
     """ Holds data about how the samples were sequenced """
     sequence_method_id = models.BigAutoField(primary_key=True, editable=False)
     sequencing_method_name = models.CharField(max_length=255)
-    preparation = models.ForeignKey(Preparation, on_delete=models.CASCADE, editable=False, related_name="sequencing_methods")
+    preparation = models.ForeignKey(Preparation, on_delete=models.CASCADE, related_name="sequencing_methods")
 
     class Meta:
         db_table = "sequencing_methods"
@@ -223,8 +223,8 @@ class IntegrationEnvironment(CoreBaseModel):
 class Integration(CoreBaseModel):
     """ Holds data about an individual integration """
     integration_id = models.BigAutoField(primary_key=True, editable=False)
-    integration_environment = models.ForeignKey(IntegrationEnvironment, on_delete=models.CASCADE, editable=False, related_name="integrations")
-    data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, editable=False, related_name="integrations")
+    integration_environment = models.ForeignKey(IntegrationEnvironment, on_delete=models.CASCADE, related_name="integrations")
+    data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="integrations")
     multiple_integration = models.BooleanField(null=True, blank=True)
     multiple_integration_count = models.IntegerField(null=True, blank=True)
     sequence = models.TextField(null=True, blank=True)
@@ -245,8 +245,8 @@ class Integration(CoreBaseModel):
 class IntegrationLocation(CoreBaseModel):
     """ Holds data about the locations of a specific integration """
     integration_location_id = models.BigAutoField(primary_key=True, editable=False)
-    integration = models.ForeignKey(Integration, on_delete=models.CASCADE, editable=False, related_name="integration_locations")
-    feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING, editable=False, related_name="integration_locations")
+    integration = models.ForeignKey(Integration, on_delete=models.CASCADE, related_name="integration_locations")
+    feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING, related_name="integration_locations")
     landmark = models.CharField(max_length=255)
     location = models.IntegerField()
     orientation_in_landmark = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=False)
