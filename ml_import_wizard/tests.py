@@ -74,7 +74,7 @@ class ModelTests(TestCase):
 
         self.assertEqual(0, ImportScheme.status_from_label('New'))
         self.assertEqual(0, ImportScheme.status_from_label('neW'))
-        self.assertEqual(1, ImportScheme.status_from_label('File Received'))
+        self.assertEqual(1, ImportScheme.status_from_label('Files Received'))
 
     def test_import_scheme_file_class_returns_correct_status_value_by_lable(self):
         ''' ImportSchemeFile class should return the correct status when given a certain value '''

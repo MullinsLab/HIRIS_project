@@ -10,7 +10,6 @@ from django.apps import apps
 
 import os
 import json
-import pandas as pd
 
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])

@@ -40,15 +40,6 @@ class Command(BaseCommand):
             except ImportSchemeFile.DoesNotExist as err:
                 log.warn(f'ImportFile {import_file_id} does not exist')
                 raise CommandError(f'ImportFile {import_file_id} does not exist')
-
-            # Create the importer based on the type of the file
-            # if import_file.type in ['gff', 'gff3']:
-            #     log.debug('Got gff file type for inspection')
-
-            #     try:
-            #         file_importer = GFFImporter(import_file=import_file, use_db=options['use_db'], ignore_status=options['ignore_status'])
-            #     except GFFUtilsNotInstalledError as err:
-            #         raise CommandError(err)
                 
             if verbosity > 1:
                 self.stdout.write(f'Starting to inspect {import_scheme_file} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_scheme_file.file_name}) file.')

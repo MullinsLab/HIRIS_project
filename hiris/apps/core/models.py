@@ -29,6 +29,7 @@ class CoreBaseModel(models.Model):
         ''' Generic stringify function.  Most objects will have a name so it's the default. '''
         return self.name
 
+
 class GenomeSpecies(CoreBaseModel):
     ''' Holds genome hosts.  Initially should contain: Homo Sapiens'''
     genome_species_id = models.BigAutoField(primary_key=True, editable=False)

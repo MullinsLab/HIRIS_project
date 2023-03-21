@@ -14,5 +14,7 @@ class ImportWizardConfig(AppConfig):
 
     def ready(self) -> None:
         """ Initialize the importer objects from settings """
-        inspect_models()
+
+        if settings.ML_IMPORT_WIZARD.get("Setup_On_Start", True):
+            inspect_models()
         
