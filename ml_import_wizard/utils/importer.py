@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.apps import apps
+from django.db.models import ForeignKey
 
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
@@ -7,7 +8,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 from weakref import proxy
 
 from ml_import_wizard.utils.simple import fancy_name
-
+from ml_import_wizard.exceptions import UnresolvedInspectionOrder
 
 importers: dict = {}
 
@@ -50,6 +51,7 @@ class ImporterApp(BaseImporter):
         
         self.models = []
         self.models_by_name = {}
+        self.models_by_import_order = []
 
         parent.apps.append(self)
         parent.apps_by_name[self.name] = self
@@ -70,6 +72,15 @@ class ImporterModel(BaseImporter):
         parent.models.append(self)
         parent.models_by_name[self.name] = self
 
+    def list_foreign_keys(self) -> list:
+        """ Returns a list of fields that refer to foreign keys """
+        return [field for field in self.fields if field.is_foreign_key()]
+    
+    def has_foreign_key(self) -> bool:
+        """ Returns true if the model has one or more foreign keys """
+        if self.list_foreign_keys(): return True
+        return False
+    
 
 class ImporterField(BaseImporter):
     """ Holds information about a field that should be imported from files """
@@ -82,6 +93,10 @@ class ImporterField(BaseImporter):
         
         parent.fields.append(self)
         parent.fields_by_name[self.name] = self
+
+    def is_foreign_key(self) -> bool:
+        """ returns true if the field has a foreign key """
+        return isinstance(self.field, ForeignKey)
 
 
 def inspect_models() -> None:
@@ -126,11 +141,6 @@ def inspect_models() -> None:
                     working_model.settings[key]=model_settings[key]
                 
                 for field in filter(lambda field: field.editable and (field.name not in model_settings.get("exclude_fields", [])), model._meta.get_fields()):
-                    
-                    # Skip field if it is a foreign key
-                    if field.get_internal_type() in ('ForeignKey'):
-                        continue
-                    
                     working_field: ImporterField = ImporterField(parent=working_model, name=field.name, field=field)
 
                     # Get settings for the field and save them in the object, except keys in exclude_keys
@@ -139,3 +149,34 @@ def inspect_models() -> None:
                     exclude_keys: tuple = ()
                     for key in filter(lambda key: key not in exclude_keys, field_settings.keys()):
                         working_field.settings[key] = field_settings[key]
+
+            # Step back through the models to put them into the correct order for actual data import
+            # do until we have as many models in the models_by_import_order list as in the models list
+            while len(working_app.models) > len(working_app.models_by_import_order):
+                model_by_import_count = len(working_app.models_by_import_order)
+                
+                for model in working_app.models:
+                    if model in working_app.models_by_import_order:
+                        continue
+
+                    # Check to see if the model has any foreign keys
+                    foreign_keys = model.list_foreign_keys()
+                    if not foreign_keys:
+                        working_app.models_by_import_order.append(model)
+                        continue
+                    
+                    dependancy_satisfied = True
+                    for field in foreign_keys:
+                        if field.field.related_model.__name__ not in [model.name for model in working_app.models_by_import_order]:
+                            dependancy_satisfied = False
+                            continue
+                    
+                    if dependancy_satisfied:
+                        working_app.models_by_import_order.append(model)
+                
+                if model_by_import_count >= len(working_app.models_by_import_order):
+                    # Raise an exception if we make a loop and haven't increased the number of models in models_by_import_order
+                    raise UnresolvedInspectionOrder("Order of importing models can't be resolved.  Potential circular ForeignKeys?")
+                    
+            # log.debug(f"Import Order: {[model.name for model in working_app.models_by_import_order]}")
+            # log.debug(f"Raw: {[model.name for model in working_app.models]}")

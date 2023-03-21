@@ -28,3 +28,6 @@ class FileHasBeenInspectedError(LoggingException):
 
 class FileNotInspectedError(LoggingException):
     """ File can't be operated on because it has not been inspected """
+
+class UnresolvedInspectionOrder(LoggingException):
+    """ Inspection can't resolve the order of models for importing """
