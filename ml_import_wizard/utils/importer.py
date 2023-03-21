@@ -81,6 +81,10 @@ class ImporterModel(BaseImporter):
         if self.list_foreign_keys(): return True
         return False
     
+    @property
+    def shown_fields(self) -> list:
+        return [field for field in self.fields if not field.is_foreign_key()]
+    
 
 class ImporterField(BaseImporter):
     """ Holds information about a field that should be imported from files """

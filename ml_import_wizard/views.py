@@ -274,7 +274,7 @@ class DoImporterModel(LoginRequiredMixin, View):
             field_values[field] = model_object.model.objects.values_list(field, flat=True)
 
         # fill field_list and field_stragegies
-        for field in model_object.fields:
+        for field in model_object.shown_fields:
             field_list.append(f"{model_object.name}__-__{field.name}")
 
             # log.debug(f"app: {app}, model: {model}, field: {field.name}")
@@ -301,8 +301,6 @@ class DoImporterModel(LoginRequiredMixin, View):
                                                      "strategies": field_strategies
                                             },
             ),
-            # 'urgent': True,
-            #'start_expanded': True,
             'tooltip': True,        # Needed to trigger tooltip
             'selectpicker': True,   # Needed to trigger the selectpicker from jquery to reformat the options
         }
