@@ -102,16 +102,21 @@ class FeatureLocation(CoreBaseModel):
     @property
     def name(self) -> str:
         ''' Set the name for a GeneLocation to be Gene: Landmark '''
+
+        # return f'{self.feature.name}: {self.landmark}'
         return f'{self.feature.name}: {self.landmark}'
 
     class Meta:
         db_table = "feature_locations"
-        unique_together = ('feature', 'landmark')
+        unique_together = ('feature', 'landmark', 'feature_start', 'feature_end')
         indexes = [
-            models.Index(fields=['feature', 'landmark']),
+            models.Index(fields=['landmark', 'feature_start', 'feature_end']),
+            models.Index(fields=['landmark', 'feature_start']),
+            models.Index(fields=['landmark', 'feature_end']),
             models.Index(fields=['landmark']),
-            models.Index(fields=['feature', 'chromosome']),
-            models.Index(fields=['chromosome']),
+            models.Index(fields=['feature_start', 'feature_end']),
+            models.Index(fields=['feature_start']),
+            models.Index(fields=['feature_end']),
         ]
 
 
