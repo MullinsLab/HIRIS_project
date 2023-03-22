@@ -6,6 +6,7 @@ import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from weakref import proxy
+from functools import lru_cache
 
 from ml_import_wizard.utils.simple import fancy_name
 from ml_import_wizard.exceptions import UnresolvedInspectionOrder
@@ -74,15 +75,17 @@ class ImporterModel(BaseImporter):
         parent.models.append(self)
         parent.models_by_name[self.name] = self
 
+    @property
     def foreign_key_fields(self) -> list:
         """ Returns a list of fields that refer to foreign keys """
 
         return [field for field in self.fields if field.is_foreign_key()]
     
+    @property
     def has_foreign_key(self) -> bool:
         """ Returns true if the model has one or more foreign keys """
 
-        if self.foreign_key_fields(): return True
+        if self.foreign_key_fields: return True
         return False
     
     @property
@@ -171,7 +174,7 @@ def inspect_models() -> None:
                         continue
 
                     # Check to see if the model has any foreign keys
-                    foreign_keys = model.foreign_key_fields()
+                    foreign_keys = model.foreign_key_fields
                     if not foreign_keys:
                         working_app.models_by_import_order.append(model)
                         continue
@@ -191,3 +194,4 @@ def inspect_models() -> None:
                     
             # log.debug(f"Import Order: {[model.name for model in working_app.models_by_import_order]}")
             # log.debug(f"Raw: {[model.name for model in working_app.models]}")
+

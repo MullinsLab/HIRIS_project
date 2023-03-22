@@ -18,7 +18,8 @@ else: NO_GFFUTILS=True
 from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name
 from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, FileNotInspectedError, ImportSchemeNotReady
 from ml_import_wizard.utils.importer import importers
-
+from ml_import_wizard.decorators import timeit
+from ml_import_wizard.utils.cache import LRUCacheThing
 
 class ImportBaseModel(models.Model):
     ''' A base class to hold comon methods and attributes.  It's Abstract so Django won't make a table for it
@@ -187,7 +188,8 @@ class ImportScheme(ImportBaseModel):
 
                 yield row_dict
 
-    def execute(self, *, ignore_status: bool = False) -> None:
+    @timeit
+    def execute(self, *, ignore_status: bool = False, limit_count: int=None) -> None:
         """ Execute the actual import and store the data """
 
         if not ignore_status and self.status < 2:
@@ -196,37 +198,54 @@ class ImportScheme(ImportBaseModel):
         if not ignore_status and self.status < 4:
             raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has already been imported.")
         
+        cache_thing = LRUCacheThing(items=1000)
         columns = self.data_columns()
-        print("Columns")
-        print(columns)
-
-        for row in self.data_rows(columns=columns):
-            print("Row")
-            print(row)
-
+        
+        row_count = 1
+        for row in self.data_rows(columns=columns, limit_count=limit_count):
             for app in importers[self.importer].apps:
                 working_objects: dict[str: dict[str: any]] = {}
+
                 for model in app.models_by_import_order:
                     working_attributes = {}
-                    print(f"Model: {model.name}")
 
+                    unique_sets: list[tuple] = list(model.model._meta.__dict__.get("unique_together"))
+                    
                     for field in model.fields:
-                        print(f"Field: {field.name}")
                         if field.is_foreign_key():
-                            # print(f"Field: {field.name}, points to: {field.field.related_model.__name__}")
-                            # print(field.field.__dict__)
                             working_attributes[field.name] = working_objects[field.field.related_model.__name__]
                         else:
-                           working_attributes[field.name] = row[field.name]
-                        
-                    print(f"Attributes: {working_attributes}")
+                           if field.field.unique:
+                               unique_sets.append((field.name, ))
 
-                    # Should load on all unique fields
-                    working_objects[model.name] = model.model.objects.filter(**working_attributes).first()
-                    if not working_objects[model.name]:
+                           working_attributes[field.name] = row[field.name]
+
+                    # Load instances per their unique fields until we run out of unique fields or an object is returned.
+                    for unique_set in unique_sets:
+                        test_attributes: dict[str, any] = {}
+                        test_attributes_string: str = ""
+
+                        for unique_field in unique_set:
+                            test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
+                            test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
+
+                        working_objects[model.name] = cache_thing.find(key=(model.name, test_attributes_string), report=False)
+
+                        if model.name not in working_objects or not working_objects[model.name]:
+                            working_objects[model.name] = model.model.objects.filter(**test_attributes).first()
+
+                            if working_objects[model.name]:
+                                cache_thing.store(key=(model.name, test_attributes_string), value=working_objects[model.name])
+
+                        if working_objects[model.name]:
+                            continue
+                    
+                    if not working_objects.get(model.name, None):
                         working_objects[model.name] = model.model(**working_attributes)
                         working_objects[model.name].save()
-                return
+        
+            print(row_count)
+            row_count += 1
 
 
 class ImportSchemeFile(ImportBaseModel):
