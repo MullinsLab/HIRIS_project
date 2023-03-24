@@ -219,25 +219,27 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
         if (import_item_id == 0):
-            ''' import_item_id 0 always refers to associated files '''
+            #import_item_id 0 always refers to associated files
+
             form: form = UploadFileForImportForm(request.POST, request.FILES)
-            file: file = request.FILES['file']
+            # file: file = request.FILES['file']
 
             if form.is_valid():
-                import_file = ImportSchemeFile(name=file.name, import_scheme=import_scheme)
-                import_file.save()
-                log.debug(f'Stored ImportFile with PKey of {import_file.id}')
+                for file in request.FILES.values():
+                    import_file = ImportSchemeFile(name=file.name, import_scheme=import_scheme)
+                    import_file.save()
+                    log.debug(f'Stored ImportFile with PKey of {import_file.id}')
 
-                log.debug(f'Getting ready to store file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
-                with open(settings.ML_IMPORT_WIZARD["Working_Files_Dir"] + import_file.file_name, 'wb+') as destination:
-                    for chunk in file.chunks():
-                        destination.write(chunk)
-                log.debug(f'Stored file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
+                    log.debug(f'Getting ready to store file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
+                    with open(settings.ML_IMPORT_WIZARD["Working_Files_Dir"] + import_file.file_name, 'wb+') as destination:
+                        for chunk in file.chunks():
+                            destination.write(chunk)
+                    log.debug(f'Stored file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
 
-                import_file.status = ImportSchemeFile.status_from_label('Uploaded')
-                import_file.save(update_fields=["status"])
-                
-                os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
+                    import_file.status = ImportSchemeFile.status_from_label('Uploaded')
+                    import_file.save(update_fields=["status"])
+                    
+                    os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
                 
                 return JsonResponse({
                     'saved': True,

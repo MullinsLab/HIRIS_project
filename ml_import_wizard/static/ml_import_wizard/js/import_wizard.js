@@ -303,7 +303,7 @@ function manage_file_field_input(field, model){
 
 
 function prep_upload_progress_bar(args){
-    const input_file = document.getElementById(args.file_input_name);
+    const file_fields = args.file_input_names
     const progress_bar = document.getElementById(args.progress_bar_name);
     const progress_modal = $('#'+args.progress_bar_name+'_modal_control');
     const progress_content = $('#'+args.progress_content);
@@ -311,12 +311,20 @@ function prep_upload_progress_bar(args){
     $("#"+args.form_name).bind( "submit", function(e) {
         e.preventDefault();
         var formData = new FormData(this);
-        const media_data = input_file.files[0];
-        if(media_data != null){
-            progress_content.html(media_data.name+'<br><br>')
-            progress_modal.modal('show');
+        
+        let file_names = "";
+        for (let file_index in file_fields){
+            let file = file_fields[file_index];
+            console.log("File field: " + file);
+            file_field = document.getElementById(file).files[0];
+            if (file_field != null){
+                file_names += file_field.name + "<br>";
+            }
         }
         
+        progress_content.html(file_names + '<br>');
+        progress_modal.modal('show');
+
         $.ajax({
             type: 'POST',
             url: args.post_url,

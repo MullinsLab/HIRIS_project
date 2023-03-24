@@ -34,7 +34,11 @@ class NewImportSchemeForm(forms.ModelForm):
 
 class UploadFileForImportForm(forms.Form):
     ''' Get a file to start importing from '''
-    file = forms.FileField()
+    file1 = forms.FileField()
+    file2 = forms.FileField(required=False)
+    file3 = forms.FileField(required=False)
+    file4 = forms.FileField(required=False)
+    file5 = forms.FileField(required=False)
 
     def __init__(self, *args, **kwargs):
         ''' Specify information about the display of the form '''
