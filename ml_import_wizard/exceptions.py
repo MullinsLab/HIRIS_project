@@ -22,16 +22,8 @@ class GFFUtilsNotInstalledError(LoggingException):
     """ GFF & GFF3 Files can't be inspected because gffutils is not installed """
 
 
-class FileNotSavedError(LoggingException):
-    """ File can't be operated on because it hasn't been saved. """
-
-
-class FileHasBeenInspectedError(LoggingException):
-    """ File can't be operated on because it has already been inspected. """
-
-
-class FileNotInspectedError(LoggingException):
-    """ File can't be operated on because it has not been inspected """
+class FileNotReadyError(LoggingException):
+    """ File can't be operated on because it isn't ready """
 
 
 class UnresolvedInspectionOrder(LoggingException):

@@ -8,6 +8,8 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 from pathlib import Path
 from itertools import islice
 import subprocess
+import csv
+import os.path
 
 # Check to see if gffutils is installed
 NO_GFFUTILS: bool = False
@@ -16,7 +18,7 @@ if (find_spec("gffutils")): import gffutils
 else: NO_GFFUTILS=True
 
 from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name
-from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, FileNotInspectedError, ImportSchemeNotReady, StatusNotFound
+from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotReadyError, ImportSchemeNotReady, StatusNotFound
 from ml_import_wizard.utils.importer import importers
 from ml_import_wizard.decorators import timeit
 from ml_import_wizard.utils.cache import LRUCacheThing
@@ -312,9 +314,64 @@ class ImportSchemeFile(ImportBaseModel):
         for field, samples in fields.items():
             import_file_field = self.fields.create(name=field)
             import_file_field.import_sample(sample=samples)
+    
+    def inspect(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
+        """ Inspect the file to figure out what fields it has """
+        
+        if self.type.lower() in  ("gff", "gff3"):
+            self._inspect_gff(use_db=use_db, ignore_status=ignore_status)
+        elif self.type.lower() == "tsv":
+            self._inspect_text(ignore_status=ignore_status)
+
+    def print_rows(self, *, limit_count: int = 0):
+        """ Temp function """
+
+        for row in self.rows():
+            print(row)
 
     def rows(self, *, limit_count: int = 0) -> dict[str: any]:
         """ Iterates through the rows of the file, returning a dict for each row """
+
+        if self.type.lower() in  ("gff", "gff3"):
+            for row in self._rows_gff():
+                yield row
+
+        elif self.type.lower() in ("csv", "tsv"):
+            columns: list[str] = []
+            
+            for row in self._rows_text():
+                if not len(columns):
+                    if self.settings.get("header_row", False):
+                        columns = row
+                        continue
+                    else:
+                        for index, field in enumerate(row):
+                            columns.append(f"Field {index+1}")
+
+                row_dict = {}
+                
+                for index, field in enumerate(row):
+                    row_dict[columns[index]] = field;
+                yield row_dict
+
+    def _rows_text(self, *, limit_count: int = 0) -> list:
+        """ Iterates through the rows of a text (csv or tsv), returning a list for each row """
+    
+        delimiter: str = "\t" if self.type.lower()=="tsv" else ","
+        counter: int = 1
+
+        with open(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}", "r") as file:
+            reader = csv.reader(file, delimiter=delimiter)
+            for row in reader:
+                yield row
+
+                if limit_count:
+                    counter += 1
+                    if counter > limit_count:
+                        break
+
+    def _rows_gff(self, *, limit_count: int = 0) -> dict[str: any]:
+        """ Iterates through the rows of the GFF file, returning a dict for each row """
 
         self._confirm_file_is_ready(inspected=True)
 
@@ -339,19 +396,11 @@ class ImportSchemeFile(ImportBaseModel):
                 counter += 1
                 if counter > limit_count:
                     break
-    
-    def inspect(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
-        """ Inspect the file to figure out what fields it has """
-        
-        if self.type.lower() in  ("gff", "gff3"):
-            self._inspect_gff(use_db=use_db, ignore_status=ignore_status)
-        elif self.type.lower() == "tsv":
-            self._inspect_tsv(use_db=use_db, ignore_status=ignore_status)
 
-    def _inspect_tsv(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
-        """ Inspect a GFF file by importing to the db """
+    def _inspect_text(self, *, ignore_status: bool = False) -> None:
+        """ Inspect a text file (tsv, csv) by importing to the db """
         
-        self._confirm_file_is_ready(ignore_status=ignore_status)
+        self._confirm_file_is_ready(ignore_status=ignore_status, preinspected=True)
 
         self.set_status_by_name('Inspecting')
         self.save(update_fields=["status"])
@@ -406,7 +455,7 @@ class ImportSchemeFile(ImportBaseModel):
         self.set_status_by_name('Inspected')
         self.save(update_fields=["status"])
 
-    def _confirm_file_is_ready(self, *, ignore_status: bool = False, inspected: bool = False) -> None:
+    def _confirm_file_is_ready(self, *, ignore_status: bool = False, preinspected: bool = False, inspected: bool = False) -> None:
         """ Make sure that the file is ready to operate on """
 
         if self.type.lower() in  ("gff", "gff3"):
@@ -414,17 +463,32 @@ class ImportSchemeFile(ImportBaseModel):
             if (NO_GFFUTILS):
                 raise GFFUtilsNotInstalledError("gfutils is not installed: The file can't be inspected because GFFUtils is not installed. (pip install gffutils)")
 
-        # Error out if the file hasn't been uploaded
+        # File hasn't been marked as uploaded
         if not ignore_status and self.status.uploaded == False:
-            raise FileNotSavedError(f'File not marked as saved: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+            raise FileNotReadyError(f'File not marked as saved: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+
+        # File is missing from disk
+        path: str = ""
+
+        if self.type.lower() in  ("gff", "gff3"):
+            path = f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db"
+        else:
+            path = f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}"
         
-        # Error out if the file shouldn't be inspected and is
+        if not os.path.exists(path):
+            raise FileNotReadyError(f'File is missing from disk: {self} ({path})')
+
+        # File should be preinspected but isn't
+        if not ignore_status and self.status.preinspected == False:
+            raise FileNotReadyError(f'File has not been preinspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+        
+        # File shouldn't be inspected and is
         if not ignore_status and not inspected and self.status.inspected == True:
-            raise FileHasBeenInspectedError(f'File already inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+            raise FileNotReadyError(f'File already inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
         
-        # Error out if the file should be inspected and isn't
+        # File should be inspected and isn't
         if not ignore_status and inspected and self.status.inspected == False:
-            raise FileNotInspectedError(f'File has not been inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+            raise FileNotReadyError(f'File has not been inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
 
 
 class ImportSchemeFileField(ImportBaseModel):

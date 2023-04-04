@@ -236,7 +236,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                             destination.write(chunk)
                     log.debug(f'Stored file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
 
-                    ImportSchemeFile.set_status_by_name('Uploaded')
+                    import_file.set_status_by_name('Uploaded')
                     import_file.save(update_fields=["status"])
                     
                     os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
