@@ -40,3 +40,7 @@ class UnresolvedInspectionOrder(LoggingException):
 
 class ImportSchemeNotReady(LoggingException):
     """ The import scheme isn't ready for some reason """
+
+
+class StatusNotFound(LoggingException):
+    """ The indicated status has not been found """

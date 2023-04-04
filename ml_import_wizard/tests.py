@@ -31,8 +31,8 @@ class ModelTests(TestCase):
             name = 'Test Importer', 
             user = User.objects.first(), 
             importer = 'Genome',
-            status = 0,
         )
+        cls.import_scheme.set_status_by_name("New")
         cls.import_scheme.save()
 
         cls.import_file_1 = ImportSchemeFile(name='test1.txt', import_scheme=cls.import_scheme)
@@ -68,20 +68,6 @@ class ModelTests(TestCase):
         ''' ImportSchemeFile should have the correct type '''
         
         self.assertEquals('txt', self.import_file_1.type)
-
-    def test_import_scheme_class_returns_correct_status_value_by_label(self):
-        ''' ImportSchemeFile class should return the correct status when given a certain value '''
-
-        self.assertEqual(0, ImportScheme.status_from_label('New'))
-        self.assertEqual(0, ImportScheme.status_from_label('neW'))
-        self.assertEqual(1, ImportScheme.status_from_label('Files Received'))
-
-    def test_import_scheme_file_class_returns_correct_status_value_by_lable(self):
-        ''' ImportSchemeFile class should return the correct status when given a certain value '''
-
-        self.assertEquals(0, ImportSchemeFile.status_from_label('New'))
-        self.assertEquals(5, ImportSchemeFile.status_from_label('Imported'))
-        self.assertEquals(5, ImportSchemeFile.status_from_label('importeD'))
 
     def test_import_scheme_should_be_able_to_add_item_if_its_not_there(self):
         """ import_scheme should be able to add an item using .create_or_update_item """

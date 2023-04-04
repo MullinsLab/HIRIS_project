@@ -187,9 +187,12 @@ LOGLEVEL = os.environ.get('LOGLEVEL', 'info').upper()
 logging.config.dictConfig({
     'version': 1,
     'disable_existing_loggers': False,
+    'root': {
+       'handlers': ['console', 'requests.log'],
+       'level': LOGLEVEL
+    },
     'formatters': {
         'verbose': {
-            # 'format': '{levelname} [{asctime}] Module:{module} Function:{funcName} Line:{lineno} {message}',
             'format': '{levelname} [{asctime}] {pathname}:{lineno} {message}',
             'datefmt' : '%Y-%m-%d %H:%M:%S',
             'style': '{',
@@ -206,8 +209,6 @@ logging.config.dictConfig({
         },
     },
     'handlers': {
-        # default logs to stderr and rotating logs
-        # console for warnings
         'console': {
             'level': 'INFO',
             'filters': ['require_debug_true'],
@@ -215,7 +216,7 @@ logging.config.dictConfig({
             'formatter': 'simple'
         },
 
-        'default': {
+        'hiris.log': {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(LOG_DIR,'hiris.log'),
@@ -224,7 +225,7 @@ logging.config.dictConfig({
             'formatter':'verbose',
         },
 
-        'test': {
+        'test.log': {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(LOG_DIR,'test.log'),
@@ -233,14 +234,23 @@ logging.config.dictConfig({
             'formatter':'verbose',
         },
 
-        'request_handler': {
+        'requests.log': {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
-            'filename':  os.path.join(LOG_DIR,'hiris_django_request.log'),
+            'filename':  os.path.join(LOG_DIR,'requests.log'),
             'maxBytes': 1024*1024*5, # 5 MB
             'backupCount': 5,
             'formatter':'verbose',
         },
+
+        # 'django.server': {
+        #     'level':'DEBUG',
+        #     'class':'logging.handlers.RotatingFileHandler',
+        #     'filename':  os.path.join(LOG_DIR,'requests.log'),
+        #     'maxBytes': 1024*1024*5, # 5 MB
+        #     'backupCount': 5,
+        #     'formatter':'verbose',
+        # },
 
         'django.server': DEFAULT_LOGGING['handlers']['django.server'],
     },
@@ -250,23 +260,25 @@ logging.config.dictConfig({
         # default for all undefined Python modules
         'default': {
             'level': 'WARNING',
-            'handlers': ['console', 'default'],
+            'handlers': ['console', 'hiris.log'],
+        },
+
+        # Logging for http requests
+        "django.request": {
+            'level': LOGLEVEL,
+            'handlers': ['console', 'requests.log'],
         },
 
         # Logging for our apps
         'app': {
             'level': LOGLEVEL,
-            'handlers': ['console', 'default'],
-            # Avoid double logging because of root logger - Except I want it to propagate so it reaches the Debug Toolbar
-            # 'propagate': False,
+            'handlers': ['console', 'hiris.log'],
         },
 
         # Logging for tests
         'test': {
             'level': LOGLEVEL,
-            'handlers': ['console', 'test'],
-            # Avoid double logging because of root logger - Except I want it to propagate so it reaches the Debug Toolbar
-            # 'propagate': False,
+            'handlers': ['console', 'test.log'],
         },
 
         # Default runserver request logging

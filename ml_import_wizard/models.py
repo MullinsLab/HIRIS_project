@@ -7,7 +7,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from pathlib import Path
 from itertools import islice
-import json
+import subprocess
 
 # Check to see if gffutils is installed
 NO_GFFUTILS: bool = False
@@ -16,7 +16,7 @@ if (find_spec("gffutils")): import gffutils
 else: NO_GFFUTILS=True
 
 from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name
-from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, FileNotInspectedError, ImportSchemeNotReady
+from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotSavedError, FileHasBeenInspectedError, FileNotInspectedError, ImportSchemeNotReady, StatusNotFound
 from ml_import_wizard.utils.importer import importers
 from ml_import_wizard.decorators import timeit
 from ml_import_wizard.utils.cache import LRUCacheThing
@@ -42,32 +42,28 @@ class ImportBaseModel(models.Model):
             return True
         
         return False
+    
+
+class ImportSchemeStatus(ImportBaseModel):
+    """ Holds statuses for ImportScheme objects """
+
+    name = models.CharField(max_length=255)
+    files_received = models.BooleanField(default=False)
+    data_previewed = models.BooleanField(default=False)
+    import_defined = models.BooleanField(default=False)
+    import_started = models.BooleanField(default=False)
+    import_completed = models.BooleanField(default=False)
 
 
 class ImportScheme(ImportBaseModel):
     '''  Import scheme holds all required information to import a specific file format. FIELDS:(name, importer, user) '''
-
-    STATUSES: list[tuple] = [
-        (0, "New"),
-        (1, "Files Received"),
-        (2, "Import Defined"),
-        (3, "Data Previewed"),
-        (4, "Import Started"),
-        (5, "Import Completed"),
-    ]
-
-    @classmethod
-    def status_from_label(cls, label) -> str:
-        ''' Returns the status value by lable '''
-
-        return next(key for key, value in dict(cls.STATUSES).items() if value.lower() == label.lower())
     
     name = models.CharField(max_length=255, null=False, blank=False)
     description = models.TextField(null=True, blank=True)
     importer = models.CharField(max_length=255, null=False, blank=False, editable=False)
     importer_hash = models.CharField(max_length=32, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    status = models.IntegerField(choices=STATUSES, default=0)
+    status = models.ForeignKey(ImportSchemeStatus, on_delete=models.DO_NOTHING, default=1, related_name="schemes")
     public = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs) -> None:
@@ -76,6 +72,16 @@ class ImportScheme(ImportBaseModel):
         if not self.importer_hash:
             self.importer_hash = dict_hash(settings.ML_IMPORT_WIZARD['Importers'][self.importer])
         super().save(*args, **kwargs)
+
+    def set_status_by_name(self, status):
+        """ Looks up the status name and """
+
+        try:
+            status_object = ImportSchemeStatus.objects.get(name=status)
+        except ImportSchemeStatus.DoesNotExist:
+            raise StatusNotFound(f"ImportSchemeStatus {status} is not valid")
+        
+        self.status = status_object
 
     def list_files(self, *, separator: str = ", ") -> str:
         """ Return a string that contains a list of file names for this ImportScheme """
@@ -108,7 +114,7 @@ class ImportScheme(ImportBaseModel):
     def preview_data_table(self, limit_count: int=100) -> dict:
         """ Get preview data for showing to the user """
         
-        if self.status < 2:
+        if self.status.import_defined == False:
             raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has not been set up.")
 
         log.debug("getting preview data table.")
@@ -192,10 +198,10 @@ class ImportScheme(ImportBaseModel):
     def execute(self, *, ignore_status: bool = False, limit_count: int=None) -> None:
         """ Execute the actual import and store the data """
 
-        if not ignore_status and self.status < 2:
+        if not ignore_status and self.status.import_defined == False:
             raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has not been set up.")
         
-        if not ignore_status and self.status < 4:
+        if not ignore_status and self.status.import_completed == True:
             raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has already been imported.")
         
         cache_thing = LRUCacheThing(items=1000)
@@ -248,28 +254,26 @@ class ImportScheme(ImportBaseModel):
             row_count += 1
 
 
+class ImportSchemeFileStatus(ImportBaseModel):
+    """ Holds statuses for ImportSchemeFiles """
+
+    name = models.CharField(max_length=255)
+    uploaded = models.BooleanField(default=False)
+    preinspected = models.BooleanField(default=False)
+    inspecting = models.BooleanField(default=False)
+    inspected = models.BooleanField(default=False)
+    importing = models.BooleanField(default=False)
+    imported = models.BooleanField(default=False)
+
+
 class ImportSchemeFile(ImportBaseModel):
     ''' Holds a file to import for an ImportScheme. '''
-
-    STATUSES: list[tuple] = [
-        (0, 'New'),
-        (1, 'Uploaded'),
-        (2, 'Inspecting'),
-        (3, 'Inspected'),
-        (4, 'Importing'),
-        (5, 'Imported'),
-    ]
-
-    @classmethod
-    def status_from_label(cls, label) -> str:
-        ''' Returns the status value by lable '''
-
-        return next(key for key, value in dict(cls.STATUSES).items() if value.lower() == label.lower())
 
     name = models.CharField(max_length=255, null=False, blank=False)
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='files', editable=False)
     type = models.CharField(max_length=255)
-    status = models.IntegerField(choices=STATUSES, default=0)
+    status = models.ForeignKey(ImportSchemeFileStatus, on_delete=models.DO_NOTHING, default=1, related_name="files")
+    settings = models.JSONField(null=True, blank=True)
 
     @property
     def file_name(self) -> str:
@@ -277,12 +281,28 @@ class ImportSchemeFile(ImportBaseModel):
 
         return str(self.id).rjust(8, '0')
     
+    @property
+    def line_count(self) -> int:
+        """ Count the lines of the file """
+
+        return int(subprocess.check_output(['wc', '-l', settings.ML_IMPORT_WIZARD['Working_Files_Dir'] + self.file_name]).split()[0])
+    
     def save(self, *args, **kwargs) -> None:
         ''' Override Save to get at the file type  '''
 
         self.type = Path(self.name).suffix[1:]
 
         super().save(*args, **kwargs)
+
+    def set_status_by_name(self, status):
+        """ Looks up the status name and """
+
+        try:
+            status_object = ImportSchemeFileStatus.objects.get(name=status)
+        except ImportSchemeFileStatus.DoesNotExist:
+            raise StatusNotFound(f"ImportSchemeFileStatus {status} is not valid")
+        
+        self.status = status_object
 
     def import_fields(self, *, fields: dict=None) -> None:
         ''' Import the fields contained in the file, along with sample '''
@@ -292,25 +312,6 @@ class ImportSchemeFile(ImportBaseModel):
         for field, samples in fields.items():
             import_file_field = self.fields.create(name=field)
             import_file_field.import_sample(sample=samples)
-
-    def _confirm_file_is_ready(self, *, ignore_status: bool = False, inspected: bool = False) -> None:
-        """ Make sure that the file is ready to operate on """
-
-        # Error out if gffutils is not installed
-        if (NO_GFFUTILS):
-            raise GFFUtilsNotInstalledError("gfutils is not installed: The file can't be inspected because GFFUtils is not installed. (pip install gffutils)")
-
-        # Error out if the file hasn't been uploaded
-        if not ignore_status and self.status == 0:
-            raise FileNotSavedError(f'File not marked as saved: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
-        
-        # Error out if the file shouldn't be inspected and is
-        if not ignore_status and not inspected and self.status >= 3:
-            raise FileHasBeenInspectedError(f'File already inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
-        
-        # Error out if the file should be inspected and isn't
-        if not ignore_status and inspected and self.status < 3:
-            raise FileNotInspectedError(f'File has not been inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
 
     def rows(self, *, limit_count: int = 0) -> dict[str: any]:
         """ Iterates through the rows of the file, returning a dict for each row """
@@ -338,13 +339,31 @@ class ImportSchemeFile(ImportBaseModel):
                 counter += 1
                 if counter > limit_count:
                     break
-
+    
     def inspect(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
-        ''' Inspect the file by importing to the db '''
+        """ Inspect the file to figure out what fields it has """
+        
+        if self.type.lower() in  ("gff", "gff3"):
+            self._inspect_gff(use_db=use_db, ignore_status=ignore_status)
+        elif self.type.lower() == "tsv":
+            self._inspect_tsv(use_db=use_db, ignore_status=ignore_status)
+
+    def _inspect_tsv(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
+        """ Inspect a GFF file by importing to the db """
+        
+        self._confirm_file_is_ready(ignore_status=ignore_status)
+
+        self.set_status_by_name('Inspecting')
+        self.save(update_fields=["status"])
+
+        log.debug(f"Line Count: {self.line_count}, File: {settings.ML_IMPORT_WIZARD['Working_Files_Dir'] + self.file_name}")
+
+    def _inspect_gff(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
+        ''' Inspect a GFF file by importing to the db '''
 
         self._confirm_file_is_ready(ignore_status=ignore_status)
 
-        self.status = self.status_from_label('Inspecting')
+        self.set_status_by_name('Inspecting')
         self.save(update_fields=["status"])
         
         if (use_db):
@@ -384,8 +403,28 @@ class ImportSchemeFile(ImportBaseModel):
         
         self.import_fields(fields=attributes)
 
-        self.status = self.status_from_label('Inspected')
+        self.set_status_by_name('Inspected')
         self.save(update_fields=["status"])
+
+    def _confirm_file_is_ready(self, *, ignore_status: bool = False, inspected: bool = False) -> None:
+        """ Make sure that the file is ready to operate on """
+
+        if self.type.lower() in  ("gff", "gff3"):
+            # Error out if gffutils is not installed
+            if (NO_GFFUTILS):
+                raise GFFUtilsNotInstalledError("gfutils is not installed: The file can't be inspected because GFFUtils is not installed. (pip install gffutils)")
+
+        # Error out if the file hasn't been uploaded
+        if not ignore_status and self.status.uploaded == False:
+            raise FileNotSavedError(f'File not marked as saved: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+        
+        # Error out if the file shouldn't be inspected and is
+        if not ignore_status and not inspected and self.status.inspected == True:
+            raise FileHasBeenInspectedError(f'File already inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+        
+        # Error out if the file should be inspected and isn't
+        if not ignore_status and inspected and self.status.inspected == False:
+            raise FileNotInspectedError(f'File has not been inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
 
 
 class ImportSchemeFileField(ImportBaseModel):
