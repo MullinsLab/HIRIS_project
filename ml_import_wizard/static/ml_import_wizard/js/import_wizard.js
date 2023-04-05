@@ -95,9 +95,6 @@ class ImportSchemeItem{
             this.caller.set_with_dirty({field: 'model', value: data.model});
             this.caller.set_with_dirty({field: 'fields', value: data.fields});
 
-            // console.log(data.fields);
-            // console.log(this.caller.fields);
-
             this.caller.render();
         })
     };

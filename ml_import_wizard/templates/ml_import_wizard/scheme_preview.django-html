@@ -5,7 +5,6 @@ Looking to preview:<br>
 <table id='datatable'></table>
 
 <script type="text/javascript">
-// $(function() {
 $( document ).ready(
     $('#datatable').bootstrapTable({
       striped: true,

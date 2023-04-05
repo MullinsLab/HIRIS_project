@@ -51,6 +51,7 @@ class ImportSchemeStatus(ImportBaseModel):
 
     name = models.CharField(max_length=255)
     files_received = models.BooleanField(default=False)
+    files_inspected = models.BooleanField(default=False)
     data_previewed = models.BooleanField(default=False)
     import_defined = models.BooleanField(default=False)
     import_started = models.BooleanField(default=False)
@@ -88,6 +89,24 @@ class ImportScheme(ImportBaseModel):
             raise StatusNotFound(f"ImportSchemeStatus {status} is not valid")
         
         self.status = status_object
+
+    def files_min_status_settings(self) -> dict[str: bool]:
+        """ Returns the minimum status settings of the files for this scheme """
+
+        log.debug(f"Fields: {ImportSchemeFileStatus._meta.get_fields()}")
+
+        statuses: dict[str: bool] = {}
+        for file in self.files.all():
+            for field in ImportSchemeFileStatus._meta.get_fields():
+                log.debug(f"name: {field.name}, type: {field.get_internal_type()}")
+                if field.get_internal_type() == "BooleanField":
+                    if not getattr(file.status, field.name):
+                        statuses[field.name] = False
+                    elif field.name not in statuses:
+                            statuses[field.name] = True
+
+        return statuses
+
 
     def list_files(self, *, separator: str = ", ") -> str:
         """ Return a string that contains a list of file names for this ImportScheme """
@@ -327,14 +346,8 @@ class ImportSchemeFile(ImportBaseModel):
         
         if self.type.lower() in  ("gff", "gff3"):
             self._inspect_gff(use_db=use_db, ignore_status=ignore_status)
-        elif self.type.lower() == "tsv":
+        elif self.type.lower() in ("tsv", "csv"):
             self._inspect_text(ignore_status=ignore_status)
-
-    def print_rows(self, *, limit_count: int = 0):
-        """ Temp function """
-
-        for row in self.rows():
-            print(row)
 
     def rows(self, *, limit_count: int = 0) -> dict[str: any]:
         """ Iterates through the rows of the file, returning a dict for each row """
@@ -346,7 +359,7 @@ class ImportSchemeFile(ImportBaseModel):
         elif self.type.lower() in ("csv", "tsv"):
             columns: list[str] = []
             
-            for row in self._rows_text():
+            for row in self._rows_text(limit_count=limit_count):
                 if not len(columns):
                     if self.settings.get("header_row", False):
                         columns = row
@@ -360,6 +373,13 @@ class ImportSchemeFile(ImportBaseModel):
                 for index, field in enumerate(row):
                     row_dict[columns[index]] = field;
                 yield row_dict
+
+    def first_row_as_list(self) -> list:
+        """ Return the first row of the file as a list """
+        
+        if self.type.lower() in ("tsv", "csv"):
+            for row in self._rows_text(limit_count=1):
+                return row
 
     def _rows_text(self, *, limit_count: int = 0) -> list:
         """ Iterates through the rows of a text (csv or tsv), returning a list for each row """

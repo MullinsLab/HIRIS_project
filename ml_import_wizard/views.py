@@ -5,8 +5,6 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.template.loader import render_to_string
-from django.utils.text import slugify
-from django.apps import apps
 
 import os
 import json
@@ -18,7 +16,7 @@ from ml_import_wizard.forms import UploadFileForImportForm, NewImportSchemeForm
 from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem
 from ml_import_wizard.utils.simple import sound_user_name
 from ml_import_wizard.utils.importer import importers
-# from ml_import_wizard.utils.import_files import get_importer, CSVImporter, GFFImporter
+from ml_import_wizard.utils.template import yes_no_button_set
 
 class ManageImports(LoginRequiredMixin, View):
     ''' The starting place for importing.  Show information on imports, started imports, new import, etc. '''
@@ -35,7 +33,7 @@ class ManageImports(LoginRequiredMixin, View):
                 'importer': importer, # Used for URLs
             }
 
-            if description := importer_dict.get('description'): importer_item['description'] = description
+            if description := importer_dict.get("description"): importer_item["description"] = description
 
             importers.append(importer_item)
 
@@ -45,7 +43,7 @@ class ManageImports(LoginRequiredMixin, View):
                 'name': import_scheme.name,
                 'id': import_scheme.id,
                 'importer': import_scheme.importer,
-                'description': import_scheme.description,
+                "description": import_scheme.description,
             }
 
             user_import_schemes.append(user_import_scheme_item)
@@ -75,7 +73,7 @@ class NewImportScheme(LoginRequiredMixin, View):
         form: form = NewImportSchemeForm(request.POST)
 
         if form.is_valid():
-            import_scheme = ImportScheme(name=form.cleaned_data['name'], description=form.cleaned_data['description'], importer=importer, user=request.user)
+            import_scheme = ImportScheme(name=form.cleaned_data['name'], description=form.cleaned_data["description"], importer=importer, user=request.user)
             import_scheme.save()
             log.debug(f'Stored ImportScheme with PKey of {import_scheme.id}')
 
@@ -113,7 +111,7 @@ class DoImportScheme(View):
         if import_scheme.files.count() == 0:
             action: dict = {
                 'name': 'No data file',
-                'description': "You'll need one or more files to import data from.",
+                "description": "You'll need one or more files to import data from.",
                 'urgent': True,
                 'start_expanded': True,
             }
@@ -133,10 +131,12 @@ class ListImportSchemeItems(LoginRequiredMixin, View):
         ''' Produce the list of ImportSchemeItems  '''
 
         import_scheme = ImportScheme.objects.get(pk=kwargs['import_scheme_id'])
-        # Initialize with a 0 for 
+        file_settings = import_scheme.files_min_status_settings()
+
+        # Initialize with a 0 for files list
         import_scheme_items: list[int|str] = [0]
 
-        if import_scheme.files.count():
+        if import_scheme.files.count() and file_settings["inspected"]:
             # Display fields from the importer
             importer = importers[import_scheme.importer]
             
@@ -171,7 +171,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
             if import_scheme.files.count() == 0:
                 return_data = {
                     'name': 'No data file',
-                    'description': "You'll need one or more files to import data from.",
+                    "description": "You'll need one or more files to import data from.",
                     'form': render_to_string('ml_import_wizard/fragments/scheme_file.django-html', request=request, context={
                         'form': UploadFileForImportForm(), 
                         'path': reverse('ml_import_wizard:scheme_item', kwargs={'import_scheme_id': import_scheme.id, 'import_item_id': 0})
@@ -180,25 +180,28 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                     'start_expanded': True,
                     "model": "ml_import_wizard_file_uploader",
                 }
+
             else:
                 if import_scheme.files.count() == 1:
                     return_data = {
                         'name': '1 file uploaded',
-                        'description': 'There is 1 file uploaded for this import:',
+                        "description": 'There is 1 file uploaded for this import:',
                     }
                 else:
                     return_data = {
-                        'name': f'{import_scheme.files.count()} files uploaded',
-                        'description': f'There are {import_scheme.files.count()} files uploaded for this import:',
+                        "name": f'{import_scheme.files.count()} files uploaded',
+                        "start_expanded": True,
+                        "urgent": False,
+                        "description": render_to_string('ml_import_wizard/fragments/file_list.django-html', request=request, context={
+                            "files": import_scheme.files.all()
+                        })
                     }
-                    
-                return_data['description'] += f'<ul><li>{import_scheme.list_files(separator="</li><li>")}</li></ul>'
         else:
             # Import items that aren't files
             item = ImportSchemeItem.objects.get(pk=import_item_id)
             return_data = {
                 'name': item.fancy_value,
-                'description': item.items_for_html(),
+                "description": item.items_for_html(),
                 'start_expanded': True,
             }
 
@@ -291,7 +294,7 @@ class DoImporterModel(LoginRequiredMixin, View):
         return_data = {
             'name': model_object.fancy_name,
             'model': model_object.name,
-            'description': '',
+            "description": '',
             "fields": field_list,
             'form': render_to_string('ml_import_wizard/fragments/model.django-html', 
                                             request=request, 

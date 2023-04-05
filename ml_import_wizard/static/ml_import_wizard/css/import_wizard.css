@@ -46,9 +46,6 @@
     font-weight: normal;
 }
 
-/* .field-annotation::before{
-    content: url('../images/notice-outline-red.svg');
-    width: 25px;
-    height: 20px;
-    padding-right: 5px;
-} */
+.attention{
+    color: blue;
+}

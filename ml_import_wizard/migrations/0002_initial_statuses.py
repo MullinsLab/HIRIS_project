@@ -10,12 +10,13 @@ def load_initial_data(apps, schema_editor):
     ImportSchemeFileStatus = apps.get_model("ml_import_wizard", "ImportSchemeFileStatus")
 
     scheme_statuses: list = [
-        {"name": "New", "files_received": False, "import_defined": False, "data_previewed": False, "import_started": False, "import_completed": False},
-        {"name": "Files Received", "files_received": True, "import_defined": False, "data_previewed": False, "import_started": False, "import_completed": False},
-        {"name": "Import Defined", "files_received": True, "import_defined": True,"data_previewed": False, "import_started": False, "import_completed": False},
-        {"name": "Data Previewed", "files_received": True, "import_defined": True,"data_previewed": True, "import_started": False, "import_completed": False},
-        {"name": "Import Started", "files_received": True, "import_defined": True,"data_previewed": True, "import_started": True, "import_completed": False},
-        {"name": "Import Completed", "files_received": True, "import_defined": True,"data_previewed": True, "import_started": True, "import_completed": True},
+        {"name": "New", "files_received": False, "files_inspected": False, "import_defined": False, "data_previewed": False, "import_started": False, "import_completed": False},
+        {"name": "Files Received", "files_received": True, "files_inspected": False, "import_defined": False, "data_previewed": False, "import_started": False, "import_completed": False},
+        {"name": "Files Inspected", "files_received": True, "files_inspected": True, "import_defined": True,"data_previewed": False, "import_started": False, "import_completed": False},
+        {"name": "Import Defined", "files_received": True, "files_inspected": True, "import_defined": True,"data_previewed": False, "import_started": False, "import_completed": False},
+        {"name": "Data Previewed", "files_received": True, "files_inspected": True, "import_defined": True,"data_previewed": True, "import_started": False, "import_completed": False},
+        {"name": "Import Started", "files_received": True, "files_inspected": True, "import_defined": True,"data_previewed": True, "import_started": True, "import_completed": False},
+        {"name": "Import Completed", "files_received": True, "files_inspected": True, "import_defined": True,"data_previewed": True, "import_started": True, "import_completed": True},
 
     ]
     file_statuses: list = [
