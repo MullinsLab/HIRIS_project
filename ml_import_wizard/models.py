@@ -73,6 +73,10 @@ class ImportScheme(ImportBaseModel):
 
         if not self.importer_hash:
             self.importer_hash = dict_hash(settings.ML_IMPORT_WIZARD['Importers'][self.importer])
+        
+        if self.status == None:
+            self.status = {}
+
         super().save(*args, **kwargs)
 
     def set_status_by_name(self, status):
@@ -275,7 +279,7 @@ class ImportSchemeFile(ImportBaseModel):
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='files', editable=False)
     type = models.CharField(max_length=255)
     status = models.ForeignKey(ImportSchemeFileStatus, on_delete=models.DO_NOTHING, default=1, related_name="files")
-    settings = models.JSONField(null=True, blank=True)
+    settings = models.JSONField(default=dict)
 
     @property
     def file_name(self) -> str:
@@ -293,6 +297,9 @@ class ImportSchemeFile(ImportBaseModel):
         ''' Override Save to get at the file type  '''
 
         self.type = Path(self.name).suffix[1:]
+        
+        if self.status == None:
+            self.status = {}
 
         super().save(*args, **kwargs)
 
@@ -531,7 +538,7 @@ class ImportSchemeItem(ImportBaseModel):
     model = models.CharField("Model this import item is for", max_length=255)
     field = models.CharField("DB Field this import item is for", max_length=255)
     strategy = models.CharField("Strategy for doing this import", max_length=255, null=True)
-    settings = models.JSONField("Settings specific to this import", null=True)
+    settings = models.JSONField("Settings specific to this import", default=dict)
     added = models.DateTimeField(auto_now_add=True, editable=False)
     updated = models.DateTimeField(auto_now=True, editable=False)
 
