@@ -466,7 +466,7 @@ class ImportSchemeFile(ImportBaseModel):
         """ Make sure that the file is ready to operate on """
 
         if self.type.lower() in  ("gff", "gff3"):
-            # Error out if gffutils is not installed
+            # Gffutils is not installed
             if (NO_GFFUTILS):
                 raise GFFUtilsNotInstalledError("gfutils is not installed: The file can't be inspected because GFFUtils is not installed. (pip install gffutils)")
 
@@ -475,18 +475,11 @@ class ImportSchemeFile(ImportBaseModel):
             raise FileNotReadyError(f'File not marked as saved: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
 
         # File is missing from disk
-        path: str = ""
-
-        if self.type.lower() in  ("gff", "gff3"):
-            path = f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db"
-        else:
-            path = f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}"
-        
-        if not os.path.exists(path):
-            raise FileNotReadyError(f'File is missing from disk: {self} ({path})')
+        if not os.path.exists(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}"):
+            raise FileNotReadyError(f"File is missing from disk: {self} ({settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name})")
 
         # File should be preinspected but isn't
-        if not ignore_status and self.status.preinspected == False:
+        if not ignore_status and preinspected and self.status.preinspected == False:
             raise FileNotReadyError(f'File has not been preinspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
         
         # File shouldn't be inspected and is
@@ -496,6 +489,11 @@ class ImportSchemeFile(ImportBaseModel):
         # File should be inspected and isn't
         if not ignore_status and inspected and self.status.inspected == False:
             raise FileNotReadyError(f'File has not been inspected: {self} ({settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name})')
+
+        if self.type.lower() in  ("gff", "gff3"):
+            # File is inspected, but DB is missing from disk
+            if not ignore_status and inspected and not os.path.exists(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db"):
+                raise FileNotReadyError(f"DB file is missing from disk: {self} ({settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db)")
 
 
 class ImportSchemeFileField(ImportBaseModel):
