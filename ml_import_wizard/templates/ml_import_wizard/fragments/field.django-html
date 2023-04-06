@@ -38,9 +38,6 @@
     name="file_field_{{ model.name }}__-__{{ field.name }}_raw_text" 
     id="file_field_{{ model.name }}__-__{{ field.name }}_raw_text" 
     {% if model.settings.default_option == "raw_text" and not strategy.strategy or strategy.strategy == "Raw Text" %}{% else %}class="not-visible"{% endif %}
-
-
-
     oninput="check_submittable('{{ model.name }}')" {% if strategy.strategy == "Raw Text" %}value="{{ strategy.raw_text }}"{% endif %}>
 
 <span id="file_field_{{ model.name }}__-__{{ field.name }}_first_hider"

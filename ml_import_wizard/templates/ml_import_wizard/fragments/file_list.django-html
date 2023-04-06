@@ -1,26 +1,30 @@
-There {% if files|length == 1 %}is 1 file{% else %} are {{ files|length }} files{% endif %} uploaded for this import:
-<ul>
-    {% for file in files %}
-        <li>
-            {{ file.name }}
-                {% comment %} Render a small form to collect if the first row is a header row {% endcomment %}
-                {% if file.status.preinspected == False %}
-                    {% if file.type in "tsv,csv" %}
-                        <br>The first row contains the following data:
-                        <br><span class="attention">{% for field in file.first_row_as_list %}"{{ field }}"{% if not forloop.last %},{% endif %} {% endfor %}</span>
-                        <div class="m-4 form-horizontal">
-                            Use the first row as field names? 
-                            <div class="btn-group" id="first_row_header_{{file.id}}">
-                                <input type="radio" class="btn-check" name="options" id="yes" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="yes">Yes</label>
-                                <input type="radio" class="btn-check" name="options" id="no" autocomplete="off">
-                                <label class="btn btn-outline-primary" for="no">No</label>
+{% if needs_form %}<form id="item_form_---setup_files---" 
+                             data-url="0"
+                             data-model="---setup_files---"
+                             data-file_saved=true>{% endif %}
+    <ul>
+        {% for file in files %}
+            <li>
+                <b>{{ file.name }}</b>
+                    {% comment %} Render a small form to collect if the first row is a header row {% endcomment %}
+                    {% if file.status.preinspected == False %}
+                        {% if file.type in "tsv,csv" %}
+                            <br>The first row contains the following data:
+                            <br><span class="attention">{% for field in file.first_row_as_list %}"{{ field }}"{% if not forloop.last %},{% endif %} {% endfor %}</span>
+                            <div class="m-4 form-horizontal">
+                                Use the first row as field names? 
+                                <div class="btn-group" id="file_field_first_row_header_{{file.id}}" data-is_radio=true>
+                                    <input type="radio" class="btn-check" name="options" id="yes" value="True" autocomplete="off" onchange="check_submittable('---setup_files---')">
+                                    <label class="btn btn-outline-primary" for="yes">Yes</label>
+                                    <input type="radio" class="btn-check" name="options" id="no" value="False" autocomplete="off" onchange="check_submittable('---setup_files---')">
+                                    <label class="btn btn-outline-primary" for="no">No</label>
+                                </div>
                             </div>
-                          </div>
+                        {% endif %}
+                    {% elif file.status.inspected == False%}being inspected
                     {% endif %}
-                {% elif file.status.inspected == False%}being inspected
-                {% endif %}
-        </li>
-    {% endfor %}
-</ul>
-<input type="submit" class="btn btn-primary disabled" id="submit_files">
+            </li>
+        {% endfor %}
+    </ul>
+    {% if needs_form %}<input type="submit" class="btn btn-primary disabled" id="submit_---setup_files---">
+</form>{% endif %}

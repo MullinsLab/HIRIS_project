@@ -93,12 +93,9 @@ class ImportScheme(ImportBaseModel):
     def files_min_status_settings(self) -> dict[str: bool]:
         """ Returns the minimum status settings of the files for this scheme """
 
-        log.debug(f"Fields: {ImportSchemeFileStatus._meta.get_fields()}")
-
         statuses: dict[str: bool] = {}
         for file in self.files.all():
             for field in ImportSchemeFileStatus._meta.get_fields():
-                log.debug(f"name: {field.name}, type: {field.get_internal_type()}")
                 if field.get_internal_type() == "BooleanField":
                     if not getattr(file.status, field.name):
                         statuses[field.name] = False
@@ -312,6 +309,33 @@ class ImportSchemeFile(ImportBaseModel):
 
         return int(subprocess.check_output(['wc', '-l', settings.ML_IMPORT_WIZARD['Working_Files_Dir'] + self.file_name]).split()[0])
     
+    @property
+    def base_type(self) -> str:
+        """ Returns the base type of the file: text or gff """
+
+        if self.type.lower() in  ("gff", "gff3"):
+            return "gff"
+        elif self.type.lower() in ("tsv", "csv"):
+            return "text"
+    
+    @property
+    def ready_to_inspect(self) -> bool:
+        """ Returns true if the file is ready to preinspect """
+
+        if self.base_type == "gff":
+            return False
+            
+        if self.base_type == "text":
+            try:
+                self._confirm_file_is_ready(preinspected=False, inspected=False)
+            except:
+                return False
+            
+            if self.settings.get("first_row_header", None) is None:
+                return False
+
+        return True
+
     def save(self, *args, **kwargs) -> None:
         ''' Override Save to get at the file type  '''
 
@@ -340,13 +364,14 @@ class ImportSchemeFile(ImportBaseModel):
         for field, samples in fields.items():
             import_file_field = self.fields.create(name=field)
             import_file_field.import_sample(sample=samples)
-    
+
     def inspect(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
         """ Inspect the file to figure out what fields it has """
         
-        if self.type.lower() in  ("gff", "gff3"):
+        if self.base_type == "gff":
             self._inspect_gff(use_db=use_db, ignore_status=ignore_status)
-        elif self.type.lower() in ("tsv", "csv"):
+
+        elif self.base_type == "text":
             self._inspect_text(ignore_status=ignore_status)
 
     def rows(self, *, limit_count: int = 0) -> dict[str: any]:

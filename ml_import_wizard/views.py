@@ -14,9 +14,8 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from ml_import_wizard.forms import UploadFileForImportForm, NewImportSchemeForm
 from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem
-from ml_import_wizard.utils.simple import sound_user_name
+from ml_import_wizard.utils.simple import sound_user_name, resolve_true
 from ml_import_wizard.utils.importer import importers
-from ml_import_wizard.utils.template import yes_no_button_set
 
 class ManageImports(LoginRequiredMixin, View):
     ''' The starting place for importing.  Show information on imports, started imports, new import, etc. '''
@@ -182,27 +181,49 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 }
 
             else:
-                if import_scheme.files.count() == 1:
-                    return_data = {
-                        'name': '1 file uploaded',
-                        "description": 'There is 1 file uploaded for this import:',
-                    }
+                files = import_scheme.files.all()
+
+                name: str = "1 file uploaded" if import_scheme.files.count() == 1 else f"{import_scheme.files.count()} files uploaded"
+                description: str = ("There is 1 file" if len(files) == 1 else f"There are {len(files)} files") + " uploaded for this import."
+                form: str = ""
+                list_bit: str = ""
+                field_list: list = []
+                start_expanded: bool = False
+                urgent: bool = False
+                needs_form: bool = False
+                model: str = "---setup_files---"
+
+                for file in files:
+                    if file.status.preinspected == False:
+                        field_list.append(f"first_row_header_{file.id}")
+                        start_expanded = urgent = needs_form = True
+
+                list_bit = render_to_string('ml_import_wizard/fragments/file_list.django-html', request=request, context={
+                        "files": import_scheme.files.all(),
+                        "needs_form": needs_form,
+                    })
+                
+                if needs_form:
+                    form = list_bit
                 else:
-                    return_data = {
-                        "name": f'{import_scheme.files.count()} files uploaded',
-                        "start_expanded": True,
-                        "urgent": False,
-                        "description": render_to_string('ml_import_wizard/fragments/file_list.django-html', request=request, context={
-                            "files": import_scheme.files.all()
-                        })
-                    }
+                    description += list_bit
+
+                return_data = {
+                    "name": name,
+                    "description": description,
+                    "start_expanded": start_expanded,
+                    "urgent": urgent,
+                    "form": form,
+                    "fields": field_list,
+                    "model": model,
+                }
         else:
             # Import items that aren't files
             item = ImportSchemeItem.objects.get(pk=import_item_id)
             return_data = {
-                'name': item.fancy_value,
+                "name": item.fancy_value,
                 "description": item.items_for_html(),
-                'start_expanded': True,
+                "start_expanded": True,
             }
 
         # log.debug(f'Sending ImportSchemeItem via AJAX query: {return_data}')      
@@ -220,33 +241,55 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
         except ImportScheme.DoesNotExist:
             # Return the user to the /import page if they don't have a valid import_scheme to work on
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
-
+        
         if (import_item_id == 0):
             #import_item_id 0 always refers to associated files
 
-            form: form = UploadFileForImportForm(request.POST, request.FILES)
-            # file: file = request.FILES['file']
-
-            if form.is_valid():
-                for file in request.FILES.values():
-                    import_file = ImportSchemeFile(name=file.name, import_scheme=import_scheme)
-                    import_file.save()
-                    log.debug(f'Stored ImportFile with PKey of {import_file.id}')
-
-                    log.debug(f'Getting ready to store file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
-                    with open(settings.ML_IMPORT_WIZARD["Working_Files_Dir"] + import_file.file_name, 'wb+') as destination:
-                        for chunk in file.chunks():
-                            destination.write(chunk)
-                    log.debug(f'Stored file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
-
-                    import_file.set_status_by_name('Uploaded')
-                    import_file.save(update_fields=["status"])
-                    
-                    os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
+            if resolve_true(request.POST.get("---file_saved---", False)):
+                check_for_inspect: list[ImportSchemeFile] = []
                 
-                return JsonResponse({
-                    'saved': True,
-                })
+                for attribute, value in request.POST.items():
+                    if attribute in ("csrfmiddlewaretoken", "---file_saved---"): continue
+
+                    if "first_row_header_" in attribute:
+                        import_scheme_file = ImportSchemeFile.objects.get(pk=attribute.split("_")[-1])
+                        import_scheme_file.settings["first_row_header"] = value
+                        import_scheme_file.save(update_fields=["settings"])
+
+                        check_for_inspect.append(import_scheme_file)
+                
+                # Check to see if any files that have been altered are ready to inspect
+                for import_scheme_file in check_for_inspect:
+                    if import_scheme_file.ready_to_inspect:
+                        import_scheme_file.set_status_by_name("Preinspected")
+                        import_scheme_file.save(update_fields=["status"])
+                        # os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
+
+                return JsonResponse({'saved': True})
+            else:
+                form: form = UploadFileForImportForm(request.POST, request.FILES)
+                # file: file = request.FILES['file']
+
+                if form.is_valid():
+                    for file in request.FILES.values():
+                        import_file = ImportSchemeFile(name=file.name, import_scheme=import_scheme)
+                        import_file.save()
+                        log.debug(f'Stored ImportFile with PKey of {import_file.id}')
+
+                        log.debug(f'Getting ready to store file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
+                        with open(settings.ML_IMPORT_WIZARD["Working_Files_Dir"] + import_file.file_name, 'wb+') as destination:
+                            for chunk in file.chunks():
+                                destination.write(chunk)
+                        log.debug(f'Stored file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
+
+                        import_file.set_status_by_name('Uploaded')
+                        import_file.save(update_fields=["status"])
+                        
+                        os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
+                    
+                    return JsonResponse({'saved': True})
+                else:
+                    return JsonResponse({'saved': False})
             
 
 class DoImporterModel(LoginRequiredMixin, View):

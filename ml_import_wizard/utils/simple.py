@@ -77,3 +77,16 @@ def json_dump(object: object) -> str:
     """ Returns a json dump of the object, mostly for logging """
 
     return json.dumps(jsonpickle.encode(object, unpicklable=False))
+
+
+def resolve_true(value: any) -> bool|None:
+    """ Resolves ambiguous values to true or false """
+
+    if type(value) is str:
+        if value.lower() in ("no", "false", "0"):
+            return False
+
+    if value is None:
+        return None
+    
+    return bool(value)

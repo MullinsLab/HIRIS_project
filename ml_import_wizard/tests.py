@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 
 from .models import ImportScheme, ImportSchemeFile
-from .utils.simple import dict_hash, sound_user_name, split_by_caps, stringalize, mached_name_choices, fancy_name
+from .utils.simple import dict_hash, sound_user_name, split_by_caps, stringalize, mached_name_choices, fancy_name, resolve_true
 
 
 class InclusionTest(TestCase):
@@ -195,6 +195,45 @@ class SimpleUtilsTest(TestCase):
     def test_fancy_name_returns_capital_id_if_string_is_id(self):
         """ fancy_name() should return ID if the string is just id """
         self.assertEqual("ID", fancy_name("id"))
+
+    # resolve_true tests
+    def test_yes_resolves_to_true(self):
+        """ resolve_true() should return False when given no, reguardless of case """
+        self.assertEqual(resolve_true("Yes"), True)
+        self.assertEqual(resolve_true("yes"), True)
+        self.assertEqual(resolve_true("YeS"), True)
+
+    def test_no_resolves_to_false(self):
+        """ resolve_true() should return True when given yes, reguardless of case """
+        self.assertEqual(resolve_true("no"), False)
+        self.assertEqual(resolve_true("No"), False)
+        self.assertEqual(resolve_true("nO"), False)
+
+    def test_yes_resolves_to_true(self):
+        """ resolve_true() should return False when given no, reguardless of case """
+        self.assertEqual(resolve_true("true"), True)
+        self.assertEqual(resolve_true("True"), True)
+        self.assertEqual(resolve_true("trUe"), True)
+
+    def test_no_resolves_to_false(self):
+        """ resolve_true() should return True when given yes, reguardless of case """
+        self.assertEqual(resolve_true("false"), False)
+        self.assertEqual(resolve_true("False"), False)
+        self.assertEqual(resolve_true("faLse"), False)
+
+    def test_emptystring_resolves_to_false(self):
+        """ resolve_true() should return False when given '' """
+        self.assertEqual(resolve_true(""), False)
+
+    def test_string0_resolves_to_false(self):
+        """ resolve_true() should return False when given '0' """
+        self.assertEqual(resolve_true("0"), False)
+
+    def test_none_resolves_to_none(self):
+        """ resolve_true() should return None when given None """
+        self.assertEqual(resolve_true(None), None)
+
+
 
 
 class SoundUserNameTests(TestCase):

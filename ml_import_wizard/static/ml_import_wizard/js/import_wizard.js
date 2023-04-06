@@ -178,19 +178,29 @@ class ImportSchemeItem{
                     csrfmiddlewaretoken: getCookie('csrftoken'),
                 };
 
+                if ($(this).attr("data-file_saved")){
+                    form_data["---file_saved---"] = $(this).attr("data-file_saved");
+                };
+
                 for (let field_index in model.fields){
                     let field = model.fields[field_index];
-                    let field_name = field.split("__-__")[1];
+                    
+                    if($("#file_field_" + field).attr("data-is_radio")){
+                        form_data[field] = $('#file_field_first_row_header_1 input:radio:checked').val()
+                    }
+                    else{
+                        let field_name = field.split("__-__")[1];
+                    
+                        form_data[field_name + ":file_field"] = $("#file_field_"+field).find(":selected").val();
 
-                    form_data[field_name + ":file_field"] = $("#file_field_"+field).find(":selected").val();
+                        form_data[field_name + ":file_field_raw_text"] = $("#file_field_" + field + "_raw_text").val();
 
-                    form_data[field_name + ":file_field_raw_text"] = $("#file_field_" + field + "_raw_text").val();
+                        form_data[field_name + ":file_field_first"] = $("#file_field_" + field + "_first").val();
 
-                    form_data[field_name + ":file_field_first"] = $("#file_field_" + field + "_first").val();
-
-                    form_data[field_name + ":file_field_split"] = $("#file_field_" + field + "_split").val();
-                    form_data[field_name + ":file_field_split_splitter"] = $("#file_field_" + field + "_split_splitter").val();
-                    form_data[field_name + ":file_field_split_position"] = $("#file_field_" + field + "_split_position").val();
+                        form_data[field_name + ":file_field_split"] = $("#file_field_" + field + "_split").val();
+                        form_data[field_name + ":file_field_split_splitter"] = $("#file_field_" + field + "_split_splitter").val();
+                        form_data[field_name + ":file_field_split_position"] = $("#file_field_" + field + "_split_position").val();
+                    }
                 };
 
                 console.log(form_data);
@@ -223,34 +233,43 @@ class ImportSchemeItem{
         for (let field_id in this.fields){
             let field = this.fields[field_id];
 
+            // $('#file_field_first_row_header_1 input:radio:checked').val()
+
             // Reject if field is blank
-            if($("#file_field_" + field).find(":selected").val() == ""){
-                return false;
-            };
-
-            // Reject if field is "**raw_text**" and "raw_text" input is blank
-            if($("#file_field_" + field).find(":selected").val() == "**raw_text**"){
-                if ($("#file_field_" + field + "_raw_text").val() == ""){
+            if($("#file_field_" + field).attr("data-is_radio")){
+                if($('#file_field_first_row_header_1 input:radio:checked').val() == undefined){
+                    return false;
+                }
+            }
+            // else{
+                if($("#file_field_" + field).find(":selected").val() == ""){
                     return false;
                 };
-            }; 
 
-            // Reject if field is "**select_first**" and 'select_first' input is blank
-            if($("#file_field_" + field).find(":selected").val() == "**select_first**"){
-                if ($("#file_field_" + field + "_first").val().length <=1){
-                    return false;
-                };
-            }; 
+                // Reject if field is "**raw_text**" and "raw_text" input is blank
+                if($("#file_field_" + field).find(":selected").val() == "**raw_text**"){
+                    if ($("#file_field_" + field + "_raw_text").val() == ""){
+                        return false;
+                    };
+                }; 
 
-            // Reject if field is "**split_field**" and '_split_field', '_split_splitter', or '_split_position' input is blank
-            if($("#file_field_" + field).find(":selected").val() == "**split_field**"){
-                if (! $("#file_field_" + field + "_split").val() ||
-                    ! $("#file_field_" + field + "_split_splitter").val() ||
-                    ! $("#file_field_" + field + "_split_position").val()
-                ){
-                    return false;
-                };
-            }; 
+                // Reject if field is "**select_first**" and 'select_first' input is blank
+                if($("#file_field_" + field).find(":selected").val() == "**select_first**"){
+                    if ($("#file_field_" + field + "_first").val().length <=1){
+                        return false;
+                    };
+                }; 
+
+                // Reject if field is "**split_field**" and '_split_field', '_split_splitter', or '_split_position' input is blank
+                if($("#file_field_" + field).find(":selected").val() == "**split_field**"){
+                    if (! $("#file_field_" + field + "_split").val() ||
+                        ! $("#file_field_" + field + "_split_splitter").val() ||
+                        ! $("#file_field_" + field + "_split_position").val()
+                    ){
+                        return false;
+                    };
+                }; 
+            // };
         };
 
         // Accept if we get to this point
