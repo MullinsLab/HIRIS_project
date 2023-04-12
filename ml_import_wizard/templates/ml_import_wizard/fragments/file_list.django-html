@@ -2,7 +2,7 @@
                              data-url="0"
                              data-model="---setup_files---"
                              data-file_saved=true>{% endif %}
-    <ul>
+    {% if not hide_file_list %}<ul>
         {% for file in files %}
             <li>
                 <b>{{ file.name }}</b>
@@ -25,6 +25,26 @@
                     {% endif %}
             </li>
         {% endfor %}
-    </ul>
+    {% endif %}</ul>
+    {% if needs_primary %}
+    A <span class="info" data-toggle="tooltip" data-html="true" title="One file needs to be marked as Primary.  The import will result in one imported object for each record in the Primary file."> Primary</span> file needs to be designated.<br>
+    {% include "ml_import_wizard/fragments/control_radio_set.django-html" with radios=files input_name="primary_file_id" check_submittable="---setup_files---" %}
+    {% endif %}
+    {% if needs_linking %}
+        <br>Files need to be <span class="info" data-toggle="tooltip" data-html="true" title="Files need to be Linked by a field that contains the same values in order to build a single record for each row in the Primary file."> Linked</span> to enable data import.<br>
+        <div class="indent">Indicate which fields to link by:
+        {% for file in files %}
+            <select 
+                onchange="check_submittable('---setup_files---')"
+                name='file_field_linked-{{ file.id }}' 
+                id='file_field_linked-{{ file.id }}' 
+                class="selectpicker border rounded-3 file-fields-dropdown" 
+                title="Importing options..."
+                data-is_dropdown=true>
+                {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file show_files=True %}
+            </select>
+        {% endfor %}
+        </div><br>
+    {% endif %}
     {% if needs_form %}<input type="submit" class="btn btn-primary disabled" id="submit_---setup_files---">
 </form>{% endif %}

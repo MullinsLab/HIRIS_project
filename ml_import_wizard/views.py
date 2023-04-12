@@ -74,7 +74,6 @@ class NewImportScheme(LoginRequiredMixin, View):
         if form.is_valid():
             import_scheme = ImportScheme(name=form.cleaned_data['name'], description=form.cleaned_data["description"], importer=importer, user=request.user)
             import_scheme.save()
-            log.debug(f'Stored ImportScheme with PKey of {import_scheme.id}')
 
             request.session['current_import_scheme_id'] = import_scheme.id
 
@@ -94,7 +93,6 @@ class DoImportScheme(View):
 
         # Return the user to the /import page if they don't have a valid import_scheme_id to work on
         if import_scheme_id is None:
-            log.debug('Got bad import_scheme_id')
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
         try:
@@ -129,13 +127,27 @@ class ListImportSchemeItems(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         ''' Produce the list of ImportSchemeItems  '''
 
-        import_scheme = ImportScheme.objects.get(pk=kwargs['import_scheme_id'])
-        file_settings = import_scheme.files_min_status_settings()
+        import_scheme: ImportScheme = ImportScheme.objects.get(pk=kwargs['import_scheme_id'])
+        file_settings: dict = import_scheme.files_min_status_settings()
+        skip_fields: bool = False
 
         # Initialize with a 0 for files list
         import_scheme_items: list[int|str] = [0]
 
-        if import_scheme.files.count() and file_settings["inspected"]:
+        if (not import_scheme.files.count()
+            or not file_settings["inspected"]
+            or (import_scheme.files.count()>=2 
+                and (import_scheme.settings.get('primary_file_id', None)
+                    or not import_scheme.settings.get('link_files', None)
+                )
+            )
+        ):
+            log.debug("Skipping fields.")
+            skip_fields = True
+        else:
+            log.debug("Not skipping fields.")
+
+        if not skip_fields:
             # Display fields from the importer
             importer = importers[import_scheme.importer]
             
@@ -185,22 +197,42 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
 
                 name: str = "1 file uploaded" if import_scheme.files.count() == 1 else f"{import_scheme.files.count()} files uploaded"
                 description: str = ("There is 1 file" if len(files) == 1 else f"There are {len(files)} files") + " uploaded for this import."
-                form: str = ""
-                list_bit: str = ""
-                field_list: list = []
-                start_expanded: bool = False
-                urgent: bool = False
-                needs_form: bool = False
+                form: str = ""                  # The form part of the page
+                list_bit: str = ""              # The list part.  Goes into description or form depending on if there is a form
+                field_list: list = []           # List of fields in the form.  Used to check completeness
+                start_expanded: bool = False    # Start the accordion expanded
+                urgent: bool = False            # Give the accordion a red border
+                needs_form: bool = False        # there is a form needed to collect data
+                needs_linking = False           # files in the scheme haven't been linked yet
+                needs_primary = False           # the scheme doesn't have a primary file yet
+                hide_file_list = False          # hide the list part of the files bit
+                selectpicker = False            # Triggers the selectpicker function to display bootsrtap-selects
+                tooltip = False                 # Triggers tooltip decorators
                 model: str = "---setup_files---"
 
+                # Present form if files have not been preinspected
                 for file in files:
                     if file.status.preinspected == False:
                         field_list.append(f"first_row_header_{file.id}")
                         start_expanded = urgent = needs_form = True
 
+                # Present form if a primary file has not been selected
+                if not import_scheme.settings.get('primary_file_id', None):
+                    field_list.append("primary_file_id")
+                    start_expanded = urgent = needs_form = needs_primary = hide_file_list = tooltip = True
+
+                # Present form if files have not been linked togehter, but only if everything is inspected
+                if not import_scheme.files_linked and file.status.preinspected:
+                    for file in files:
+                        field_list.append(f"linked-{ file.id }")
+                    start_expanded = urgent = needs_form = needs_linking = hide_file_list = selectpicker = tooltip = True
+
                 list_bit = render_to_string('ml_import_wizard/fragments/file_list.django-html', request=request, context={
                         "files": import_scheme.files.all(),
                         "needs_form": needs_form,
+                        "needs_linking": needs_linking,
+                        "needs_primary": needs_primary,
+                        "hide_file_list": hide_file_list,
                     })
                 
                 if needs_form:
@@ -216,8 +248,11 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                     "form": form,
                     "fields": field_list,
                     "model": model,
+                    "selectpicker": selectpicker,
+                    "tooltip": tooltip,
                 }
         else:
+            ### Seems to be orphaned.  Should be discared probably ###
             # Import items that aren't files
             item = ImportSchemeItem.objects.get(pk=import_item_id)
             return_data = {
@@ -225,8 +260,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 "description": item.items_for_html(),
                 "start_expanded": True,
             }
-
-        # log.debug(f'Sending ImportSchemeItem via AJAX query: {return_data}')      
+      
         return JsonResponse(return_data)
 
 
@@ -248,6 +282,9 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
             if resolve_true(request.POST.get("---file_saved---", False)):
                 check_for_inspect: list[ImportSchemeFile] = []
                 
+                # Dictionary for linked attributes, file: field
+                linked_files: dict[int: int] = {}
+
                 for attribute, value in request.POST.items():
                     if attribute in ("csrfmiddlewaretoken", "---file_saved---"): continue
 
@@ -257,13 +294,25 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                         import_scheme_file.save(update_fields=["settings"])
 
                         check_for_inspect.append(import_scheme_file)
+
+                    if "primary_file_id" in attribute:
+                        import_scheme.settings["primary_file_id"] = value
+                        import_scheme.save(update_fields=["settings"])
+
+                    if "linked-" in attribute:
+                        linked_files[int(attribute.split("-")[-1])] = int(value.replace("**field**", ""))
+
+                if len(linked_files) >= 2:
+                    log.debug(linked_files)
+                    import_scheme.settings["file_links"] = linked_files
+                    import_scheme.save(update_fields=["settings"])
                 
                 # Check to see if any files that have been altered are ready to inspect
                 for import_scheme_file in check_for_inspect:
                     if import_scheme_file.ready_to_inspect:
                         import_scheme_file.set_status_by_name("Preinspected")
                         import_scheme_file.save(update_fields=["status"])
-                        # os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
+                        os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
 
                 return JsonResponse({'saved': True})
             else:
@@ -274,13 +323,9 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                     for file in request.FILES.values():
                         import_file = ImportSchemeFile(name=file.name, import_scheme=import_scheme)
                         import_file.save()
-                        log.debug(f'Stored ImportFile with PKey of {import_file.id}')
-
-                        log.debug(f'Getting ready to store file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
                         with open(settings.ML_IMPORT_WIZARD["Working_Files_Dir"] + import_file.file_name, 'wb+') as destination:
                             for chunk in file.chunks():
                                 destination.write(chunk)
-                        log.debug(f'Stored file at: {settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{import_file.file_name}')
 
                         import_file.set_status_by_name('Uploaded')
                         import_file.save(update_fields=["status"])
@@ -300,7 +345,6 @@ class DoImporterModel(LoginRequiredMixin, View):
 
         import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
         app, model = kwargs['model_name'].split("-")
-        # log.debug(f'Starting model display.  App: {app}, Model: {model}')
 
         return_data: dict = {}
 
@@ -324,7 +368,6 @@ class DoImporterModel(LoginRequiredMixin, View):
         for field in model_object.shown_fields:
             field_list.append(f"{model_object.name}__-__{field.name}")
 
-            # log.debug(f"app: {app}, model: {model}, field: {field.name}")
             items = import_scheme.items.filter(app=app, model=model, field=field.name)
             if items.count() == 0:
                 continue
@@ -387,8 +430,6 @@ class DoImporterModel(LoginRequiredMixin, View):
             if field in fields: fields[field][attribute] = value 
             else: fields[field] = {attribute: value}
 
-            # log.debug(f"field: {field}, attribute: {attribute}, value: {value}")
-
         for field, values in fields.items():
             strategy: str = ''
             settings: dict = {}
@@ -418,8 +459,7 @@ class DoImporterModel(LoginRequiredMixin, View):
             else:
                 strategy = "Table Row"
                 settings["row"] = values['file_field']
-
-            # log.debug(f"Settings: {settings}")
+                
             import_scheme.create_or_update_item(app=app, 
                                                 model= model, 
                                                 field=field, 
@@ -448,10 +488,5 @@ class PreviewImportScheme(LoginRequiredMixin, View):
         table = import_scheme.preview_data_table()
         columns = json.dumps([{'field': column["name"], 'title': column["name"]} for column in table["columns"]])
         rows = json.dumps(table["rows"])
-        #log.debug(columns)
 
         return render(request, "ml_import_wizard/scheme_preview.django-html", context={"columns": columns, "rows": rows})
-    
-        # https://stackoverflow.com/questions/39003732/display-django-pandas-dataframe-in-a-django-template
-        # https://getbootstrap.com/docs/5.0/content/tables/
-        # https://pandas.pydata.org/docs/getting_started/intro_tutorials/01_table_oriented.html

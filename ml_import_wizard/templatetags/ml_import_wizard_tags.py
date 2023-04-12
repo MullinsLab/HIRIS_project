@@ -18,10 +18,11 @@ def get_item(dictionary: dict, key: str) -> any:
 
 
 @register.simple_tag
-def log_debug(value: any) -> None:
-    """ Custom tag to log whatever is passed to it """
+def log_debug(value: any) -> str:
+    """ Custom tag to log whatever is passed to it.  Returns an empty string so None doesn't show up in the page. """
 
     log.debug(f"Logging from template: {value}")
+    return ""
 
 
 @register.filter()

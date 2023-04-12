@@ -20,11 +20,23 @@
 .file-fields-sample{
     color: orange;
     font-size: 30%;
-    font-weight: bold;
+    /* font-weight: bold; */
 }
 
 .file-fields-sample::before{
     content: "Sample values: ";
+    color: blue;
+    font-weight: normal;
+}
+
+.file-fields-file-name{
+    color: olive;
+    font-size: 30%;
+    /* font-weight: bold; */
+}
+
+.file-fields-file-name::before{
+    content: "File: ";
     color: blue;
     font-weight: normal;
 }
@@ -48,4 +60,32 @@
 
 .attention{
     color: blue;
+}
+
+.info{
+    font-weight: bold;
+}
+
+/* .info::after{
+    content: url("https://upload.wikimedia.org/wikipedia/commons/1/1e/Curation_bar_icon_info_35x35.png");
+    width: 5px;
+    height: 5px;
+    padding-left: 5px;
+} */
+
+.info::before{
+    display: inline-flex;
+    content: '';
+
+    /* Using the background-image and
+        its related properties to add
+        the SVG content */
+    background-image: url("https://upload.wikimedia.org/wikipedia/commons/1/1e/Curation_bar_icon_info_35x35.png");
+    background-size: 10px 10px;
+    height: 10px;
+    width: 10px;
+}
+
+.indent{
+    margin-left: 20px;
 }

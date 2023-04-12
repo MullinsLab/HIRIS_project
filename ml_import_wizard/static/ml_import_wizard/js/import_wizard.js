@@ -77,7 +77,6 @@ class ImportSchemeItem{
     load(args){
         // Load the ImportSchemeItem from the backend
         let load_url = this.parent.base_url+'/'+this.id;
-        console.log("Loading: " + load_url);
 
         $.ajax(load_url, {
             // pass this to caller so it's referrable inside the success function
@@ -102,7 +101,6 @@ class ImportSchemeItem{
     set_with_dirty(args){
         // Sets the field value if different from current, and if so sets dirty to true
         if ((Array.isArray(args.value) && ! arraysEqual(args.value, this[args.field])) || (! Array.isArray(args.value) && this[args.field] != args.value)){
-            // console.log("Dirtying " + args.field + ". Old: " + this[args.field] + ", New: " + args.value)
             this[args.field] = args.value;
             this.dirty=true;
         }
@@ -170,7 +168,6 @@ class ImportSchemeItem{
         if (this.form){
             $("#item_form_"+this.model).submit(function (event) {
                 event.preventDefault();
-                // console.log("BaseURL: " + window.import_scheme.base_url + "/" +  $(this).attr("data-url"));
 
                 let model = window.import_scheme.find_item_by_model($(this).attr("data-model"));
 
@@ -186,7 +183,10 @@ class ImportSchemeItem{
                     let field = model.fields[field_index];
                     
                     if($("#file_field_" + field).attr("data-is_radio")){
-                        form_data[field] = $('#file_field_first_row_header_1 input:radio:checked').val()
+                        form_data[field] = $("#file_field_" + field + " input:radio:checked").val()
+                    }
+                    else if($("#file_field_" + field).attr("data-is_dropdown")){
+                        form_data[field] = $("#file_field_" + field).find(":selected").val()
                     }
                     else{
                         let field_name = field.split("__-__")[1];
@@ -214,7 +214,6 @@ class ImportSchemeItem{
                     encode: true,
                     caller: this,
                 }).done(function (data) {
-                    console.log(data);
                     window.import_scheme.find_item_by_model($(this.caller).attr("data-model")).load();
                 });
 
@@ -237,7 +236,13 @@ class ImportSchemeItem{
 
             // Reject if field is blank
             if($("#file_field_" + field).attr("data-is_radio")){
-                if($('#file_field_first_row_header_1 input:radio:checked').val() == undefined){
+                if($("#file_field_" + field + " input:radio:checked").val() == undefined){
+                    return false;
+                }
+            }
+
+            if($("#file_field_" + field).attr("data-is_dropdown")){
+                if($("#file_field_" + field).find(":selected").val() == ""){
                     return false;
                 }
             }
@@ -331,7 +336,6 @@ function prep_upload_progress_bar(args){
         let file_names = "";
         for (let file_index in file_fields){
             let file = file_fields[file_index];
-            console.log("File field: " + file);
             file_field = document.getElementById(file).files[0];
             if (file_field != null){
                 file_names += file_field.name + "<br>";
