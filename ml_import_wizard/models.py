@@ -7,9 +7,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from pathlib import Path
 from itertools import islice
-import subprocess
-import csv
-import os.path
+import subprocess, csv, inspect, os.path
 
 # Check to see if gffutils is installed
 NO_GFFUTILS: bool = False
@@ -68,6 +66,7 @@ class ImportScheme(ImportBaseModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     status = models.ForeignKey(ImportSchemeStatus, on_delete=models.DO_NOTHING, default=1, related_name="schemes")
     public = models.BooleanField(default=True)
+    settings = models.JSONField(null=False, blank=False, default=dict)
 
     def save(self, *args, **kwargs) -> None:
         ''' Override Save to store the importer_hash.  This is used to know if the Importer definition has changed, invalidating this importer  '''
@@ -79,6 +78,16 @@ class ImportScheme(ImportBaseModel):
             self.status = {}
 
         super().save(*args, **kwargs)
+
+    @property
+    def files_linked(self) -> bool:
+        """ Reuturns a bool indicating whether the files are adaqately linked to result in a single row of data while importing"""
+
+        if self.files.count()>=2 and not self.settings.get("file_links", None):
+            log.debug(f"Files not linked? {self.settings.get('file_links', None)}")
+            return False
+        
+        return True
 
     def set_status_by_name(self, status):
         """ Looks up the status name and """
@@ -304,7 +313,7 @@ class ImportSchemeFile(ImportBaseModel):
         return str(self.id).rjust(8, '0')
     
     @property
-    def line_count(self) -> int:
+    def row_count(self) -> int:
         """ Count the lines of the file """
 
         return int(subprocess.check_output(['wc', '-l', settings.ML_IMPORT_WIZARD['Working_Files_Dir'] + self.file_name]).split()[0])
@@ -374,24 +383,22 @@ class ImportSchemeFile(ImportBaseModel):
         elif self.base_type == "text":
             self._inspect_text(ignore_status=ignore_status)
 
-    def rows(self, *, limit_count: int = 0) -> dict[str: any]:
+    def rows(self, *, limit_count: int = 0, specific_rows: list[int] = None, header_row: bool = False) -> dict[str: any]:
         """ Iterates through the rows of the file, returning a dict for each row """
 
         if self.type.lower() in  ("gff", "gff3"):
-            for row in self._rows_gff():
+            for row in self._rows_gff(limit_count=limit_count, specific_rows=specific_rows):
                 yield row
 
         elif self.type.lower() in ("csv", "tsv"):
             columns: list[str] = []
-            
-            for row in self._rows_text(limit_count=limit_count):
+            if self.settings.get("first_row_header", False):
+                columns = self.header_row_as_list()
+
+            for row in self._rows_text(limit_count=limit_count, specific_rows=specific_rows, header_row=header_row):
                 if not len(columns):
-                    if self.settings.get("header_row", False):
-                        columns = row
-                        continue
-                    else:
-                        for index, field in enumerate(row):
-                            columns.append(f"Field {index+1}")
+                    for index, field in enumerate(row):
+                        columns.append(f"Field {index+1}")
 
                 row_dict = {}
                 
@@ -399,30 +406,52 @@ class ImportSchemeFile(ImportBaseModel):
                     row_dict[columns[index]] = field;
                 yield row_dict
 
-    def first_row_as_list(self) -> list:
+    def header_row_as_list(self) -> list:
         """ Return the first row of the file as a list """
         
         if self.type.lower() in ("tsv", "csv"):
-            for row in self._rows_text(limit_count=1):
+            for row in self._rows_text(header_row=True):
                 return row
 
-    def _rows_text(self, *, limit_count: int = 0) -> list:
-        """ Iterates through the rows of a text (csv or tsv), returning a list for each row """
+    def _rows_text(self, *, limit_count: int = 0, specific_rows: list[int] = None, header_row: bool = False) -> list:
+        """ Iterates through the rows of a text (csv or tsv) file, returning a list for each row """
     
         delimiter: str = "\t" if self.type.lower()=="tsv" else ","
-        counter: int = 1
+        read_count: int = 0
+        returned_count: int = 0
+        skipped_header_row: bool = False
+        has_header_row: bool = self.settings.get("first_row_header", False)
+
+        if specific_rows is not None:
+            max_specific_rows: int = max(specific_rows)
+            specific_rows.sort()
+        else:
+            max_specific_rows = 0
+        
 
         with open(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}", "r") as file:
             reader = csv.reader(file, delimiter=delimiter)
             for row in reader:
+                if not header_row and not skipped_header_row and has_header_row:
+                    skipped_header_row = True
+                    continue
+
+                read_count += 1
+                if not header_row and specific_rows is not None and read_count not in specific_rows:
+                    continue
+                
                 yield row
+                returned_count += 1
 
-                if limit_count:
-                    counter += 1
-                    if counter > limit_count:
-                        break
+                if specific_rows is not None and returned_count > max_specific_rows:
+                    break
 
-    def _rows_gff(self, *, limit_count: int = 0) -> dict[str: any]:
+                if limit_count and returned_count > limit_count or header_row:
+                    break
+
+                
+
+    def _rows_gff(self, *, limit_count: int = 0, specific_rows: list[int] = None) -> dict[str: any]:
         """ Iterates through the rows of the GFF file, returning a dict for each row """
 
         self._confirm_file_is_ready(inspected=True)
@@ -457,7 +486,37 @@ class ImportSchemeFile(ImportBaseModel):
         self.set_status_by_name('Inspecting')
         self.save(update_fields=["status"])
 
-        log.debug(f"Line Count: {self.line_count}, File: {settings.ML_IMPORT_WIZARD['Working_Files_Dir'] + self.file_name}")
+        row_count = self.row_count
+
+        # Look at 25 rows spread out in the file.
+        attributes: dict = {}
+
+        if self.settings["first_row_header"]:
+            for attribute in self.header_row_as_list():
+                attributes[attribute] = set()
+
+        log.debug(attributes)
+
+        specific_rows: list = None
+
+        if self.settings["first_row_header"]:
+            if row_count > 26:
+                specific_rows = [int(row*(row_count-1)/25) for row in range(1, 26)]        
+        else:
+            if row_count > 25:
+                specific_rows = [int(row*(row_count)/25) for row in range(1, 26)]
+        
+        for row in self.rows(specific_rows=specific_rows):
+            for field, value in row.items():
+                attributes[field].add(value)
+
+        # Remove any existing fields
+        self.fields.all().delete()
+        
+        self.import_fields(fields=attributes)
+
+        self.set_status_by_name('Inspected')
+        self.save(update_fields=["status"])
 
     def _inspect_gff(self, *, use_db: bool = False, ignore_status: bool = False) -> None:
         ''' Inspect a GFF file by importing to the db '''
