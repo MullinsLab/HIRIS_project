@@ -137,8 +137,8 @@ class ListImportSchemeItems(LoginRequiredMixin, View):
         if (not import_scheme.files.count()
             or not file_settings["inspected"]
             or (import_scheme.files.count()>=2 
-                and (import_scheme.settings.get('primary_file_id', None)
-                    or not import_scheme.settings.get('link_files', None)
+                and (not import_scheme.settings.get('primary_file_id', None)
+                    or not import_scheme.settings.get('file_links', None)
                 )
             )
         ):
@@ -197,17 +197,19 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
 
                 name: str = "1 file uploaded" if import_scheme.files.count() == 1 else f"{import_scheme.files.count()} files uploaded"
                 description: str = ("There is 1 file" if len(files) == 1 else f"There are {len(files)} files") + " uploaded for this import."
-                form: str = ""                  # The form part of the page
-                list_bit: str = ""              # The list part.  Goes into description or form depending on if there is a form
-                field_list: list = []           # List of fields in the form.  Used to check completeness
-                start_expanded: bool = False    # Start the accordion expanded
-                urgent: bool = False            # Give the accordion a red border
-                needs_form: bool = False        # there is a form needed to collect data
-                needs_linking = False           # files in the scheme haven't been linked yet
-                needs_primary = False           # the scheme doesn't have a primary file yet
-                hide_file_list = False          # hide the list part of the files bit
-                selectpicker = False            # Triggers the selectpicker function to display bootsrtap-selects
-                tooltip = False                 # Triggers tooltip decorators
+                form: str = ""                                          # The form part of the page
+                list_bit: str = ""                                      # The list part.  Goes into description or form depending on if there is a form
+                field_list: list = []                                   # List of fields in the form.  Used to check completeness
+                start_expanded: bool = False                            # Start the accordion expanded
+                urgent: bool = False                                    # Give the accordion a red border
+                needs_form: bool = False                                # there is a form needed to collect data
+                needs_linking: bool = False                             # files in the scheme haven't been linked yet
+                needs_primary: bool = False                             # the scheme doesn't have a primary file yet
+                hide_file_list: bool = False                            # hide the list part of the files bit
+                selectpicker: bool = False                              # Triggers the selectpicker function to display bootsrtap-selects
+                tooltip: bool = False                                   # Triggers tooltip decorators
+                files_excluding_master: list[ImportSchemeFile] = []     # List of all the files that aren't the master
+                primary_file: ImportSchemeFile = None                   # The master file
                 model: str = "---setup_files---"
 
                 # Present form if files have not been preinspected
@@ -216,16 +218,23 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                         field_list.append(f"first_row_header_{file.id}")
                         start_expanded = urgent = needs_form = True
 
-                # Present form if a primary file has not been selected
-                if not import_scheme.settings.get('primary_file_id', None):
-                    field_list.append("primary_file_id")
-                    start_expanded = urgent = needs_form = needs_primary = hide_file_list = tooltip = True
+                if not field_list:
+                    # Present form if a primary file has not been selected
+                    if not import_scheme.settings.get("primary_file_id", None):
+                        field_list.append("primary_file_id")
+                        start_expanded = urgent = needs_form = needs_primary = hide_file_list = tooltip = True
 
-                # Present form if files have not been linked togehter, but only if everything is inspected
-                if not import_scheme.files_linked and file.status.preinspected:
-                    for file in files:
-                        field_list.append(f"linked-{ file.id }")
-                    start_expanded = urgent = needs_form = needs_linking = hide_file_list = selectpicker = tooltip = True
+                    # Present form if files have not been linked togehter, but only if everything is inspected
+                    elif not import_scheme.files_linked and file.status.preinspected:
+                        for file in files:
+                            if file.id == int(import_scheme.settings.get("primary_file_id", None)):
+                                primary_file = file
+                            else:
+                                files_excluding_master.append(file)
+                                field_list.append(f"linked-{ file.id }")
+                                field_list.append(f"primary-{ file.id }")
+
+                        start_expanded = urgent = needs_form = needs_linking = hide_file_list = selectpicker = tooltip = True
 
                 list_bit = render_to_string('ml_import_wizard/fragments/file_list.django-html', request=request, context={
                         "files": import_scheme.files.all(),
@@ -233,6 +242,8 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                         "needs_linking": needs_linking,
                         "needs_primary": needs_primary,
                         "hide_file_list": hide_file_list,
+                        "files_excluding_master": files_excluding_master,
+                        "primary_file": primary_file,
                     })
                 
                 if needs_form:
@@ -283,7 +294,8 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 check_for_inspect: list[ImportSchemeFile] = []
                 
                 # Dictionary for linked attributes, file: field
-                linked_files: dict[int: int] = {}
+                linked_files: dict = {}
+                log.debug(request.POST)
 
                 for attribute, value in request.POST.items():
                     if attribute in ("csrfmiddlewaretoken", "---file_saved---"): continue
@@ -300,9 +312,17 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                         import_scheme.save(update_fields=["settings"])
 
                     if "linked-" in attribute:
-                        linked_files[int(attribute.split("-")[-1])] = int(value.replace("**field**", ""))
+                        file_id = int(attribute.split("-")[-1])
+                        log.debug(f"Primary Value: {request.POST.get('primary-'+str(file_id), None)}")
+                        linked_files[file_id] = {
+                            "child": int(value.replace("**field**", "")), 
+                            "primary": int(request.POST.get(f"primary-{file_id}", "").replace("**field**", ""))
+                        }
+                        # linked_files[int(attribute.split("-")[-1])] = int(value.replace("**field**", ""))
 
-                if len(linked_files) >= 2:
+                log.debug(linked_files)
+
+                if linked_files:
                     log.debug(linked_files)
                     import_scheme.settings["file_links"] = linked_files
                     import_scheme.save(update_fields=["settings"])
@@ -312,7 +332,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                     if import_scheme_file.ready_to_inspect:
                         import_scheme_file.set_status_by_name("Preinspected")
                         import_scheme_file.save(update_fields=["status"])
-                        os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_file.id))
+                        os.popen(os.path.join(settings.BASE_DIR, 'manage.py inspect_file ') + str(import_scheme_file.id))
 
                 return JsonResponse({'saved': True})
             else:
