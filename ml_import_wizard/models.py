@@ -84,7 +84,6 @@ class ImportScheme(ImportBaseModel):
         """ Reuturns a bool indicating whether the files are adaqately linked to result in a single row of data while importing"""
 
         if self.files.count()>=2 and not self.settings.get("file_links", None):
-            log.debug(f"Files not linked? {self.settings.get('file_links', None)}")
             return False
         
         return True
@@ -633,7 +632,7 @@ class ImportSchemeFileField(ImportBaseModel):
 
 
 class ImportSchemeItem(ImportBaseModel):
-    ''' Holds Import Items '''
+    """ Holds Import Items """
 
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='items', null=True, editable=False)
     app = models.CharField("App this import item is for", max_length=255)
@@ -646,6 +645,7 @@ class ImportSchemeItem(ImportBaseModel):
 
     @property
     def name(self) -> str:
+        """ Custom name for the ImportSchemeItem """
         return f"{self.app}{self.model}{self.field}"
 
     class Meta:
@@ -656,5 +656,21 @@ class ImportSchemeRejectedRows(ImportBaseModel):
     """ Holds all rejected rows for an import, and the reason they were rejected """
 
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='rejected_rows', null=True, editable=False)
+    model = models.TextField(max_length=255, null=False)
     errors = models.JSONField("Why was this row rejected by the importer?")
     row = models.JSONField("Complete data for the row that was rejected")
+
+    @property
+    def name(self) -> str:
+        """ Custom name for ImportSchemeRejectedRow"""
+        return f"Rejected row for {self.model}"
+
+
+class ImportSchemeDeferredRows(ImportBaseModel):
+    """ Holds refrences to rows that have been deferred for approval """
+    
+    import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='deferred_rows', null=True, editable=False)
+    model = models.TextField(max_length=255, null=False)
+    pkey_name = models.CharField(max_length=255, default="pk", null=False)
+    pkey_int = models.IntegerField(null=True)
+    pkey_str = models.TextField(null=True)
