@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 
 from .models import ImportScheme, ImportSchemeFile
-from .utils.simple import dict_hash, sound_user_name, split_by_caps, stringalize, mached_name_choices, fancy_name, resolve_true
+from .utils.simple import dict_hash, sound_user_name, split_by_caps, stringalize, mached_name_choices, fancy_name, resolve_true, deep_exists
 
 
 class InclusionTest(TestCase):
@@ -233,7 +233,42 @@ class SimpleUtilsTest(TestCase):
         """ resolve_true() should return None when given None """
         self.assertEqual(resolve_true(None), None)
 
+    # Deep exists tests
+    def test_deep_exists_returns_false_with_no_dict(self):
+        """ deep_exists() should return False when not given a dict """
+        self.assertEqual(deep_exists(), False)
 
+    def test_deep_exists_returns_false_with_no_list(self):
+        """ deep_exists() should return False when not given a list """
+        self.assertEqual(deep_exists(dictionary={"1": "3"}), False)
+
+    def test_deep_exists_returns_false_if_a_key_doesnt_exist(self):
+        """ deep_exists() should return False when a given key is not in the list """
+        self.assertEqual(deep_exists(dictionary={"1": "3"}, keys=["7"]), False)
+
+    def test_deep_exists_returns_false_if_dict_isnt_a_dict(self):
+        """ deep_exists() should return False when dict isn't an actual dict """
+        self.assertEqual(deep_exists(dictionary="cat", keys=["bob"]), False)
+
+    def test_deep_exists_returns_false_if_keys_isnt_a_list(self):
+        """ deep_exists() should return False when dict isn't an actual dict """
+        self.assertEqual(deep_exists(dictionary={"cat": "test"}, keys="cat"), False)
+
+    def test_deep_exists_returns_true_if_first_key_is_in_dict(self):
+        """ deep_exists() should return True when key is in dict """
+        self.assertEqual(deep_exists(dictionary={"cat": "test"}, keys=["cat"]), True)
+
+    def test_deep_exists_returns_false_if_a_key_doesnt_exist_recursively(self):
+        """ deep_exists() should return False when a given key is not in the list, recursively """
+        self.assertEqual(deep_exists(dictionary={"1": {"3": "test"}}, keys=["1", "7"]), False)
+
+    def test_deep_exists_returns_true_if_a_key_exists_recursively(self):
+        """ deep_exists() should return True when a given key is not in the list, recursively """
+        self.assertEqual(deep_exists(dictionary={"1": {"3": "test"}}, keys=["1", "3"]), True)
+
+    def test_deep_exists_returns_true_if_a_key_exists_recursively_and_there_is_excess_dictionary(self):
+        """ deep_exists() should return True when a given key is not in the list, recursively, and there is excess dictionary """
+        self.assertEqual(deep_exists(dictionary={"1": {"3": {5: "test"}}}, keys=["1", "3"]), True)
 
 
 class SoundUserNameTests(TestCase):

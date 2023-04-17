@@ -90,3 +90,17 @@ def resolve_true(value: any) -> bool|None:
         return None
     
     return bool(value)
+
+def deep_exists(dictionary: dict = None, keys: list = None) -> bool:
+    """ Returns true if the keys exist in the dictionary """
+    
+    if not dictionary or type(dictionary) is not dict or not keys or type(keys) is not list:
+        return False
+    
+    if keys[0] not in dictionary:
+        return False
+    
+    if len(keys) > 1 and type(dictionary[keys[0]]) is dict:
+        return deep_exists(dictionary=dictionary[keys[0]], keys=keys[1:])
+
+    return True
