@@ -7,7 +7,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from pathlib import Path
 from itertools import islice
-import subprocess, csv, inspect, os.path
+import subprocess, csv, inspect, os.path, sqlite3
 
 # Check to see if gffutils is installed
 NO_GFFUTILS: bool = False
@@ -183,46 +183,99 @@ class ImportScheme(ImportBaseModel):
                     column_id += 1
         return columns
     
-    def data_rows(self, *, columns: list = [], limit_count: int = None) -> dict[str: any]:
+    def data_rows(self, *, columns: list = None, limit_count: int = None) -> dict[str: any]:
         """ Yields a row for each set of models in the target importer """
-        fields: dict[int: any] = {}
-        if not columns:
+
+        # Fields holds a list of ImportSchemeItem.ids and the associated ImportSchemeFile.id and ImportSchemeFileField names
+        fields: dict[int: dict] = {}
+
+        if columns is None:
             columns = self.data_columns
         
-        for import_scheme_file in self.files.all():
-            for row in import_scheme_file.rows(limit_count=limit_count):
-                row_dict: dict = {}
+        primary_file: ImportSchemeFile = None
+        child_files: dict[int: LRUCacheThing] = {}
 
-                for column in columns:    
-                    strategy = column["import_scheme_item"].strategy
-                    settings = column["import_scheme_item"].settings
+        # Set up information about the files that are not primary (child files)
+        if self.files.count() > 1:
+            primary_file = self.files.get(pk=int(self.settings["primary_file_id"]))
+            for file, value in self.settings["file_links"].items():
+                child_files[int(file)] = {}
+                
+                child_files[int(file)]["cache"] = LRUCacheThing(items=100000)
+                child_files[int(file)]["object"] = self.files.get(pk=int(file))
 
-                    if strategy == "Raw Text":
-                        row_dict[column["name"]] = settings["raw_text"]
+                # Store the child and primary linked fields that the child row will be looked up by
+                import_scheme_file_field = ImportSchemeFileField.objects.get(pk=value["child"])
+                fields[import_scheme_file_field.id] = {
+                    "name": import_scheme_file_field.name,
+                    "file": import_scheme_file_field.import_scheme_file_id,
+                }
+                child_files[int(file)]["child_linked_field"] = import_scheme_file_field.name
 
-                    elif strategy == "Table Row":
-                        row_dict[column["name"]] = settings["row"]
+                import_scheme_file_field = ImportSchemeFileField.objects.get(pk=value["primary"])
+                fields[import_scheme_file_field.id] = {
+                    "name": import_scheme_file_field.name,
+                    "file": import_scheme_file_field.import_scheme_file_id,
+                }
+                child_files[int(file)]["primary_linked_field"] = import_scheme_file_field.name
+        else:
+            primary_file = self.files.all()[0]
 
-                    elif strategy == "File Field":
-                        if settings["key"] not in fields:
-                            import_scheme_file_field = ImportSchemeFileField.objects.get(pk=settings["key"])
-                            fields[import_scheme_file_field.id] = import_scheme_file_field.name
-                            
-                        row_dict[column["name"]] = row[fields[settings["key"]]]
+        # for import_scheme_file in self.files.all():
+        for row in primary_file.rows(limit_count=limit_count):
+            row_dict: dict = {}
+
+            for column in columns:    
+                strategy = column["import_scheme_item"].strategy
+                settings = column["import_scheme_item"].settings
+
+                if strategy == "Raw Text":
+                    row_dict[column["name"]] = settings["raw_text"]
+
+                elif strategy == "Table Row":
+                    row_dict[column["name"]] = settings["row"]
+
+                elif strategy == "File Field":
+                    key = settings["key"]
+
+                    if key not in fields:
+                        import_scheme_file_field = ImportSchemeFileField.objects.get(pk=key)
+                        fields[import_scheme_file_field.id] = {
+                            "name": import_scheme_file_field.name,
+                            "file": import_scheme_file_field.import_scheme_file_id,
+                        }
+
+                    file = fields[key]["file"]
                     
-                    elif strategy == "Split Field":
-                        if settings["split_key"] not in fields:
-                            import_scheme_file_field = ImportSchemeFileField.objects.get(pk=settings["split_key"])
-                            fields[import_scheme_file_field.id] = import_scheme_file_field.name
-                        
-                        value = row[fields[settings["split_key"]]]
+                    if file == primary_file.id:
+                        row_dict[column["name"]] = row.get(fields[key]["name"], None)
+                    else:
+                        #log.debug(f"Looking for: {fields[key]['name']}, in File: {file}, Key: {key}")
+                        child_row = child_files[file]["object"].find_row_by_key(
+                            field=child_files[file]["child_linked_field"],
+                            key=row[child_files[file]["primary_linked_field"]],
+                            cache=child_files[file]["cache"],
+                        )
+                        if child_row:
+                            log.debug(child_row)
+                            row_dict[column["name"]] = child_row.get(fields[key]["name"], None)
+                
+                elif strategy == "Split Field":
+                    if settings["split_key"] not in fields:
+                        import_scheme_file_field = ImportSchemeFileField.objects.get(pk=settings["split_key"])
+                        fields[import_scheme_file_field.id] = {
+                            "name": import_scheme_file_field.name,
+                            "file": import_scheme_file_field.import_scheme_file_id,
+                        }
+                    
+                    value = row[fields[settings["split_key"]]]
 
-                        if settings["splitter"] in value:
-                            row_dict[column["name"]] = value.split(settings["splitter"])[settings["splitter_position"]-1]
-                        else:
-                            row_dict[column["name"]] = value
+                    if settings["splitter"] in value:
+                        row_dict[column["name"]] = value.split(settings["splitter"])[settings["splitter_position"]-1]
+                    else:
+                        row_dict[column["name"]] = value
 
-                yield row_dict
+            yield row_dict
 
     @timeit
     def execute(self, *, ignore_status: bool = False, limit_count: int=None) -> None:
@@ -315,7 +368,12 @@ class ImportSchemeFile(ImportBaseModel):
     def row_count(self) -> int:
         """ Count the lines of the file """
 
-        return int(subprocess.check_output(['wc', '-l', settings.ML_IMPORT_WIZARD['Working_Files_Dir'] + self.file_name]).split()[0])
+        if self.base_type == "text":
+            if self.settings.get("has_db", False):
+                log.debug("Hit db")
+                return sqlite3.connect(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db").execute("SELECT COUNT(*) FROM data").fetchone()[0]
+            else:
+                return int(subprocess.check_output(['wc', '-l', settings.ML_IMPORT_WIZARD['Working_Files_Dir'] + self.file_name]).split()[0])
     
     @property
     def base_type(self) -> str:
@@ -385,14 +443,14 @@ class ImportSchemeFile(ImportBaseModel):
     def rows(self, *, limit_count: int = 0, specific_rows: list[int] = None, header_row: bool = False) -> dict[str: any]:
         """ Iterates through the rows of the file, returning a dict for each row """
 
-        if self.type.lower() in  ("gff", "gff3"):
+        if self.base_type == "gff":
             for row in self._rows_gff(limit_count=limit_count, specific_rows=specific_rows):
                 yield row
 
-        elif self.type.lower() in ("csv", "tsv"):
+        elif self.base_type == "text":
             columns: list[str] = []
             if self.settings.get("first_row_header", False):
-                columns = self.header_row_as_list()
+                columns = self.header_fields()
 
             for row in self._rows_text(limit_count=limit_count, specific_rows=specific_rows, header_row=header_row):
                 if not len(columns):
@@ -405,12 +463,74 @@ class ImportSchemeFile(ImportBaseModel):
                     row_dict[columns[index]] = field;
                 yield row_dict
 
-    def header_row_as_list(self) -> list:
+    def header_fields(self) -> list:
         """ Return the first row of the file as a list """
         
-        if self.type.lower() in ("tsv", "csv"):
-            for row in self._rows_text(header_row=True):
+        if self.base_type == "text":
+            if self.settings.get("has_db", False):
+                fields: list = []
+                connection = sqlite3.connect(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db")
+                connection.row_factory = sqlite3.Row
+                for field in connection.execute("SELECT name FROM columns"):
+                    fields.append(field["name"])
+                return fields
+            else:
+                for fields in self._rows_text(header_row=True):
+                    return fields
+
+    def find_row_by_key(self, *, field: str = None, key: str = None, cache: LRUCacheThing = None) -> list|None:
+        """ Find the first row that has a field that equals key.  Uses a cache object if it's given one """
+
+        if not field or not key: 
+            return None
+
+        # If the data is a list step through the list and check each value
+        if type(key) is list:
+            result = None
+
+            for item in key:
+                result = self.find_row_by_key(field=field, key=item, cache=cache)
+                if result:
+                    break
+
+            return result
+
+        if cache:
+            row = cache.find(key=key, report=True, output="log")
+            if row:
                 return row
+            
+        if self.base_type == "text":
+            for row in self.rows():
+                cache.store(key=key, value=row)
+                log.debug(row)
+                log.debug(f"Field: {field}, Key: {key}, Value: {row[field]}")
+                if row[field] == key:
+                    log.debug(f"Found row!\n")
+                    return row
+        
+        # If it's not found after going through the file store that it's not in the file
+        if cache:
+            cache.store(key=key, value=None)
+
+        return None
+
+    def _rows_db(self, *, limit_count: int = 0, specific_rows: list[int] = None, header_row: bool = False, connection = None) -> list:
+        """ Iterates through the rows of select from an SQLite3 db, returning a list for each row """
+
+        if not connection: connection = sqlite3.connect(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db")
+        # connection.row_factory = sqlite3.Row
+
+        where_bit: str = ""
+        limit_bit: str = ""
+
+        if limit_count: limit_bit = f" LIMIT {limit_count} "
+        if specific_rows: where_bit = f" WHERE rowid in ({','.join([str(row) for row in specific_rows])}) "
+
+        sql = f"SELECT * FROM data{where_bit}{limit_bit}"
+
+        for row in connection.execute(sql):
+            yield row
 
     def _rows_text(self, *, limit_count: int = 0, specific_rows: list[int] = None, header_row: bool = False) -> list:
         """ Iterates through the rows of a text (csv or tsv) file, returning a list for each row """
@@ -426,7 +546,6 @@ class ImportSchemeFile(ImportBaseModel):
             specific_rows.sort()
         else:
             max_specific_rows = 0
-        
 
         with open(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}", "r") as file:
             reader = csv.reader(file, delimiter=delimiter)
@@ -445,10 +564,8 @@ class ImportSchemeFile(ImportBaseModel):
                 if specific_rows is not None and returned_count > max_specific_rows:
                     break
 
-                if limit_count and returned_count > limit_count or header_row:
+                if limit_count and returned_count >= limit_count or header_row:
                     break
-
-                
 
     def _rows_gff(self, *, limit_count: int = 0, specific_rows: list[int] = None) -> dict[str: any]:
         """ Iterates through the rows of the GFF file, returning a dict for each row """
@@ -485,17 +602,22 @@ class ImportSchemeFile(ImportBaseModel):
         self.set_status_by_name('Inspecting')
         self.save(update_fields=["status"])
 
-        row_count = self.row_count
+        log.debug("Gunna build db")
 
+        self._build_text_db(replace_file=True)
+        log.debug("Built db")
+
+        row_count = self.row_count
+        log.debug(f"Row count: {row_count}")
+        
         # Look at 25 rows spread out in the file.
         attributes: dict = {}
 
         if self.settings["first_row_header"]:
-            for attribute in self.header_row_as_list():
+            for attribute in self.header_fields():
                 attributes[attribute] = set()
 
         log.debug(attributes)
-
         specific_rows: list = None
 
         if self.settings["first_row_header"]:
@@ -597,6 +719,43 @@ class ImportSchemeFile(ImportBaseModel):
             # File is inspected, but DB is missing from disk
             if not ignore_status and inspected and not os.path.exists(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db"):
                 raise FileNotReadyError(f"DB file is missing from disk: {self} ({settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db)")
+    
+    def _build_text_db(self, *, replace_file: bool = False) -> None:
+        """ Build a SQLite3 DB for inspecting and importing the file """
+
+        if os.path.isfile(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db") and os.stat(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db").st_size:
+            if replace_file:
+                os.remove(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db")
+            else:
+                raise FileExistsError(f"SQLite3 DB already exists: {settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db")
+
+        self.settings["has_db"] = False
+
+        connection = sqlite3.connect(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db")
+        connection.row_factory = sqlite3.Row
+        #cursor = connection.cursor()
+
+        columns: list = self.header_fields()
+        sql: str = ""
+
+        # Set up columns table to hold info on the columns.  Convert columns to a list of tuples
+        connection.execute("CREATE TABLE columns(name)")
+        connection.executemany("INSERT INTO columns VALUES(?)", [(column,) for column in columns])
+        log.debug("Hit columns")
+
+        # Create a data table to hold the actual data
+        column_list: str = ", ".join([f'\"{column}\"' for column in columns])
+        connection.execute(f"CREATE TABLE data({column_list})")
+
+        sql = f"INSERT INTO data VALUES({', '.join(['?' for column in columns])})"
+        for row in self._rows_text():
+            connection.execute(sql, row)
+
+        connection.commit()
+        connection.close()
+
+        self.settings["has_db"] = True
+        self.save(update_fields=["settings"])
 
 
 class ImportSchemeFileField(ImportBaseModel):
