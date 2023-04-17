@@ -42,13 +42,38 @@
 
 <span id="file_field_{{ model.name }}__-__{{ field.name }}_first_hider"
     {% if model.settings.default_option != "select_first" and strategy.strategy != "Select First" %} class="not-visible"{% endif %}>
+    
     <select 
-        name='file_field_{{ model.name }}__-__{{ field.name }}_first' 
-        id='file_field_{{ model.name }}__-__{{ field.name }}_first' 
+        name='file_field_{{ model.name }}__-__{{ field.name }}_first_1' 
+        id='file_field_{{ model.name }}__-__{{ field.name }}_first_1' 
         class="selectpicker border rounded-3 file-fields-dropdown" 
-        title="First item from..."
-        onchange="check_submittable('{{ model.name }}')"
-        multiple>
+        title="First choice..."
+        onchange="check_submittable('{{ model.name }}')">
+        <option></option>
+        {% for file in scheme.files.all %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file title=True key_list=strategy.first_keys %}
+        {% endfor %}
+    </select>
+
+    <select 
+        name='file_field_{{ model.name }}__-__{{ field.name }}_first_2' 
+        id='file_field_{{ model.name }}__-__{{ field.name }}_first_2' 
+        class="selectpicker border rounded-3 file-fields-dropdown" 
+        title="Second choice..."
+        onchange="check_submittable('{{ model.name }}')">
+        <option></option>
+        {% for file in scheme.files.all %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file title=True key_list=strategy.first_keys %}
+        {% endfor %}
+    </select>
+
+    <select 
+        name='file_field_{{ model.name }}__-__{{ field.name }}_first_3' 
+        id='file_field_{{ model.name }}__-__{{ field.name }}_first_3' 
+        class="selectpicker border rounded-3 file-fields-dropdown" 
+        title="Third choice..."
+        onchange="check_submittable('{{ model.name }}')">
+        <option></option>
         {% for file in scheme.files.all %}
             {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file title=True key_list=strategy.first_keys %}
         {% endfor %}

@@ -462,8 +462,12 @@ class DoImporterModel(LoginRequiredMixin, View):
                 strategy = "Select First"
                 settings["first_keys"] = []
 
-                for first_field in values["file_field_first"]:
-                    settings["first_keys"].append(int(first_field.split("**field**")[1]))
+                for file_field in [f"file_field_first_{count}" for count in [1, 2, 3]]:
+                    if values[file_field]:
+                        settings["first_keys"].append(int(values[file_field].split("**field**")[1]))
+
+                # for first_field in values["file_field_first"]:
+                #     settings["first_keys"].append(int(first_field.split("**field**")[1]))
 
             elif values["file_field"] == "**split_field**":
                 strategy = "Split Field"

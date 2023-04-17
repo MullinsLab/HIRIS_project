@@ -195,7 +195,9 @@ class ImportSchemeItem{
 
                         form_data[field_name + ":file_field_raw_text"] = $("#file_field_" + field + "_raw_text").val();
 
-                        form_data[field_name + ":file_field_first"] = $("#file_field_" + field + "_first").val();
+                        form_data[field_name + ":file_field_first_1"] = $("#file_field_" + field + "_first_1").val();
+                        form_data[field_name + ":file_field_first_2"] = $("#file_field_" + field + "_first_2").val();
+                        form_data[field_name + ":file_field_first_3"] = $("#file_field_" + field + "_first_3").val();
 
                         form_data[field_name + ":file_field_split"] = $("#file_field_" + field + "_split").val();
                         form_data[field_name + ":file_field_split_splitter"] = $("#file_field_" + field + "_split_splitter").val();
@@ -232,8 +234,6 @@ class ImportSchemeItem{
         for (let field_id in this.fields){
             let field = this.fields[field_id];
 
-            // $('#file_field_first_row_header_1 input:radio:checked').val()
-
             // Reject if field is blank
             if($("#file_field_" + field).attr("data-is_radio")){
                 if($("#file_field_" + field + " input:radio:checked").val() == undefined){
@@ -260,7 +260,22 @@ class ImportSchemeItem{
 
                 // Reject if field is "**select_first**" and 'select_first' input is blank
                 if($("#file_field_" + field).find(":selected").val() == "**select_first**"){
-                    if ($("#file_field_" + field + "_first").val().length <=1){
+                    let first_count = 0;
+                    let first_values = [];
+
+                    for (let count=1; count < 4; i++)
+                    {
+                        let value = $("#file_field_" + field + "_first_" + count).val();
+                        if (value){
+                            if (first_values.includes(value)){
+                                return false;
+                            };
+                            first_values.push(value);
+                            first_count ++;
+                        };
+                    };
+
+                    if (first_count < 2){
                         return false;
                     };
                 }; 
