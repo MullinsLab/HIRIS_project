@@ -17,10 +17,12 @@ def timeit(func, *, output: str="print"):
         end_time = time.perf_counter()
         total_time = end_time - start_time
 
-        if output == "print":
-            print(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
-        elif output == "log":
-            log.debug(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
+        if output.lower() == "print":
+            # print(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
+            print(f'Function {func.__name__} Took {total_time:.6f} seconds ({start_time}, {end_time})')
+        elif output.lower() == "log":
+            # log.debug(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
+            log.debug(f'Function {func.__name__} Took {total_time:.6f} seconds')
         
         return result
     return timeit_wrapper
