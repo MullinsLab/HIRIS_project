@@ -15,11 +15,12 @@ from importlib.util import find_spec
 if (find_spec("gffutils")): import gffutils 
 else: NO_GFFUTILS=True
 
-from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name
+from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name, deep_exists
 from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotReadyError, ImportSchemeNotReady, StatusNotFound
 from ml_import_wizard.utils.importer import importers
 from ml_import_wizard.decorators import timeit
 from ml_import_wizard.utils.cache import LRUCacheThing
+
 
 class ImportBaseModel(models.Model):
     ''' A base class to hold comon methods and attributes.  It's Abstract so Django won't make a table for it
@@ -159,7 +160,7 @@ class ImportScheme(ImportBaseModel):
         return table
 
     def data_columns(self) -> list[dict[str: any]]:
-        """ Returns a list of columns each set of models in the target importer """
+        """ Returns a list of columns for each set of models in the target importer """
         columns: list = []
         column_id: int = 0
         importer = importers[self.importer]
@@ -179,11 +180,12 @@ class ImportScheme(ImportBaseModel):
                     columns.append({})
                     columns[column_id]["name"] = field.name
                     columns[column_id]["import_scheme_item"] = import_scheme_item
+                    columns[column_id]["importer_field"] = field
+                    columns[column_id]["importer_model"] = model
 
                     column_id += 1
         return columns
     
-    @timeit
     def data_rows(self, *, columns: list = None, limit_count: int = None) -> dict[str: any]:
         """ Yields a row for each set of models in the target importer """
 
@@ -192,7 +194,7 @@ class ImportScheme(ImportBaseModel):
 
         if columns is None:
             columns = self.data_columns
-        
+
         primary_file: ImportSchemeFile = None
         child_files: dict[int: dict] = {}
 
@@ -209,7 +211,6 @@ class ImportScheme(ImportBaseModel):
                 child["connection"] = child["object"]._get_db_connection()
 
                 # Store the child and primary linked fields that the child row will be looked up by
-                log.debug(f"Child table: {value['child']}")
                 import_scheme_file_field = ImportSchemeFileField.objects.get(pk=value["child"])
                 fields[import_scheme_file_field.id] = {
                     "name": import_scheme_file_field.name,
@@ -227,18 +228,21 @@ class ImportScheme(ImportBaseModel):
             primary_file = self.files.all()[0]
 
         for row in primary_file.rows(limit_count=limit_count):
-            row_dict: dict = {}
+            row_dict: dict = {"***row***setting***": {}}
 
-            for column in columns:    
+            for column in columns:
                 strategy = column["import_scheme_item"].strategy
                 settings = column["import_scheme_item"].settings
 
+                # Raw Text
                 if strategy == "Raw Text":
                     row_dict[column["name"]] = settings["raw_text"]
 
+                # Table Row - A value loaded from a table
                 elif strategy == "Table Row":
                     row_dict[column["name"]] = settings["row"]
 
+                # File field - The 'regular' import of a field directly from the file
                 elif strategy == "File Field":
                     key = settings["key"]
 
@@ -263,13 +267,11 @@ class ImportScheme(ImportBaseModel):
                         if child_row:
                             row_dict[column["name"]] = child_row[fields[key]["name"]]
                 
+                # Select first field
                 elif strategy == "Select First":
                     value: str = None
 
-                    # log.debug("Selecting first")
-                    # log.debug(self.settings)
                     for key in settings.get("first_keys", []):
-                        log.debug(f"Select First key: {key}")
                         if key not in fields:
                             import_scheme_file_field = ImportSchemeFileField.objects.get(pk=key)
                             fields[import_scheme_file_field.id] = {
@@ -296,6 +298,7 @@ class ImportScheme(ImportBaseModel):
                     
                     row_dict[column["name"]] = value
 
+                # Split field
                 elif strategy == "Split Field":
                     key = settings["split_key"]
 
@@ -320,11 +323,32 @@ class ImportScheme(ImportBaseModel):
                         )
                         if child_row:
                             value = child_row[fields[key]["name"]]
-
+                    
                     if settings["splitter"] in value:
                         row_dict[column["name"]] = value.split(settings["splitter"])[settings["splitter_position"]-1]
                     else:
                         row_dict[column["name"]] = value
+
+                # Translate value in field
+                if "translate_values" in column["importer_model"].settings:
+                    if row_dict[column["name"]] in column["importer_model"].settings["translate_values"]:
+                        row_dict[column["name"]] = column["importer_model"].settings["translate_values"][row_dict[column["name"]]]
+
+                # Change case of value in field
+                if column["importer_field"].settings.get("force_case", "") == "upper":
+                    row_dict[column["name"]] = row_dict[column["name"]].upper()
+
+                if column["importer_field"].settings.get("force_case", "") == "lower":
+                    row_dict[column["name"]] = row_dict[column["name"]].lower()
+
+                # Check the data for rejections and store that in row_dict[***row***setting***][reject_row]
+                if column["importer_model"].settings.get("restriction", "") == "rejected":
+                    if "approved_values" in column["importer_field"].settings:
+                        if row_dict[column["name"]] not in column["importer_field"].settings.get("approved_values", []):
+                            if "reject_row" not in row_dict["***row***setting***"]:
+                                row_dict["***row***setting***"]["reject_row"] = []
+                            
+                            row_dict["***row***setting***"]["reject_row"].append({column['name']: row_dict[column['name']]})
 
             yield row_dict
 
@@ -343,6 +367,11 @@ class ImportScheme(ImportBaseModel):
         
         row_count = 1
         for row in self.data_rows(columns=columns, limit_count=limit_count):
+
+            # skip the row and store it in an ImportSchemeRejectedRow if it's rejected
+            if deep_exists(dictionary=row, keys=["***row***setting***", "reject_row"]):
+                ImportSchemeRejectedRow(import_scheme=self, errors=row["***row***setting***"]["reject_row"], row=row)
+            
             for app in importers[self.importer].apps:
                 working_objects: dict[str: dict[str: any]] = {}
 
@@ -358,7 +387,7 @@ class ImportScheme(ImportBaseModel):
                            if field.field.unique:
                                unique_sets.append((field.name, ))
 
-                           working_attributes[field.name] = row[field.name]
+                           working_attributes[field.name] = row.get(field.name)
 
                     # Load instances per their unique fields until we run out of unique fields or an object is returned.
                     for unique_set in unique_sets:
@@ -383,6 +412,13 @@ class ImportScheme(ImportBaseModel):
                     if not working_objects.get(model.name, None):
                         working_objects[model.name] = model.model(**working_attributes)
                         working_objects[model.name].save()
+
+                        # If this is a deferred model save an ImportSchemeDeferredRows
+                        if "restriction" in model.settings and model.settings["restriction"] == "deferred":
+                            ImportSchemeDeferredRows(import_scheme = self,
+                                                     model = model.name,
+                                                     pkey_int = working_objects[model.name].pk,
+                            ).save()
         
             print(row_count)
             row_count += 1
@@ -886,11 +922,10 @@ class ImportSchemeItem(ImportBaseModel):
         unique_together = ["app", "model", "field"]
 
 
-class ImportSchemeRejectedRows(ImportBaseModel):
+class ImportSchemeRejectedRow(ImportBaseModel):
     """ Holds all rejected rows for an import, and the reason they were rejected """
 
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='rejected_rows', null=True, editable=False)
-    model = models.TextField(max_length=255, null=False)
     errors = models.JSONField("Why was this row rejected by the importer?")
     row = models.JSONField("Complete data for the row that was rejected")
 

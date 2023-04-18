@@ -94,17 +94,18 @@ ML_IMPORT_WIZARD = {
                         'FeatureType': {
                             'restriction': 'rejected',
                             'fields': {
-                                'gene_type_name': {
-                                    'approved_values': ['CDS', 'exon', 'gene', 'start_codon', 'stop_codon']
+                                'feature_type_name': {
+                                    'approved_values': ['CDS', 'exon', 'region', 'gene', 'start_codon', 'stop_codon']
                                 },
                             },
                         },
                         "Feature": {
                             "exclude_fields": ["external_gene_id"],
                         },
-                        # 'FeatureLocation': {
-                        #     'exclude_fields': ('landmark'),
-                        # },
+                        'FeatureLocation': {
+                            "translate_values": {"+": "F", "-": "R"},
+                            "force_case": "upper",
+                        },
                     },
                 },
             ],
