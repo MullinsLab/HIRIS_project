@@ -74,10 +74,10 @@ class Feature(CoreBaseModel):
     ''' Holds gene data except for locations '''
     feature_id = models.BigAutoField(primary_key=True, editable=False)
     genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="features")
-    feature_name = models.CharField(max_length=255)
+    feature_name = models.CharField(max_length=255, null=True)
     external_gene_id = models.IntegerField(null=True, blank=True)
     feature_type = models.ForeignKey(FeatureType, on_delete=models.CASCADE, null=False, related_name="features")
-    gene_type = models.ForeignKey(GeneType, on_delete=models.CASCADE, null=False, related_name="features")
+    gene_type = models.ForeignKey(GeneType, on_delete=models.CASCADE, null=True, related_name="features")
 
     class Meta:
         db_table = "features"
@@ -87,6 +87,12 @@ class Feature(CoreBaseModel):
             models.Index(fields=['feature_name']),
             models.Index(fields=['genome_version']),
         ]
+
+    @property
+    def name(self) -> str:
+        """ cannonical name for Feature.  Since Name can be None needs to include something else """
+
+        return f"{self.feature_id}: {self.feature_name}"
 
 
 class FeatureLocation(CoreBaseModel):
