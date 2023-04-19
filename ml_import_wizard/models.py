@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import models
+from django.db import models, IntegrityError, transaction
 from django.db.models.functions import Lower
 
 import logging
@@ -370,55 +370,89 @@ class ImportScheme(ImportBaseModel):
 
             # skip the row and store it in an ImportSchemeRejectedRow if it's rejected
             if deep_exists(dictionary=row, keys=["***row***setting***", "reject_row"]):
-                ImportSchemeRejectedRow(import_scheme=self, errors=row["***row***setting***"]["reject_row"], row=row)
-            
-            for app in importers[self.importer].apps:
-                working_objects: dict[str: dict[str: any]] = {}
+                ImportSchemeRejectedRow(import_scheme=self, errors=row["***row***setting***"]["reject_row"], row=row).save()
 
-                for model in app.models_by_import_order:
-                    working_attributes = {}
+            # Use a transaction so each source row gets saved or not
+            try:
+                with transaction.atomic():
+                    # Commit cache_thing changes if the transaction commits
+                    transaction.on_commit(cache_thing.commit)
 
-                    unique_sets: list[tuple] = list(model.model._meta.__dict__.get("unique_together"))
-                    
-                    for field in model.fields:
-                        if field.is_foreign_key():
-                            working_attributes[field.name] = working_objects[field.field.related_model.__name__]
-                        else:
-                           if field.field.unique:
-                               unique_sets.append((field.name, ))
+                    for app in importers[self.importer].apps:
+                        working_objects: dict[str: dict[str: any]] = {}
 
-                           working_attributes[field.name] = row.get(field.name)
+                        for model in app.models_by_import_order:
+                            working_attributes = {}
 
-                    # Load instances per their unique fields until we run out of unique fields or an object is returned.
-                    for unique_set in unique_sets:
-                        test_attributes: dict[str, any] = {}
-                        test_attributes_string: str = ""
+                            unique_sets: list[tuple] = list(model.model._meta.__dict__.get("unique_together"))
+                            
+                            superbreak: bool = False # Needed to break out of both for loops
 
-                        for unique_field in unique_set:
-                            test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
-                            test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
+                            for field in model.fields:
+                                if field.is_foreign_key():
+                                    working_attributes[field.name] = working_objects[field.field.related_model.__name__]
+                                else:
+                                    if field.field.unique:
+                                        unique_sets.append((field.name, ))
 
-                        working_objects[model.name] = cache_thing.find(key=(model.name, test_attributes_string), report=False)
+                                    working_attributes[field.name] = row.get(field.name)
 
-                        if model.name not in working_objects or not working_objects[model.name]:
-                            working_objects[model.name] = model.model.objects.filter(**test_attributes).first()
+                                    # Ensure that if the data for a field is None that the field is nullable
+                                    if working_attributes[field.name] is None and field.not_nullable():
+                                        log.debug(f"Got unnullable field with a null. Field: {field.name}")
+                                        superbreak = True
+                                        break
+                            
+                            if superbreak: break
 
-                            if working_objects[model.name]:
-                                cache_thing.store(key=(model.name, test_attributes_string), value=working_objects[model.name])
+                            # Load instances per their unique fields until we run out of unique fields or an object is returned.
+                            for unique_set in unique_sets:
+                                test_attributes: dict[str, any] = {}
+                                test_attributes_string: str = ""
 
-                        if working_objects[model.name]:
-                            continue
-                    
-                    if not working_objects.get(model.name, None):
-                        working_objects[model.name] = model.model(**working_attributes)
-                        working_objects[model.name].save()
+                                for unique_field in unique_set:
+                                    test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
+                                    # log.debug(f"field: {unique_field}")
+                                    # log.debug(working_attributes[unique_field])
+                                    # log.debug(type(working_attributes[unique_field]))
+                                    # log.debug(f"value: {working_attributes[unique_field]}")
+                                    test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
 
-                        # If this is a deferred model save an ImportSchemeDeferredRows
-                        if "restriction" in model.settings and model.settings["restriction"] == "deferred":
-                            ImportSchemeDeferredRows(import_scheme = self,
-                                                     model = model.name,
-                                                     pkey_int = working_objects[model.name].pk,
-                            ).save()
+                                working_objects[model.name] = cache_thing.find(key=(model.name, test_attributes_string), report=False)
+
+                                if model.name not in working_objects or not working_objects[model.name]:
+                                    working_objects[model.name] = model.model.objects.filter(**test_attributes).first()
+
+                                    if working_objects[model.name]:
+                                        cache_thing.store(key=(model.name, test_attributes_string), value=working_objects[model.name], transaction=True)
+
+                                if working_objects[model.name]:
+                                    continue
+                            
+                            if not working_objects.get(model.name):
+                                working_objects[model.name] = model.model(**working_attributes)
+                                working_objects[model.name].save()
+
+                                # If this is a deferred model save an ImportSchemeDeferredRows
+                                if "restriction" in model.settings and model.settings["restriction"] == "deferred":
+
+                                    if type(working_objects[model.name].pk) is int:
+                                        ImportSchemeDeferredRows(import_scheme = self,
+                                                                model = model.name,
+                                                                pkey_name = working_objects[model.name]._meta.pk.name,
+                                                                pkey_int = working_objects[model.name].pk,
+                                        ).save()
+
+                                    elif type(working_objects[model.name].pk) is str:
+                                        ImportSchemeDeferredRows(import_scheme = self,
+                                                                model = model.name,
+                                                                pkey_name = working_objects[model.name].pk.name,
+                                                                pkey_str = working_objects[model.name].pk,
+                                        ).save()
+
+            except IntegrityError:
+                # Roll back cache_thing changes if the transaction is rolled back
+                cache_thing.rollback()                
         
             print(row_count)
             row_count += 1

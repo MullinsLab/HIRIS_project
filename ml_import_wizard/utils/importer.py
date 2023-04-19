@@ -107,10 +107,15 @@ class ImporterField(BaseImporter):
         parent.fields_by_name[self.name] = self
 
     def is_foreign_key(self) -> bool:
-        """ returns true if the field has a foreign key """
+        """ returns True if the field has a foreign key """
 
         return isinstance(self.field, ForeignKey)
+    
+    def not_nullable(self) -> bool:
+        """ returns True if the field is not nullable """
 
+        return not self.field.null
+    
 
 def inspect_models() -> None:
     """ Initialize the importer objects from settings """

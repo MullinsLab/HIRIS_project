@@ -10,7 +10,7 @@ from django.conf import settings
 
 from .models import ImportScheme, ImportSchemeFile
 from .utils.simple import dict_hash, sound_user_name, split_by_caps, stringalize, mached_name_choices, fancy_name, resolve_true, deep_exists
-
+from .utils.cache import LRUCacheThing
 
 class InclusionTest(TestCase):
     ''' A test to make sure the Import Wizard app is being included '''
@@ -40,15 +40,15 @@ class ModelTests(TestCase):
         
     def test_import_scheme_hash_should_be_the_correct_length(self):
         """ import_scheme has should be the 32 characters long """
-        self.assertEquals(32, len(self.import_scheme.importer_hash))
+        self.assertEqual(32, len(self.import_scheme.importer_hash))
 
     def test_import_scheme_hash_should_be_the_same_as_the_hash_of_the_raw_dict_from_settings(self):
         """ import_scheme has should be the same as the hash from the raw dict from settings """
-        self.assertEquals(dict_hash(settings.ML_IMPORT_WIZARD['Importers']['Genome']), self.import_scheme.importer_hash)
+        self.assertEqual(dict_hash(settings.ML_IMPORT_WIZARD['Importers']['Genome']), self.import_scheme.importer_hash)
 
     def test_import_file_name_should_be_file_id_padded_to_8_digits(self):
         """ import_file_name should be padded to 8 digits """
-        self.assertEquals('00000001', self.import_file_1.file_name)
+        self.assertEqual('00000001', self.import_file_1.file_name)
     
 
     def test_import_scheme_can_list_its_files(self):
@@ -56,52 +56,97 @@ class ModelTests(TestCase):
         
         log.debug(f'File list for {self.import_scheme} is {self.import_scheme.list_files()}')
 
-        self.assertEquals('test1.txt', self.import_scheme.list_files())
+        self.assertEqual('test1.txt', self.import_scheme.list_files())
 
         import_file_2 = ImportSchemeFile(name='test2.txt', import_scheme=self.import_scheme)
         import_file_2.save()
 
-        self.assertEquals('test1.txt, test2.txt', self.import_scheme.list_files())
-        self.assertEquals('test1.txt<br>test2.txt', self.import_scheme.list_files(separator='<br>'))
+        self.assertEqual('test1.txt, test2.txt', self.import_scheme.list_files())
+        self.assertEqual('test1.txt<br>test2.txt', self.import_scheme.list_files(separator='<br>'))
 
     def test_import_scheme_file_has_correct_file_type(self):
         ''' ImportSchemeFile should have the correct type '''
         
-        self.assertEquals('txt', self.import_file_1.type)
+        self.assertEqual('txt', self.import_file_1.type)
 
     def test_import_scheme_should_be_able_to_add_item_if_its_not_there(self):
         """ import_scheme should be able to add an item using .create_or_update_item """
 
         self.import_scheme_item = self.import_scheme.create_or_update_item(app="app", model= "model", field="field", strategy="raw_text", settings={"text": "this thing"})
-        self.assertEquals("raw_text", self.import_scheme_item.strategy)
+        self.assertEqual("raw_text", self.import_scheme_item.strategy)
 
     def test_import_scheme_should_save_item_and_there_should_only_be_one_item(self):
         """ import_scheme should save the item after .create_or_update_item and there should only be one item """
         self.import_scheme_item = self.import_scheme.create_or_update_item(app="app", model= "model", field="field", strategy="raw_text", settings={"text": "this thing"})
-        self.assertEquals("raw_text", self.import_scheme_item.strategy)
+        self.assertEqual("raw_text", self.import_scheme_item.strategy)
 
         self.import_scheme_item = self.import_scheme.create_or_update_item(app="app", model= "model", field="field", strategy="file_field", settings={"file_field": 102})
-        self.assertEquals("file_field", self.import_scheme_item.strategy)
+        self.assertEqual("file_field", self.import_scheme_item.strategy)
 
-        self.assertEquals(self.import_scheme.items.count(), 1)
+        self.assertEqual(self.import_scheme.items.count(), 1)
 
     def test_import_scheme_should_have_two_items_after_two_are_added(self):
         """ import_scheme should have two items after two are added and one is updated """
         import_scheme_item_1 = self.import_scheme.create_or_update_item(app="app", model= "model", field="field1", strategy="raw_text", settings={"text": "this thing"})
-        self.assertEquals("raw_text", import_scheme_item_1.strategy)
+        self.assertEqual("raw_text", import_scheme_item_1.strategy)
 
         import_scheme_item_2 = self.import_scheme.create_or_update_item(app="app", model= "model", field="field1", strategy="file_field", settings={"file_field": 102})
-        self.assertEquals("file_field", import_scheme_item_2.strategy)
+        self.assertEqual("file_field", import_scheme_item_2.strategy)
 
-        self.assertEquals(self.import_scheme.items.count(), 1)
+        self.assertEqual(self.import_scheme.items.count(), 1)
 
         import_scheme_item_3 = self.import_scheme.create_or_update_item(app="app", model= "model", field="field2", strategy="stupid_test", settings={"file_field": 102})
-        self.assertEquals("stupid_test", import_scheme_item_3.strategy)
+        self.assertEqual("stupid_test", import_scheme_item_3.strategy)
 
-        self.assertEquals(self.import_scheme.items.count(), 2)
+        self.assertEqual(self.import_scheme.items.count(), 2)
 
 
-# Tests for simple utils
+class LRUCacheThingsTests(TestCase):
+    """ Tests of the LRUCacheThing """
+
+    @classmethod
+    def setUpTestData(cls):
+        """ Create a cache object """
+        cls.cache = LRUCacheThing()
+        cls.cache.store(key=1, value="test1")
+        cls.cache.store(key="transaction", value="transaction test1", transaction=True)
+
+    def test_cache_returns_thing_correctly(self):
+        """ Cache should return a thing that it has been given """
+        self.assertEqual(self.cache.find(key=1), "test1")
+        self.assertEqual(self.cache.count, 1)
+
+        self.cache.store(key=2, value="test2")
+        self.assertEqual(self.cache.find(key=2), "test2")
+        self.assertEqual(self.cache.count, 2)
+
+    def test_cache_returns_none_with_bad_key(self):
+        """ Cache should return None when given a key that doesn't exist """
+        self.assertIs(self.cache.find(key=2), None)
+
+    def test_cache_returns_value_stored_with_transaction(self):
+        """ Cache should return a thing that it has been given in a transaction """
+        self.assertEqual(self.cache.find(key="transaction"), "transaction test1")
+        self.assertEqual(self.cache.transaction_count, 1)
+
+    def test_cache_returns_none_with_transaction_after_rollback(self):
+        """ Cache should return None for transaction after the transaction is rolled back"""
+        self.assertEqual(self.cache.find(key="transaction"), "transaction test1")
+        self.cache.rollback()
+        self.assertIs(self.cache.find(key="transaction"), None)
+
+    def test_cache_returns_value_stored_with_transaction_after_commit_and_rollback(self):
+        """ Cache should return None when given a key that doesn't exist """
+        self.assertEqual(self.cache.find(key="transaction"), "transaction test1")
+        self.assertEqual(self.cache.count, 1)
+        self.assertEqual(self.cache.transaction_count, 1)
+
+        self.cache.commit()
+
+        self.assertEqual(self.cache.find(key="transaction"), "transaction test1")
+        self.assertEqual(self.cache.count, 2)
+        self.assertEqual(self.cache.transaction_count, 0)
+
 class SimpleUtilsTest(TestCase):
     ''' Tests for functions from the utils.simple module '''
 
