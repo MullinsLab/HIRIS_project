@@ -25,7 +25,7 @@ class ModelTests(TestCase):
 
     def test_core_base_class_should_return_correct_str_for_objects_with_no_name_attribute(self):
         ''' When an object doesn't have an ClassName_name attribute but is declaring it's own name @property '''
-        self.assertEqual(str(self.my_feature_location), 'My Gene: NC_00002.2')
+        self.assertEqual(str(self.my_feature_location), '1: My Gene: NC_00002.2')
 
 
 class TemplateAndViewTests(TestCase):
