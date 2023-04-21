@@ -103,6 +103,7 @@ ML_IMPORT_WIZARD = {
                             "exclude_fields": ["external_gene_id"],
                         },
                         'FeatureLocation': {
+                            "critical": True,
                             "translate_values": {"+": "F", "-": "R"},
                             "force_case": "upper",
                         },

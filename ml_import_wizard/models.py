@@ -397,13 +397,19 @@ class ImportScheme(ImportBaseModel):
 
                                     working_attributes[field.name] = row.get(field.name)
 
-                                    # Ensure that if the data for a field is None that the field is nullable
-                                    if working_attributes[field.name] is None and field.not_nullable():
-                                        log.debug(f"Got unnullable field with a null. Field: {field.name}")
-                                        superbreak = True
-                                        break
+                                # Ensure that if the data for a field is None that the field is nullable
+                                if working_attributes[field.name] is None and field.not_nullable():
+                                    working_objects[model.name] = None
+
+                                    if model.settings.get("critical"):
+                                        log.debug(f"Got unnullable field with a null in a critical object. Field: {field.name}")
+                                        raise IntegrityError(f"Critical model is invalid: Model: {model.name}, Field: {field.name}")
+
+                                    superbreak = True
+                                    break
                             
-                            if superbreak: break
+                            if superbreak: 
+                                continue
 
                             # Load instances per their unique fields until we run out of unique fields or an object is returned.
                             for unique_set in unique_sets:
@@ -412,10 +418,6 @@ class ImportScheme(ImportBaseModel):
 
                                 for unique_field in unique_set:
                                     test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
-                                    # log.debug(f"field: {unique_field}")
-                                    # log.debug(working_attributes[unique_field])
-                                    # log.debug(type(working_attributes[unique_field]))
-                                    # log.debug(f"value: {working_attributes[unique_field]}")
                                     test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
 
                                 working_objects[model.name] = cache_thing.find(key=(model.name, test_attributes_string), report=False)
@@ -430,6 +432,7 @@ class ImportScheme(ImportBaseModel):
                                     continue
                             
                             if not working_objects.get(model.name):
+                                #log.debug(f"Saving: Model: {model.model.name}, Attributes: {working_attributes}")
                                 working_objects[model.name] = model.model(**working_attributes)
                                 working_objects[model.name].save()
 
@@ -452,9 +455,10 @@ class ImportScheme(ImportBaseModel):
 
             except IntegrityError:
                 # Roll back cache_thing changes if the transaction is rolled back
-                cache_thing.rollback()                
+                cache_thing.rollback()
+                ImportSchemeRejectedRow(import_scheme=self, errors="Row rejected due to query error or invalid null in critical model.", row=row).save()
         
-            print(row_count)
+            print(f"{row_count:,}")
             row_count += 1
 
 
