@@ -32,12 +32,12 @@ class Command(BaseCommand):
             if verbosity > 1:
                 self.stdout.write(f'Starting to import {import_scheme} (import_scheme.importer)')
 
-            try:
-                import_scheme.execute(ignore_status=options['ignore_status'], limit_count=options['limit_count'])
-            except Exception as err:
-                raise CommandError(err)
+            # try:
+            #     import_scheme.execute(ignore_status=options['ignore_status'], limit_count=options['limit_count'])
+            # except Exception as err:
+            #     raise CommandError(err)
             
-            # import_scheme.execute(ignore_status=options['ignore_status'], limit_count=options['limit_count'])
+            import_scheme.execute(ignore_status=options['ignore_status'], limit_count=options['limit_count'])
 
             # print(f"Limit Count: {options['limit_count']}")
 

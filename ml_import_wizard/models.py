@@ -370,7 +370,7 @@ class ImportScheme(ImportBaseModel):
 
             # skip the row and store it in an ImportSchemeRejectedRow if it's rejected
             if deep_exists(dictionary=row, keys=["***row***setting***", "reject_row"]):
-                ImportSchemeRejectedRow(import_scheme=self, errors=row["***row***setting***"]["reject_row"], row=row).save()
+                ImportSchemeRowRejected(import_scheme=self, errors=row["***row***setting***"]["reject_row"], row=row).save()
 
             # Use a transaction so each source row gets saved or not
             try:
@@ -440,14 +440,14 @@ class ImportScheme(ImportBaseModel):
                                 if "restriction" in model.settings and model.settings["restriction"] == "deferred":
 
                                     if type(working_objects[model.name].pk) is int:
-                                        ImportSchemeDeferredRows(import_scheme = self,
+                                        ImportSchemeRowDeferred(import_scheme = self,
                                                                 model = model.name,
                                                                 pkey_name = working_objects[model.name]._meta.pk.name,
                                                                 pkey_int = working_objects[model.name].pk,
                                         ).save()
 
                                     elif type(working_objects[model.name].pk) is str:
-                                        ImportSchemeDeferredRows(import_scheme = self,
+                                        ImportSchemeRowDeferred(import_scheme = self,
                                                                 model = model.name,
                                                                 pkey_name = working_objects[model.name].pk.name,
                                                                 pkey_str = working_objects[model.name].pk,
@@ -456,7 +456,7 @@ class ImportScheme(ImportBaseModel):
             except IntegrityError:
                 # Roll back cache_thing changes if the transaction is rolled back
                 cache_thing.rollback()
-                ImportSchemeRejectedRow(import_scheme=self, errors="Row rejected due to query error or invalid null in critical model.", row=row).save()
+                ImportSchemeRowRejected(import_scheme=self, errors="Row rejected due to query error or invalid null in critical model.", row=row).save()
         
             print(f"{row_count:,}")
             row_count += 1
@@ -960,7 +960,7 @@ class ImportSchemeItem(ImportBaseModel):
         unique_together = ["app", "model", "field"]
 
 
-class ImportSchemeRejectedRow(ImportBaseModel):
+class ImportSchemeRowRejected(ImportBaseModel):
     """ Holds all rejected rows for an import, and the reason they were rejected """
 
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='rejected_rows', null=True, editable=False)
@@ -973,7 +973,7 @@ class ImportSchemeRejectedRow(ImportBaseModel):
         return f"Rejected row for {self.model}"
 
 
-class ImportSchemeDeferredRows(ImportBaseModel):
+class ImportSchemeRowDeferred(ImportBaseModel):
     """ Holds refrences to rows that have been deferred for approval """
     
     import_scheme = models.ForeignKey(ImportScheme, on_delete=models.CASCADE, related_name='deferred_rows', null=True, editable=False)
