@@ -260,7 +260,7 @@ class ImportScheme(ImportBaseModel):
                     else:
                         child_row = child_files[file]["object"].find_row_by_key(
                             field=child_files[file]["child_linked_field"],
-                            key=row[child_files[file]["primary_linked_field"]],
+                            key=row.get(child_files[file]["primary_linked_field"]),
                             connection=child_files[file]["connection"],
                             #cache=child_files[file]["cache"],
                         )
@@ -329,17 +329,19 @@ class ImportScheme(ImportBaseModel):
                     else:
                         row_dict[column["name"]] = value
 
-                # Translate value in field
-                if "translate_values" in column["importer_model"].settings:
-                    if row_dict[column["name"]] in column["importer_model"].settings["translate_values"]:
-                        row_dict[column["name"]] = column["importer_model"].settings["translate_values"][row_dict[column["name"]]]
+                # Adjust data
+                if column["name"] in row_dict:
+                    # Translate value in field
+                    if "translate_values" in column["importer_model"].settings:
+                        if row_dict[column["name"]] in column["importer_model"].settings["translate_values"]:
+                            row_dict[column["name"]] = column["importer_model"].settings["translate_values"][row_dict[column["name"]]]
 
-                # Change case of value in field
-                if column["importer_field"].settings.get("force_case", "") == "upper":
-                    row_dict[column["name"]] = row_dict[column["name"]].upper()
+                    # Change case of value in field
+                    if column["importer_field"].settings.get("force_case", "") == "upper":
+                        row_dict[column["name"]] = row_dict[column["name"]].upper()
 
-                if column["importer_field"].settings.get("force_case", "") == "lower":
-                    row_dict[column["name"]] = row_dict[column["name"]].lower()
+                    if column["importer_field"].settings.get("force_case", "") == "lower":
+                        row_dict[column["name"]] = row_dict[column["name"]].lower()
 
                 # Check the data for rejections and store that in row_dict[***row***setting***][reject_row]
                 if column["importer_model"].settings.get("restriction", "") == "rejected":
