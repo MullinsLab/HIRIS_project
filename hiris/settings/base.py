@@ -92,7 +92,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'hiris.wsgi.application'
 
-CSRF_TRUSTED_ORIGINS = ['http://localhost', 'https://*.mullins.microbiol.washington.edu']
+CSRF_TRUSTED_ORIGINS = ['http://localhost', 'https://dev.hiris.washington.edu']
 
 DATABASES = {
     'default': {
