@@ -441,13 +441,11 @@ class ImportScheme(ImportBaseModel):
                                 for field in model.fields:
                                     if working_attributes[field.name] is None and field.not_nullable():
 
-                                        log.debug(f"Null in Field Name: {field.name}")
                                         working_objects[model.name] = None
 
                                         if model.settings.get("critical"):
-                                            raise IntegrityError(f"Critical model is invalid: Model: {model.name}, Field: {field.name}")
+                                            raise IntegrityError(f"Critical model is invalid: Model: {model.name}, Field: {field.name} is null")
                                         
-                                        log.debug("Superbreaking")
                                         superbreak = True
                                         break
                             
@@ -479,7 +477,8 @@ class ImportScheme(ImportBaseModel):
                 # Roll back cache_thing changes if the transaction is rolled back
                 log.debug(err)
                 cache_thing.rollback()
-                ImportSchemeRowRejected(import_scheme=self, errors="Row rejected due to query error or invalid null in critical model.", row=row).save()
+                #ImportSchemeRowRejected(import_scheme=self, errors="Row rejected due to query error or invalid null in critical model.", row=row).save()
+                ImportSchemeRowRejected(import_scheme=self, errors=str(err), row=row).save()
         
             print(f"{row_count:,}")
             row_count += 1

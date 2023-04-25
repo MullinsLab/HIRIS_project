@@ -139,7 +139,7 @@ class DataSet(CoreBaseModel):
 class DataSetSource(CoreBaseModel):
     """ Holds data about the source of a data set """
     data_set_source_id = models.BigAutoField(primary_key=True, editable=False)
-    data_set = models.OneToOneField(DataSet, on_delete=models.CASCADE, related_name="data_set_sources")
+    data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="data_set_sources")
     data_set_source_name = models.CharField(max_length=255, null=True, blank=True)
     revision_data_path = models.TextField(null=True, blank=True)
     revision_data_hash = models.CharField(max_length=40, null=True, blank=True)
@@ -252,7 +252,7 @@ class Integration(CoreBaseModel):
     sequence_uri = models.TextField(null=True, blank=True)
     replicate = models.IntegerField(null=True, blank=True)
     replicates = models.IntegerField(null=True, blank=True)
-    note = models.IntegerField(null=True, blank=True)
+    note = models.TextField(null=True, blank=True)
 
     name_field = "integration_id"
 
@@ -267,7 +267,7 @@ class IntegrationLocation(CoreBaseModel):
     feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING, related_name="integration_locations", null=True)
     landmark = models.CharField(max_length=255)
     location = models.IntegerField()
-    orientation_in_landmark = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=False)
+    orientation_in_landmark = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=True)
 
     class Meta:
         db_table = "integration_locations"
