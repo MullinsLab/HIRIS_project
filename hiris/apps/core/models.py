@@ -129,7 +129,7 @@ class FeatureLocation(CoreBaseModel):
 class DataSet(CoreBaseModel):
     """ Holds core data about a data set """
     data_set_id = models.BigAutoField(primary_key=True, editable=False)
-    daa_set_name = models.CharField(max_length=255)
+    data_set_name = models.CharField(max_length=255, unique=True)
     genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="data_sets")
 
     class Meta:
@@ -138,8 +138,9 @@ class DataSet(CoreBaseModel):
 
 class DataSetSource(CoreBaseModel):
     """ Holds data about the source of a data set """
-    data_set = models.OneToOneField(DataSet, on_delete=models.CASCADE, primary_key=True, editable=False)
-    data_set_source_name = models.CharField(max_length=255)
+    data_set_source_id = models.BigAutoField(primary_key=True, editable=False)
+    data_set = models.OneToOneField(DataSet, on_delete=models.CASCADE, related_name="data_set_sources")
+    data_set_source_name = models.CharField(max_length=255, null=True, blank=True)
     revision_data_path = models.TextField(null=True, blank=True)
     revision_data_hash = models.CharField(max_length=40, null=True, blank=True)
     revision_metadata_path = models.TextField(null=True, blank=True)
@@ -198,17 +199,20 @@ class Sample(CoreBaseModel):
     name_field = "culture"
 
     class Meta:
-        db_table = "sample"
+        db_table = "samples"
 
 
 class Preparation(CoreBaseModel):
     """ Holds data about how thesample was prepared """
     preparation_id = models.BigAutoField(primary_key=True, editable=False)
     sample = models.ForeignKey(Sample, on_delete=models.CASCADE, related_name="preparations")
-    description = models.TextField()
+    preparation_description = models.TextField(null=True)
 
-    name_field =  "description"
-
+    name_field =  "preparation_description"
+    # @property
+    # def name():
+    #     return "Preperation test"
+    
     class Meta:
         db_table = "preparations"
 
@@ -216,8 +220,9 @@ class Preparation(CoreBaseModel):
 class SequencingMethod(CoreBaseModel):
     """ Holds data about how the samples were sequenced """
     sequence_method_id = models.BigAutoField(primary_key=True, editable=False)
-    sequencing_method_name = models.CharField(max_length=255)
     preparation = models.ForeignKey(Preparation, on_delete=models.CASCADE, related_name="sequencing_methods")
+    sequencing_method_name = models.CharField(max_length=255, null=True)
+    sequencing_method_descripion = models.TextField(null=True)
 
     class Meta:
         db_table = "sequencing_methods"
@@ -226,7 +231,7 @@ class SequencingMethod(CoreBaseModel):
 class IntegrationEnvironment(CoreBaseModel):
     """ Holds data about the environment the sample was collected from """
     integration_environment_id = models.BigAutoField(primary_key=True, editable=False)
-    integration_envirnment_name = models.CharField(max_length=255)
+    integration_environment_name = models.CharField(max_length=255)
 
     class Meta:
         db_table = "integration_environments"
@@ -235,8 +240,9 @@ class IntegrationEnvironment(CoreBaseModel):
 class Integration(CoreBaseModel):
     """ Holds data about an individual integration """
     integration_id = models.BigAutoField(primary_key=True, editable=False)
-    integration_environment = models.ForeignKey(IntegrationEnvironment, on_delete=models.CASCADE, related_name="integrations")
+    integration_environment = models.ForeignKey(IntegrationEnvironment, on_delete=models.CASCADE, related_name="integrations", null=True)
     data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="integrations")
+    ltr = models.CharField(max_length=2, choices=(('3p', '3p'), ('5p', '5p')), null=True)
     multiple_integration = models.BooleanField(null=True, blank=True)
     multiple_integration_count = models.IntegerField(null=True, blank=True)
     sequence = models.TextField(null=True, blank=True)
@@ -258,7 +264,7 @@ class IntegrationLocation(CoreBaseModel):
     """ Holds data about the locations of a specific integration """
     integration_location_id = models.BigAutoField(primary_key=True, editable=False)
     integration = models.ForeignKey(Integration, on_delete=models.CASCADE, related_name="integration_locations")
-    feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING, related_name="integration_locations")
+    feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING, related_name="integration_locations", null=True)
     landmark = models.CharField(max_length=255)
     location = models.IntegerField()
     orientation_in_landmark = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=False)

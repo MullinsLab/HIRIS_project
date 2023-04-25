@@ -19,12 +19,13 @@
             {% endwith %}
         </optgroup>
     {% endif %}
-    <optgroup label="Specify Text...">
+    <optgroup label="Non file values...">
         <option value='**raw_text**' data-content="Specify Text" 
             {% if model.settings.default_option == "raw_text" or strategy.strategy == "Raw Text" %} selected{% endif %}>
         </option>
         <option value='**select_first**' data-content="Select First From"{% if strategy.strategy == "Select First" %} selected{% endif %}></option>
         <option value='**split_field**' data-content="Split Field"{% if strategy.strategy == "Split Field" %} selected{% endif %}></option>
+        {% if not field.not_nullable %}<option value='**no_data**' data-content="No Data"{% if strategy.strategy == "No Data" %} selected{% endif %}></option>{% endif %}
     </optgroup>
     <optgroup label="File Fields...">
         {% for file in scheme.files.all %}

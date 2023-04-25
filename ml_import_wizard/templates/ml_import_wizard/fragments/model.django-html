@@ -19,7 +19,7 @@
     data-url="{{ app }}-{{ model.name }}"
     data-model="{{ model.name }}">
     {% for field in model.shown_fields %}
-        {% include "ml_import_wizard/fragments/field.django-html" with field=field show_files=True %}
+        {% include "ml_import_wizard/fragments/field.django-html" with field=field %}
     {% endfor %}
 <br><input type="submit" class="btn btn-primary disabled" id="submit_{{ model.name }}">
 </form>

@@ -135,8 +135,11 @@ class ImportScheme(ImportBaseModel):
         else:
             item = items[0]
 
-        dirty = item.set_with_dirty("strategy", strategy)
-        dirty = item.set_with_dirty("settings", settings)
+        if item.set_with_dirty("strategy", strategy):
+            dirty = True
+
+        if item.set_with_dirty("settings", settings):
+            dirty = True
 
         if dirty: item.save()
 
@@ -147,8 +150,6 @@ class ImportScheme(ImportBaseModel):
         
         if self.status.import_defined == False:
             raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has not been set up.")
-
-        log.debug("getting preview data table.")
 
         table: dict = {"columns": self.data_columns(),
                        "rows": []            
@@ -242,6 +243,10 @@ class ImportScheme(ImportBaseModel):
                 elif strategy == "Table Row":
                     row_dict[column["name"]] = settings["row"]
 
+                # No Data
+                elif strategy == "No Data":
+                    row_dict[column["name"]] = None
+
                 # File field - The 'regular' import of a field directly from the file
                 elif strategy == "File Field":
                     key = settings["key"]
@@ -256,7 +261,10 @@ class ImportScheme(ImportBaseModel):
                     file = fields[key]["file"]
                     
                     if file == primary_file.id:
-                        row_dict[column["name"]] = row.get(fields[key]["name"], None)
+                        if type(row) is dict:
+                            row_dict[column["name"]] = row.get(fields[key]["name"])
+                        else:
+                            row_dict[column["name"]] = row[fields[key]["name"]]
                     else:
                         child_row = child_files[file]["object"].find_row_by_key(
                             field=child_files[file]["child_linked_field"],
@@ -265,7 +273,10 @@ class ImportScheme(ImportBaseModel):
                             #cache=child_files[file]["cache"],
                         )
                         if child_row:
-                            row_dict[column["name"]] = child_row[fields[key]["name"]]
+                            if type(child_row) is dict:
+                                row_dict[column["name"]] = child_row.get(fields[key]["name"])
+                            else:
+                                row_dict[column["name"]] = child_row[fields[key]["name"]]
                 
                 # Select first field
                 elif strategy == "Select First":
@@ -331,6 +342,10 @@ class ImportScheme(ImportBaseModel):
 
                 # Adjust data
                 if column["name"] in row_dict:
+                    # Change "null" to none
+                    if type(row_dict[column["name"]]) is str and row_dict[column["name"]].lower() == "null":
+                        row_dict[column["name"]] = None
+
                     # Translate value in field
                     if "translate_values" in column["importer_model"].settings:
                         if row_dict[column["name"]] in column["importer_model"].settings["translate_values"]:
@@ -385,35 +400,23 @@ class ImportScheme(ImportBaseModel):
 
                         for model in app.models_by_import_order:
                             working_attributes = {}
-
-                            unique_sets: list[tuple] = list(model.model._meta.__dict__.get("unique_together"))
                             
                             superbreak: bool = False # Needed to break out of both for loops
 
+                            # Step through fields and fill working_attributes
                             for field in model.fields:
                                 if field.is_foreign_key():
-                                    working_attributes[field.name] = working_objects[field.field.related_model.__name__]
+                                    if field.field.related_model.__name__ in working_objects:
+                                        working_attributes[field.name] = working_objects[field.field.related_model.__name__]
+                                    else:
+                                        working_attributes[field.name] = None
                                 else:
-                                    if field.field.unique:
-                                        unique_sets.append((field.name, ))
-
                                     working_attributes[field.name] = row.get(field.name)
 
-                                # Ensure that if the data for a field is None that the field is nullable
-                                if working_attributes[field.name] is None and field.not_nullable():
-                                    working_objects[model.name] = None
-
-                                    if model.settings.get("critical"):
-                                        log.debug(f"Got unnullable field with a null in a critical object. Field: {field.name}")
-                                        raise IntegrityError(f"Critical model is invalid: Model: {model.name}, Field: {field.name}")
-
-                                    superbreak = True
-                                    break
-                            
-                            if superbreak: 
-                                continue
-
                             # Load instances per their unique fields until we run out of unique fields or an object is returned.
+                            unique_sets: list[tuple] = list(model.model._meta.__dict__.get("unique_together"))
+                            unique_sets = unique_sets + [(field.name,) for field in model.fields if field.field.unique and not field.is_foreign_key()]
+
                             for unique_set in unique_sets:
                                 test_attributes: dict[str, any] = {}
                                 test_attributes_string: str = ""
@@ -432,9 +435,26 @@ class ImportScheme(ImportBaseModel):
 
                                 if working_objects[model.name]:
                                     continue
+                        
+                            # Ensure that if the data for a field is None that the field is nullable
+                            if model.name not in working_objects:
+                                for field in model.fields:
+                                    if working_attributes[field.name] is None and field.not_nullable():
+
+                                        log.debug(f"Null in Field Name: {field.name}")
+                                        working_objects[model.name] = None
+
+                                        if model.settings.get("critical"):
+                                            raise IntegrityError(f"Critical model is invalid: Model: {model.name}, Field: {field.name}")
+                                        
+                                        log.debug("Superbreaking")
+                                        superbreak = True
+                                        break
                             
+                            if superbreak: 
+                                continue
+
                             if not working_objects.get(model.name):
-                                #log.debug(f"Saving: Model: {model.model.name}, Attributes: {working_attributes}")
                                 working_objects[model.name] = model.model(**working_attributes)
                                 working_objects[model.name].save()
 
@@ -455,8 +475,9 @@ class ImportScheme(ImportBaseModel):
                                                                 pkey_str = working_objects[model.name].pk,
                                         ).save()
 
-            except IntegrityError:
+            except IntegrityError as err:
                 # Roll back cache_thing changes if the transaction is rolled back
+                log.debug(err)
                 cache_thing.rollback()
                 ImportSchemeRowRejected(import_scheme=self, errors="Row rejected due to query error or invalid null in critical model.", row=row).save()
         
@@ -497,7 +518,6 @@ class ImportSchemeFile(ImportBaseModel):
 
         if self.base_type == "text":
             if self.settings.get("has_db", False):
-                log.debug("Hit db")
                 return sqlite3.connect(f"{settings.ML_IMPORT_WIZARD['Working_Files_Dir']}{self.file_name}.db").execute("SELECT COUNT(*) FROM data").fetchone()[0]
             else:
                 return int(subprocess.check_output(['wc', '-l', settings.ML_IMPORT_WIZARD['Working_Files_Dir'] + self.file_name]).split()[0])
@@ -576,7 +596,7 @@ class ImportSchemeFile(ImportBaseModel):
 
         elif self.base_type == "text":
             if self.settings.get("has_db", False):
-                for row in self._rows_db(connection=connection):
+                for row in self._rows_db(limit_count=limit_count, connection=connection):
                     yield row
             else:
                 columns: list[str] = []
@@ -630,7 +650,6 @@ class ImportSchemeFile(ImportBaseModel):
             return row
 
         if cache:
-            log.debug(cache)
             row = cache.find(key=key, report=True, output="log")
             if row:
                 return row
@@ -642,10 +661,7 @@ class ImportSchemeFile(ImportBaseModel):
             else:
                 for row in self.rows():
                     if cache: cache.store(key=key, value=row)
-                    log.debug(row)
-                    log.debug(f"Field: {field}, Key: {key}, Value: {row[field]}")
                     if row[field] == key:
-                        log.debug(f"Found row!\n")
                         return row
         
         # If it's not found after going through the file store that it's not in the file
@@ -740,13 +756,9 @@ class ImportSchemeFile(ImportBaseModel):
         self.set_status_by_name('Inspecting')
         self.save(update_fields=["status"])
 
-        log.debug("Gunna build db")
-
         connection = self._create_text_db(replace_file=True)
-        log.debug("Built db")
 
         row_count = self.row_count
-        log.debug(f"Row count: {row_count}")
         
         # Look at 25 rows spread out in the file.
         attributes: dict = {}
@@ -877,7 +889,6 @@ class ImportSchemeFile(ImportBaseModel):
         # Set up columns table to hold info on the columns.  Convert columns to a list of tuples
         connection.execute("CREATE TABLE columns(name)")
         connection.executemany("INSERT INTO columns VALUES(?)", [(column,) for column in columns])
-        log.debug("Hit columns")
 
         # Create a data table to hold the actual data
         column_list: str = ", ".join([f'\"{column}\"' for column in columns])
@@ -916,8 +927,8 @@ class ImportSchemeFileField(ImportBaseModel):
     name = models.CharField(max_length=255, null=False, blank=False)
     sample = models.TextField(null=True, blank=True)
 
-    class Meta:
-        ordering = [Lower('name')]
+    # class Meta:
+    #     ordering = [Lower('name')]
 
     @property
     def fancy_name(self) -> str:
@@ -959,7 +970,7 @@ class ImportSchemeItem(ImportBaseModel):
         return f"{self.app}{self.model}{self.field}"
 
     class Meta:
-        unique_together = ["app", "model", "field"]
+        unique_together = ["import_scheme", "app", "model", "field"]
 
 
 class ImportSchemeRowRejected(ImportBaseModel):

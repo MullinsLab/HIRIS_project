@@ -8,7 +8,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 from weakref import proxy
 from functools import lru_cache
 
-from ml_import_wizard.utils.simple import fancy_name
+from ml_import_wizard.utils.simple import fancy_name, deep_exists
 from ml_import_wizard.exceptions import UnresolvedInspectionOrder
 
 
@@ -153,7 +153,10 @@ def inspect_models() -> None:
                 working_model: ImporterModel = ImporterModel(parent=working_app, name=model.__name__, model=model)
 
                 # Get settingsfor the model and save them in the object, except keys in exclude_keys
-                model_settings: dict = app["models"].get(model.__name__, {})
+                model_settings: dict = {}
+                
+                if deep_exists(dictionary=app, keys=["models", model.__name__]):
+                    model_settings = app["models"].get(model.__name__, {})
                 
                 exclude_keys: tuple = ("exclude_fields", "fields")
                 for key in filter(lambda key: key not in exclude_keys, model_settings.keys()):
@@ -186,7 +189,8 @@ def inspect_models() -> None:
                     
                     dependancy_satisfied = True
                     for field in foreign_keys:
-                        if field.field.related_model.__name__ not in [model.name for model in working_app.models_by_import_order]:
+                        if field.field.related_model.__name__ in [model.name for model in working_app.models] and field.field.related_model.__name__ not in [model.name for model in working_app.models_by_import_order]:
+                            log.debug(f"Field: {field.name}")
                             dependancy_satisfied = False
                             continue
                     
@@ -195,6 +199,7 @@ def inspect_models() -> None:
                 
                 # Raise an exception if we make a loop and haven't increased the number of models in models_by_import_order
                 if model_by_import_count >= len(working_app.models_by_import_order):
+                    log.debug([object.name for object in working_app.models_by_import_order])
                     raise UnresolvedInspectionOrder("Order of importing models can't be resolved.  Potential circular ForeignKeys?")
                     
             # log.debug(f"Import Order: {[model.name for model in working_app.models_by_import_order]}")

@@ -115,6 +115,25 @@ ML_IMPORT_WIZARD = {
             'name': 'Integration Sites',
             'long_name': 'A list of integration sites in a genome',
             'description': 'A test description of an Integration.',
+            'apps': [
+                {
+                    'name': 'core',
+                    'include_models': ['GenomeVersion', 'DataSet', "DataSetSource", "Subject", "Sample", "Preparation", "SequencingMethod", "IntegrationEnvironment", "Integration", "IntegrationLocation", "BlastInfo"],
+                    "models": {
+                        "GenomeVersion": {
+                            "exclude_fields": ["external_gene_id_source"],
+                            "restriction": "rejected",
+                            "load_value_fields": ["genome_version_name"],
+                        },
+                        "Integration": {
+                            "critical": True,
+                        },
+                        "IntegrationLocation": {
+                            "critical": True,
+                        },
+                    },
+                },
+            ],
         },
     }
 }

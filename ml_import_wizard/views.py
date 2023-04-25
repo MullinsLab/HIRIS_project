@@ -220,14 +220,18 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
 
                 if not field_list:
                     # Present form if a primary file has not been selected
-                    if not import_scheme.settings.get("primary_file_id", None):
-                        field_list.append("primary_file_id")
-                        start_expanded = urgent = needs_form = needs_primary = hide_file_list = tooltip = True
+                    if not import_scheme.settings.get("primary_file_id"):
+                        if len(files) == 1:
+                            import_scheme.settings["primary_file_id"] = files[0].id
+                            import_scheme.save(update_fields=["settings"])
+                        else:
+                            field_list.append("primary_file_id")
+                            start_expanded = urgent = needs_form = needs_primary = hide_file_list = tooltip = True
 
                     # Present form if files have not been linked togehter, but only if everything is inspected
                     elif not import_scheme.files_linked and file.status.preinspected:
                         for file in files:
-                            if file.id == int(import_scheme.settings.get("primary_file_id", None)):
+                            if file.id == int(import_scheme.settings.get("primary_file_id")):
                                 primary_file = file
                             else:
                                 files_excluding_master.append(file)
@@ -376,10 +380,11 @@ class DoImporterModel(LoginRequiredMixin, View):
 
         model_object = importers[import_scheme.importer].apps_by_name[app].models_by_name[model]
         
-        field_values: dict[str: list] = {}          # Allowable values for fields
-        field_list: list[str] = []                  # List of fields for the javascript to itterate through
-        field_strategies: dict[str: any] = {}       # List of field strategies to fill the form from
-
+        field_values: dict[str: list] = {}                                      # Allowable values for fields
+        field_list: list[str] = []                                              # List of fields for the javascript to itterate through
+        field_strategies: dict[str: any] = {}                                   # List of field strategies to fill the form from
+        show_files: bool = True if import_scheme.files.count() > 1 else False   # Supress file name in selector if there is only one file
+        
         # fill field_values
         for field in model_object.settings.get("load_value_fields", []):
             field_values[field] = model_object.model.objects.values_list(field, flat=True)
@@ -402,13 +407,15 @@ class DoImporterModel(LoginRequiredMixin, View):
             'model': model_object.name,
             "description": '',
             "fields": field_list,
+
             'form': render_to_string('ml_import_wizard/fragments/model.django-html', 
                                             request=request, 
                                             context={"model": model_object, 
                                                      "scheme": import_scheme,
                                                      "field_values": field_values,
                                                      "app": app,
-                                                     "strategies": field_strategies
+                                                     "strategies": field_strategies,
+                                                     "show_files": show_files,
                                             },
             ),
             'tooltip': True,        # Needed to trigger tooltip
@@ -454,6 +461,8 @@ class DoImporterModel(LoginRequiredMixin, View):
             strategy: str = ''
             settings: dict = {}
 
+            log.debug(f"File field: {values['file_field']}")
+
             if values["file_field"] == "**raw_text**":
                 strategy = "Raw Text"
                 settings["raw_text"] = values["file_field_raw_text"]
@@ -479,11 +488,16 @@ class DoImporterModel(LoginRequiredMixin, View):
             elif "**field**" in values["file_field"]:
                 strategy = "File Field"
                 settings["key"] = int(values['file_field'].split("**field**")[1])
+
+            elif values["file_field"] == "**no_data**":
+                log.debug("Hit No Data")
+                strategy = "No Data"
                 
             else:
                 strategy = "Table Row"
                 settings["row"] = values['file_field']
-                
+
+            log.debug(f"App: {app}, Model: {model}, Field: {field}, Strategy: {strategy}")
             import_scheme.create_or_update_item(app=app, 
                                                 model= model, 
                                                 field=field, 
