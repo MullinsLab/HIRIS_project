@@ -425,23 +425,28 @@ class ImportScheme(ImportBaseModel):
                                     test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
                                     test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
 
-                                working_objects[model.name] = cache_thing.find(key=(model.name, test_attributes_string), report=False)
+                                temp_object: any = cache_thing.find(key=(model.name, test_attributes_string), report=False)
+
+                                if temp_object:
+                                    working_objects[model.name] = temp_object
 
                                 if model.name not in working_objects or not working_objects[model.name]:
-                                    working_objects[model.name] = model.model.objects.filter(**test_attributes).first()
+                                    temp_object = model.model.objects.filter(**test_attributes).first()
 
-                                    if working_objects[model.name]:
+                                    if temp_object:
+                                        working_objects[model.name] = temp_object
                                         cache_thing.store(key=(model.name, test_attributes_string), value=working_objects[model.name], transaction=True)
 
-                                if working_objects[model.name]:
+                                if model.name in working_objects:
                                     continue
                         
                             # Ensure that if the data for a field is None that the field is nullable
                             if model.name not in working_objects:
                                 for field in model.fields:
                                     if working_attributes[field.name] is None and field.not_nullable():
-
                                         working_objects[model.name] = None
+
+                                        # log.debug(f"Got null in unnullable field.  Model: {model.name}, Field: {field.name}")
 
                                         if model.settings.get("critical"):
                                             raise IntegrityError(f"Critical model is invalid: Model: {model.name}, Field: {field.name} is null")
@@ -452,7 +457,8 @@ class ImportScheme(ImportBaseModel):
                             if superbreak: 
                                 continue
 
-                            if not working_objects.get(model.name):
+                            #if not working_objects.get(model.name):
+                            if model.name not in working_objects:
                                 working_objects[model.name] = model.model(**working_attributes)
                                 working_objects[model.name].save()
 
