@@ -263,7 +263,7 @@ class ImportSchemeItem{
                     let first_count = 0;
                     let first_values = [];
 
-                    for (let count=1; count < 4; i++)
+                    for (let count=1; count < 4; count++)
                     {
                         let value = $("#file_field_" + field + "_first_" + count).val();
                         if (value){
