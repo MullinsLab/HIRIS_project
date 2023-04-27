@@ -30,7 +30,7 @@ services:
       - .:/hiris
       - hiris-file-storage:/${WORKING_FILES_DIR}
 
-    #ports:
+    ports:
     #  - "127.0.0.1:${WEB_PORT}:8000"
       - "${WEB_PORT}:${WEB_PORT}"
 
