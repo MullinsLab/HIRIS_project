@@ -9,8 +9,14 @@ LOGIN_URL = reverse_lazy('saml_login')
 if env('UW_SAML_CERT_DIR'):
     UW_SAML_CERT_DIR = env('UW_SAML_CERT_DIR')
     UW_SAML_PRIVATE_KEY = env('UW_SAML_PRIVATE_KEY')
-    UW_SAML_PUBLIC_CERT = env('UW_SAML_PUBLIC_CERT')
+    with open(os.path.join(UW_SAML_CERT_DIR, UW_SAML_PRIVATE_KEY), "r") as file:
+        UW_SAML_PRIVATE_KEY = file.read()
 
+    UW_SAML_PUBLIC_CERT = env('UW_SAML_PUBLIC_CERT')
+    with open(os.path.join(UW_SAML_CERT_DIR, UW_SAML_PUBLIC_CERT), "r") as file:
+        UW_SAML_PUBLIC_CERT = file.read()
+
+    print(UW_SAML_PRIVATE_KEY)
 
 UW_SAML = {
     'strict': False,
