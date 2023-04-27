@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>
-    HIRIS: HIV-1 Reservoirs Integration Sites
+    HiRIS: HIV-1 Reservoirs Integration Sites
   </title>
 
   <!-- Site-specific <head> elements -->
@@ -34,7 +34,7 @@
 <body>
   <div class="container-fluid">
     <div class="row">
-      <h1>HIRIS: HIV-1 Reservoirs Integration Sites    
+      <h1>HiRIS: HIV-1 Reservoirs Integration Sites    
         <small>“high-rise”</small>    
       </h1>
     </div>

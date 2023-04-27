@@ -59,6 +59,7 @@ class LRUCacheThing():
                 print(f"Didn't find key: {key}")
             else:
                 log.debug(f"Didn't find key: {key}")
+
         return None
     
     def rollback(self) -> None:
@@ -85,3 +86,8 @@ class LRUCacheThing():
         """ Get the count of transaction_things in the cache """
 
         return len(self.transaction_things)
+    
+    def __len__(self) -> int:
+        """ Return the count of transaction_things + things """
+
+        return len(self.things) + len(self.transaction_things)

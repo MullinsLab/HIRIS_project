@@ -4,27 +4,31 @@ from .base import env
 
 # For UW_SAML
 from django.urls import reverse_lazy
-
-# For UW_SAML
 LOGIN_URL = reverse_lazy('saml_login')
+
+if env('UW_SAML_CERT_DIR'):
+    UW_SAML_CERT_DIR = env('UW_SAML_CERT_DIR')
+    UW_SAML_PRIVATE_KEY = env('UW_SAML_PRIVATE_KEY')
+    UW_SAML_PUBLIC_CERT = env('UW_SAML_PUBLIC_CERT')
+
 
 UW_SAML = {
     'strict': False,
     'debug': True,
     'sp': {
-        'entityId': 'https://example.uw.edu/saml2',
+        'entityId': 'https://dev.hiris.washington.edu/',
         'assertionConsumerService': {
-            'url': 'https://example.uw.edu/saml/sso',
+            'url': 'https://dev.hiris.washington.edu/saml/login',
             'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
         },
         'singleLogoutService': {
-            'url': 'https://example.uw.edu/saml/logout',
+            'url': 'https://dev.hiris.washington.edu/saml/logout',
             'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
         },
         'NameIDFormat': 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified',
-        'x509cert': '',
+        'x509cert': UW_SAML_PUBLIC_CERT,
         # for encrypted saml assertions uncomment and add the private key
-        # 'privateKey': '',
+        'privateKey': UW_SAML_PRIVATE_KEY,
     },
     'idp': {
         'entityId': 'urn:mace:incommon:washington.edu',
@@ -36,7 +40,7 @@ UW_SAML = {
             'url': 'https://idp.u.washington.edu/idp/logout',
             'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
         },
-        'x509cert': '',
+        'x509cert': UW_SAML_PUBLIC_CERT,
     },
     'security': {
         # for encrypted saml assertions

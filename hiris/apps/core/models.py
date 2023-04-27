@@ -271,6 +271,11 @@ class IntegrationLocation(CoreBaseModel):
 
     class Meta:
         db_table = "integration_locations"
+        indexes = [
+            models.Index(fields=['landmark', 'location']),
+            models.Index(fields=['landmark']),
+            models.Index(fields=['location']),
+        ]
 
     @property
     def name(self) -> str:
