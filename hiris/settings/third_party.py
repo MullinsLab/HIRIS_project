@@ -16,13 +16,11 @@ if env('UW_SAML_CERT_DIR'):
     with open(os.path.join(UW_SAML_CERT_DIR, UW_SAML_PUBLIC_CERT), "r") as file:
         UW_SAML_PUBLIC_CERT = file.read()
 
-    print(UW_SAML_PRIVATE_KEY)
-
 UW_SAML = {
     'strict': False,
     'debug': True,
     'sp': {
-        'entityId': 'https://dev.hiris.washington.edu/',
+        'entityId': 'https://dev.hiris.washington.edu',
         'assertionConsumerService': {
             'url': 'https://dev.hiris.washington.edu/saml/login',
             'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
