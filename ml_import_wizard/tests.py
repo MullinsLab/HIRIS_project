@@ -381,7 +381,7 @@ class TemplateAndViewTests(SimpleTestCase):
         response = self.client.get("/import/")
         
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertTemplateUsed(response, 'ml_import_wizard/manager.django-html')
+        self.assertTemplateUsed(response, 'ml_import_wizard/manager.html')
         self.assertContains(response, 'Genome')
         self.assertContains(response, 'integration')
 
@@ -393,7 +393,7 @@ class TemplateAndViewTests(SimpleTestCase):
         log.debug(response)
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertTemplateUsed(response, 'ml_import_wizard/new_scheme.django-html')
+        self.assertTemplateUsed(response, 'ml_import_wizard/new_scheme.html')
         self.assertContains(response, '<form class="form-horizontal"')
 
     def test_genome_post_should_result_in_new_ImportScheme_object_have_template_manager(self):
@@ -410,5 +410,5 @@ class TemplateAndViewTests(SimpleTestCase):
         response = self.client.get("/import/")
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertTemplateUsed(response, 'ml_import_wizard/manager.django-html')
+        self.assertTemplateUsed(response, 'ml_import_wizard/manager.html')
         self.assertContains(response, 'Test Importer from Page')

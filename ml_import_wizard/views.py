@@ -47,7 +47,7 @@ class ManageImports(LoginRequiredMixin, View):
 
             user_import_schemes.append(user_import_scheme_item)
  
-        return render(request, "ml_import_wizard/manager.django-html", context={'importers': importers, 'user_import_schemes': user_import_schemes})
+        return render(request, "ml_import_wizard/manager.html", context={'importers': importers, 'user_import_schemes': user_import_schemes})
 
 
 class NewImportScheme(LoginRequiredMixin, View):
@@ -59,7 +59,7 @@ class NewImportScheme(LoginRequiredMixin, View):
         importer: str = kwargs['importer_slug']
         importer_name: str = settings.ML_IMPORT_WIZARD['Importers'][importer]['name']
 
-        return render(request, "ml_import_wizard/new_scheme.django-html", context={
+        return render(request, "ml_import_wizard/new_scheme.html", context={
             'form': NewImportSchemeForm(importer_slug=importer, initial={'name': f"{sound_user_name(request.user)}'s {importer_name} import"}), 
             'importer': importer_name
         })
@@ -114,7 +114,7 @@ class DoImportScheme(View):
             }
             actions.append(action)
 
-        return render(request, 'ml_import_wizard/scheme.django-html', context={
+        return render(request, 'ml_import_wizard/scheme.html', context={
             'importer': settings.ML_IMPORT_WIZARD['Importers'][import_scheme.importer]['name'], 
             'import_scheme': import_scheme, 
             'actions': actions}
@@ -183,7 +183,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 return_data = {
                     'name': 'No data file',
                     "description": "You'll need one or more files to import data from.",
-                    'form': render_to_string('ml_import_wizard/fragments/scheme_file.django-html', request=request, context={
+                    'form': render_to_string('ml_import_wizard/fragments/scheme_file.html', request=request, context={
                         'form': UploadFileForImportForm(), 
                         'path': reverse('ml_import_wizard:scheme_item', kwargs={'import_scheme_id': import_scheme.id, 'import_item_id': 0})
                     }),
@@ -240,7 +240,7 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
 
                         start_expanded = urgent = needs_form = needs_linking = hide_file_list = selectpicker = tooltip = True
 
-                list_bit = render_to_string('ml_import_wizard/fragments/file_list.django-html', request=request, context={
+                list_bit = render_to_string('ml_import_wizard/fragments/file_list.html', request=request, context={
                         "files": import_scheme.files.all(),
                         "needs_form": needs_form,
                         "needs_linking": needs_linking,
@@ -408,7 +408,7 @@ class DoImporterModel(LoginRequiredMixin, View):
             "description": '',
             "fields": field_list,
 
-            'form': render_to_string('ml_import_wizard/fragments/model.django-html', 
+            'form': render_to_string('ml_import_wizard/fragments/model.html', 
                                             request=request, 
                                             context={"model": model_object, 
                                                      "scheme": import_scheme,
@@ -527,4 +527,4 @@ class PreviewImportScheme(LoginRequiredMixin, View):
         columns = json.dumps([{'field': column["name"], 'title': column["name"]} for column in table["columns"]])
         rows = json.dumps(table["rows"])
 
-        return render(request, "ml_import_wizard/scheme_preview.django-html", context={"columns": columns, "rows": rows})
+        return render(request, "ml_import_wizard/scheme_preview.html", context={"columns": columns, "rows": rows})

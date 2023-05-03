@@ -28,7 +28,7 @@
     {% endif %}</ul>
     {% if needs_primary %}
     A <span class="info" data-toggle="tooltip" data-html="true" title="One file needs to be marked as Primary.  The import will result in one imported object for each record in the Primary file."> Primary</span> file needs to be designated.<br>
-    {% include "ml_import_wizard/fragments/control_radio_set.django-html" with radios=files input_name="primary_file_id" check_submittable="---setup_files---" %}
+    {% include "ml_import_wizard/fragments/control_radio_set.html" with radios=files input_name="primary_file_id" check_submittable="---setup_files---" %}
     {% endif %}
     {% if needs_linking %}
         <br>Files need to be <span class="info" data-toggle="tooltip" data-html="true" title="Files need to be Linked by a field that contains the same values in order to build a single record for each row in the Primary file."> Linked</span> to enable data import.<br>
@@ -41,7 +41,7 @@
                 class="selectpicker border rounded-3 file-fields-dropdown" 
                 title="Importing options..."
                 data-is_dropdown=true>
-                {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=primary_file show_files=True %}
+                {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=primary_file show_files=True %}
             </select>
 
             <select 
@@ -51,7 +51,7 @@
                 class="selectpicker border rounded-3 file-fields-dropdown" 
                 title="Importing options..."
                 data-is_dropdown=true>
-                {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file show_files=True %}
+                {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file show_files=True %}
             </select><br><br>
 
         </div>{% endfor %}

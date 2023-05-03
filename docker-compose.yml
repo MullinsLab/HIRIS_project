@@ -6,7 +6,6 @@ services:
     image: postgres:15.1-alpine
 
     #ports:
-    # - "127.0.0.1:${POSTGRES_PORT}:5432"
     # - "${POSTGRES_PORT}:5432"
      
     volumes:
@@ -31,7 +30,6 @@ services:
       - hiris-file-storage:/${WORKING_FILES_DIR}
 
     ports:
-    #  - "127.0.0.1:${WEB_PORT}:8000"
       - "${WEB_PORT}:${WEB_PORT}"
 
     depends_on:

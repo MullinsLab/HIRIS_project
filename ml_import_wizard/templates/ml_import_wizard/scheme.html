@@ -1,4 +1,4 @@
-{% extends "ml_import_wizard/base.django-html" %}
+{% extends "ml_import_wizard/base.html" %}
 
 {% load crispy_forms_tags %}
 {% load static %}
@@ -17,7 +17,7 @@
 </div>
 
 <script type="text/javascript">
-    const ITEM_TEMPLATE = `{% include "ml_import_wizard/fragments/scheme_item.django-html" %}`;
+    const ITEM_TEMPLATE = `{% include "ml_import_wizard/fragments/scheme_item.html" %}`;
     // const item_template='test';
     $( document ).ready(
         window.import_scheme = new ImportScheme({
@@ -30,5 +30,5 @@
     // setTimeout($('.selectpicker').selectpicker(), 3000);
     
 </script>
-{% include "ml_import_wizard/fragments/unclosable_progress_modal.django-html" %}
+{% include "ml_import_wizard/fragments/unclosable_progress_modal.html" %}
 {% endblock %}

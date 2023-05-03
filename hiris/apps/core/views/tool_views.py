@@ -8,10 +8,10 @@ from django.contrib.auth import authenticate, login
 
 class Home(View):
     ''' The default view for HIRIS Home.  Currently shows the About page '''
+    
     def get(self, request, *args, **kwargs):
         ''' Returns the default template on a get '''
-        return render(request, "about.django-html")
-
+        return render(request, "about.html")
 
     def post(self, request, *args, **kwargs):
         ''' Recieves the username and password for login '''
@@ -23,4 +23,12 @@ class Home(View):
         if user is not None:
             login(request, user)
 
-        return render(request, "about.django-html")
+        return render(request, "about.html")
+    
+class DataSources(View):
+    """ View to show the data sources in the database """
+
+    def get(self, request, *args, **kwargs):
+        """ Show the page """
+
+        return render(request, "data_sources.html")

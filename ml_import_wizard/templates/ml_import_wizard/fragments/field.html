@@ -14,7 +14,7 @@
         <optgroup label="Values from {{ field.fancy_name }}...">
             {% with values=field_values|get_item:field.name %}
                 {% for value in values %}
-                    {% include "ml_import_wizard/fragments/field_values_from_model_option.django-html" with value=value row=strategy.row %}
+                    {% include "ml_import_wizard/fragments/field_values_from_model_option.html" with value=value row=strategy.row %}
                 {% endfor %}
             {% endwith %}
         </optgroup>
@@ -29,7 +29,7 @@
     </optgroup>
     <optgroup label="File Fields...">
         {% for file in scheme.files.all %}
-            {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file key=strategy.key %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file key=strategy.key %}
         {% endfor %}
     </optgroup>
 </select> 
@@ -52,7 +52,7 @@
         onchange="check_submittable('{{ model.name }}')">
         <option></option>
         {% for file in scheme.files.all %}
-            {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file title=True key_list=strategy.first_keys %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file title=True key=strategy.first_keys.0 %}
         {% endfor %}
     </select>
 
@@ -64,7 +64,7 @@
         onchange="check_submittable('{{ model.name }}')">
         <option></option>
         {% for file in scheme.files.all %}
-            {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file title=True key_list=strategy.first_keys %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file title=True key=strategy.first_keys.1 %}
         {% endfor %}
     </select>
 
@@ -76,7 +76,7 @@
         onchange="check_submittable('{{ model.name }}')">
         <option></option>
         {% for file in scheme.files.all %}
-            {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file title=True key_list=strategy.first_keys %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file title=True key=strategy.first_keys.2 %}
         {% endfor %}
     </select>
 </span>
@@ -91,7 +91,7 @@
         title="Field to split values from..."
         onchange="check_submittable('{{ model.name }}')">
         {% for file in scheme.files.all %}
-            {% include "ml_import_wizard/fragments/field_file_fields_option.django-html" with file=file key=strategy.split_key %}
+            {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file key=strategy.split_key %}
         {% endfor %}
     </select>
     using the character 
