@@ -139,6 +139,9 @@ ML_IMPORT_WIZARD = {
                         "IntegrationLocation": {
                             "critical": True,
                         },
+                        "BlastInfo": {
+                            "suppress_on_empty": True,
+                        },
                     },
                 },
             ],

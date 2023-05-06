@@ -401,7 +401,8 @@ class ImportScheme(ImportBaseModel):
                         for model in app.models_by_import_order:
                             working_attributes = {}
                             
-                            superbreak: bool = False # Needed to break out of both for loops
+                            superbreak: bool = False    # Needed to break out of both for loops
+                            is_empty: bool = True       # Keeps track of whether the model has data other than foreign keys in it
 
                             # Step through fields and fill working_attributes
                             for field in model.fields:
@@ -412,6 +413,8 @@ class ImportScheme(ImportBaseModel):
                                         working_attributes[field.name] = None
                                 else:
                                     working_attributes[field.name] = row.get(field.name)
+                                    if working_attributes[field.name] is not None:
+                                        is_empty = False
 
                             # Load instances per their unique fields until we run out of unique fields or an object is returned.
                             unique_sets: list[tuple] = list(model.model._meta.__dict__.get("unique_together"))
@@ -423,6 +426,8 @@ class ImportScheme(ImportBaseModel):
 
                                 for unique_field in unique_set:
                                     test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
+                                    # log.debug(f"{unique_field}")
+                                    # log.debug(f"{working_attributes[unique_field]}")
                                     test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
 
                                 temp_object: any = cache_thing.find(key=(model.name, test_attributes_string), report=False)
@@ -457,7 +462,11 @@ class ImportScheme(ImportBaseModel):
                             if superbreak: 
                                 continue
 
-                            #if not working_objects.get(model.name):
+                            # If the model is marked as suppress_on_empty and it is_empty add a None to the working_objects
+                            if "suppress_on_empty" in model.settings and is_empty:
+                                working_objects[model.name] = None
+
+                            # If the model is not in working_objects, save it to the database and add it to working_objects
                             if model.name not in working_objects:
                                 working_objects[model.name] = model.model(**working_attributes)
                                 working_objects[model.name].save()

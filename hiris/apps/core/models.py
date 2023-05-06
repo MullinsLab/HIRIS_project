@@ -140,13 +140,6 @@ class DataSetSource(CoreBaseModel):
     """ Holds data about the source of a data set """
     data_set_source_id = models.BigAutoField(primary_key=True, editable=False)
     data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="data_set_sources")
-    data_set_source_name = models.CharField(max_length=255, null=True, blank=True)
-    revision_data_path = models.TextField(null=True, blank=True)
-    revision_data_hash = models.CharField(max_length=40, null=True, blank=True)
-    revision_metadata_path = models.TextField(null=True, blank=True)
-    revision_metadata_hash = models.CharField(max_length=40, null=True, blank=True)
-    revision_git_hash = models.CharField(max_length=40, null=True, blank=True)
-    document_name = models.CharField(max_length=250, null=True, blank=True)
     document_pubmed_id = models.IntegerField(null=True, blank=True)
     document_uri = models.TextField(null=True, blank=True)
     document_citation_url = models.TextField(null=True, blank=True)
@@ -164,17 +157,24 @@ class DataSetSource(CoreBaseModel):
 
     class Meta:
         db_table = "data_set_sources"
+        unique_together = ("data_set", "document_pubmed_id", "document_uri", "document_citation_url", "document_citation_doi", "document_citation_issn", "document_citation_year", "document_citation_type", "document_citation_pages", "document_citation_title", "document_citation_author", "document_citation_issue_number", "document_citation_volume", "document_citation_journal", "document_citation_citekey")
 
 
 class Subject(CoreBaseModel):
     """ Holds data about the subject the samples were collected from """
     subject_id = models.BigAutoField(primary_key=True, editable=False)
-    subject_identifier = models.CharField(max_length=255)
+    data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="subjects")
+    subject_identifier = models.CharField(max_length=255, null=True, blank=True)
 
-    name_field = "subject_identifier"
+    @property
+    def name(self) -> str:
+        """ Return Subject:subject_id as name """
+
+        return f"Subject:{self.subject_id}"
 
     class Meta:
         db_table = "subjects"
+        unique_together = ('data_set', 'subject_identifier')
 
 
 class Sample(CoreBaseModel):
@@ -196,10 +196,15 @@ class Sample(CoreBaseModel):
     visit = models.IntegerField(null=True, blank=True)
     years_on_art = models.FloatField(null=True, blank=True)
 
-    name_field = "culture"
+    @property
+    def name(self) -> str:
+        """ Return Sample:sample_id as name """
+
+        return f"Sample:{self.sample_id}"
 
     class Meta:
         db_table = "samples"
+        unique_together = ("subject", "culture", "culture_day", "date", "disease", "genbank", "original_id", "provirus_activity", "pubmed_id", "replicates", "tissue", "tissue_url", "type", "visit", "years_on_art")
 
 
 class Preparation(CoreBaseModel):
@@ -208,13 +213,15 @@ class Preparation(CoreBaseModel):
     sample = models.ForeignKey(Sample, on_delete=models.CASCADE, related_name="preparations")
     preparation_description = models.TextField(null=True)
 
-    name_field =  "preparation_description"
-    # @property
-    # def name():
-    #     return "Preperation test"
+    @property
+    def name(self) -> str:
+        """ Return Preparation:preparation_id as name """
+
+        return f"Preparation:{self.preparation_id}"
     
     class Meta:
         db_table = "preparations"
+        unique_together = ("sample", "preparation_description")
 
     
 class SequencingMethod(CoreBaseModel):
@@ -226,12 +233,13 @@ class SequencingMethod(CoreBaseModel):
 
     class Meta:
         db_table = "sequencing_methods"
+        unique_together = ("preparation", "sequencing_method_name", "sequencing_method_descripion")
 
 
 class IntegrationEnvironment(CoreBaseModel):
     """ Holds data about the environment the sample was collected from """
     integration_environment_id = models.BigAutoField(primary_key=True, editable=False)
-    integration_environment_name = models.CharField(max_length=255)
+    integration_environment_name = models.CharField(max_length=255, unique=True)
 
     class Meta:
         db_table = "integration_environments"
@@ -242,6 +250,7 @@ class Integration(CoreBaseModel):
     integration_id = models.BigAutoField(primary_key=True, editable=False)
     integration_environment = models.ForeignKey(IntegrationEnvironment, on_delete=models.CASCADE, related_name="integrations", null=True)
     data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="integrations")
+    sequencing_method = models.ForeignKey(SequencingMethod, on_delete=models.CASCADE, related_name="integrations")
     ltr = models.CharField(max_length=2, choices=(('3p', '3p'), ('5p', '5p')), null=True)
     multiple_integration = models.BooleanField(null=True, blank=True)
     multiple_integration_count = models.IntegerField(null=True, blank=True)
@@ -284,7 +293,8 @@ class IntegrationLocation(CoreBaseModel):
 
 class BlastInfo(CoreBaseModel):
     """ Holds blast data about an individual location """
-    integration_location = models.OneToOneField(IntegrationLocation, on_delete=models.CASCADE, primary_key=True)
+    blast_info_id = models.BigAutoField(primary_key=True, editable=False)
+    integration_location = models.OneToOneField(IntegrationLocation, on_delete=models.CASCADE)
     identity = models.CharField(max_length=255, null=True, blank=True)
     q_start = models.IntegerField(null=True, blank=True)
     gaps = models.CharField(max_length=255, null=True, blank=True)
