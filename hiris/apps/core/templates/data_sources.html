@@ -1,3 +1,12 @@
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block page_content %}
+<h2>Sources</h2>
+The database contains
+        <strong>{{ counts.in_vivo_count|intcomma }} <em>in vivo</em></strong> and
+        <strong>{{ counts.in_vitro_count|intcomma }} <em>in vitro</em> observations</strong>
+        across
+        <strong>11,033 genes</strong>
+        from the following sources.
+{% endblock %}

@@ -5,6 +5,7 @@ from django.views.generic.base import View
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 
+from hiris.apps.core.utils.db import get_sources_count
 
 class Home(View):
     ''' The default view for HIRIS Home.  Currently shows the About page '''
@@ -31,4 +32,5 @@ class DataSources(View):
     def get(self, request, *args, **kwargs):
         """ Show the page """
 
-        return render(request, "data_sources.html")
+        counts: dict = get_sources_count()
+        return render(request, "data_sources.html", context={"counts": counts})
