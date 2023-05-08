@@ -22,7 +22,7 @@ UW_SAML = {
     'sp': {
         'entityId': 'https://dev.hiris.washington.edu',
         'assertionConsumerService': {
-            'url': 'https://dev.hiris.washington.edu/saml/login',
+            'url': 'https://dev.hiris.washington.edu/saml/sso',
             'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
         },
         'singleLogoutService': {
@@ -48,7 +48,7 @@ UW_SAML = {
     },
     'security': {
         # for encrypted saml assertions
-        # 'wantAssertionsEncrypted': True,
+        'wantAssertionsEncrypted': True,
         # for 2FA uncomment this line
         # 'requestedAuthnContext':  ['urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken']
     }

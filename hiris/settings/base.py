@@ -57,8 +57,8 @@ INSTALLED_APPS = [
 
 AUTHENTICATION_BACKENDS = [
     # For UW_SAML
-    'django.contrib.auth.backends.ModelBackend',
     'django.contrib.auth.backends.RemoteUserBackend',
+    # 'django.contrib.auth.backends.ModelBackend',
 ]
 
 MIDDLEWARE = [
