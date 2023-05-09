@@ -96,7 +96,7 @@ class Feature(CoreBaseModel):
 
 
 class FeatureLocation(CoreBaseModel):
-    ''' Holds gene location data '''
+    ''' Holds gene (and other feature) location data '''
     feature_location_id = models.BigAutoField(primary_key=True, editable=False)
     feature = models.ForeignKey(Feature, on_delete=models.CASCADE, related_name="feature_locations")
     chromosome = models.CharField(max_length=255, null=True)
@@ -288,6 +288,8 @@ class IntegrationLocation(CoreBaseModel):
 
     @property
     def name(self) -> str:
+        """ return landmark: location as name"""
+
         return f"{self.landmark}: {self.location}"
 
 

@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 import logging
 import logging.config
 from django.utils.log import DEFAULT_LOGGING
-
+from django.urls import reverse_lazy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -57,8 +57,8 @@ INSTALLED_APPS = [
 
 AUTHENTICATION_BACKENDS = [
     # For UW_SAML
+    'django.contrib.auth.backends.ModelBackend',
     'django.contrib.auth.backends.RemoteUserBackend',
-    # 'django.contrib.auth.backends.ModelBackend',
 ]
 
 MIDDLEWARE = [
@@ -86,6 +86,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django_settings_export.settings_export',
             ],
         },
     },
@@ -183,7 +184,7 @@ LOG_DIR = os.path.join(BASE_DIR, "logs")
 if not os.path.exists(LOG_DIR):
     os.mkdir(LOG_DIR)
 
-LOGLEVEL = os.environ.get('LOGLEVEL', 'info').upper()
+LOGLEVEL = env('LOGLEVEL').upper() or 'INFO'
 
 logging.config.dictConfig({
     'version': 1,
@@ -301,3 +302,30 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
 # CRISPY_TEMPLATE_PACK = "bootstrap4"
+
+
+LOGIN_TYPE = env('LOGIN_TYPE')
+LOGIN_URL = env('LOGIN_URL')
+LOGIN_REDIRECT_URL = "/"
+LOGIN_SSO_TITLE = ''
+LOGIN_SSO_COLLABORATOR_TITLE = ''
+
+# if LOGIN_TYPE == "dual" or LOGIN_TYPE == 'sso':
+#     from phylobook.settings.saml import UW_SAML as UW_SAML_CONF
+#     UW_SAML = UW_SAML_CONF
+
+if LOGIN_TYPE == "dual":
+    LOGIN_SSO_TITLE = env('LOGIN_SSO_TITLE')
+    LOGIN_SSO_COLLABORATOR_TITLE = env('LOGIN_SSO_COLLABORATOR_TITLE')
+
+if LOGIN_TYPE == "sso":
+    LOGIN_URL = reverse_lazy('saml_login')
+
+
+LOGOUT_REDIRECT_URL = "/"
+
+SETTINGS_EXPORT = [
+    'LOGIN_TYPE',
+    'LOGIN_SSO_TITLE',
+    'LOGIN_SSO_COLLABORATOR_TITLE',
+]

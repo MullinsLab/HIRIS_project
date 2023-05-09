@@ -4,6 +4,7 @@ django-environ==0.9.0
 django-extensions==3.2.1
 psycopg2==2.9.5
 jsonpickle
+django-settings-export
 
 # Crispy Forms stuff
 django-crispy-forms

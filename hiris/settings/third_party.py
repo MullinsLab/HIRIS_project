@@ -2,9 +2,11 @@ import os
 from .base import env
 # from hiris.apps.core.models import GenomeSpecies
 
-# For UW_SAML
-from django.urls import reverse_lazy
-LOGIN_URL = reverse_lazy('saml_login')
+# # For UW_SAML
+# from django.urls import reverse_lazy
+# #LOGIN_URL = reverse_lazy('saml_login')
+# LOGIN_URL = reverse_lazy('login')
+# LOGIN_REDIRECT_URL = "/"
 
 if env('UW_SAML_CERT_DIR'):
     UW_SAML_CERT_DIR = env('UW_SAML_CERT_DIR')
