@@ -150,3 +150,15 @@ ML_IMPORT_WIZARD = {
         },
     }
 }
+
+
+ML_EXPORT_WIZARD = {
+    'Working_Files_Dir': os.path.join('/', env('WORKING_FILES_DIR'), ''),
+    'Logger': 'app',
+    "Setup_On_Start": True,
+    'Exporters': {
+        "Genes": {
+            
+        }
+    }
+}

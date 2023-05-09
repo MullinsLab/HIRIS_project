@@ -12,7 +12,7 @@ urlpatterns = [
     path('', include('hiris.apps.core.urls.tool_urls', namespace='core')),
     path('api/', include('hiris.apps.core.urls.api_urls', namespace='api')),
     path('import/', include('ml_import_wizard.urls', namespace='ml_import_wizard')),
-    path('export/', include('hiris.apps.export_wizard.urls', namespace='export_wizard')),
+    path('export/', include('ml_export_wizard.urls', namespace='ml_export_wizard')),
 
     # For login and logout
     path('login/', auth_views.LoginView.as_view(), name='login'),
