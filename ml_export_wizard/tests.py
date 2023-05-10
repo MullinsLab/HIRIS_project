@@ -1,8 +1,9 @@
+from django.test import TestCase
+from django.conf import settings
+
 import logging
 log = logging.getLogger('test')
 
-from django.test import TestCase
-from django.conf import settings
 
 
 class InclusionTest(TestCase):

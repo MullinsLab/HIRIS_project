@@ -158,7 +158,54 @@ ML_EXPORT_WIZARD = {
     "Setup_On_Start": True,
     'Exporters': {
         "Genes": {
-            
-        }
+            'name': 'Genes',
+            'description': 'Export',
+            'apps': [
+                {
+                    "name": "core",
+                    "pseudomodels": [
+                        {
+                            "name": "locations",
+                            "models": [
+                                {
+                                    "name": "FeatureLocation",
+                                    "fields": ["feature", "chromosome", "landmark", "feature_start", "feature_end", "orientation_in_feature"],
+                                },
+                                {
+                                    "name": "IntegrationLocation",
+                                    "fields": ["integration", "location", "orientation_in_landmark"],
+                                },
+                                {
+                                    "name": "Feature",
+                                },
+                                {
+                                    "name": "FeatureType",
+                                },
+                                {
+                                    "name": "Integration",
+                                }
+                            ],
+                            "sql_from": "FROM {IntegrationLocation:table} " +
+                                        "JOIN {Integration:table} USING (feature_id)" +
+                                        "LEFT JOIN " +
+                                            "(SELECT {FeatureLocation:fields} " +
+                                                "FROM {FeatureLocation:table} " +
+                                                "JOIN {Feature:table} USING (feature_id) " +
+                                                "WHERE {Feature:Table}.feature_type_id = (SELECT feature_type_id FROM {FeatureType:table} WHERE feature_type_name='gene')" + 
+                                                ") AS joined" + 
+                                            "ON CASE " + 
+                                                "WHEN (joined.orientation_in_landmark='F' AND ({Integration:table}.ltr='5p' OR {Integration:table}.ltr IS NULL)) " +
+                                                    " OR (joined.orientation_in_landmark='R' AND ({Integration:table}.ltr='3p' OR {Integration:table}.ltr IS NULL))) " +
+                                                "THEN {IntegrationLocation:table}.location > joined.feature_start AND {IntegrationLocation:table}.location <= joined.feature_end " +
+                                                "WHEN (joined.orientation_in_landmark='R' AND ({Integration:table}.ltr='5p' OR {Integration:table}.ltr IS NULL)) " +
+                                                    " OR (joined.orientation_in_landmark='F' AND ({Integration:table}.ltr='3p' OR {Integration:table}.ltr IS NULL))) " +
+                                                "THEN {IntegrationLocation:table}.location >= joined.feature_start AND {IntegrationLocation:table}.location < joined.feature_end " + 
+                                            "END " + 
+                                            "AND joined.landmark = {IntegrationLocation:table}.landmark",
+                        },
+                    ],
+                },
+            ],
+        },
     }
 }

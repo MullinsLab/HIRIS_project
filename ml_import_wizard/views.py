@@ -142,10 +142,7 @@ class ListImportSchemeItems(LoginRequiredMixin, View):
                 )
             )
         ):
-            log.debug("Skipping fields.")
             skip_fields = True
-        else:
-            log.debug("Not skipping fields.")
 
         if not skip_fields:
             # Display fields from the importer
@@ -461,8 +458,6 @@ class DoImporterModel(LoginRequiredMixin, View):
             strategy: str = ''
             settings: dict = {}
 
-            log.debug(f"File field: {values['file_field']}")
-
             if values["file_field"] == "**raw_text**":
                 strategy = "Raw Text"
                 settings["raw_text"] = values["file_field_raw_text"]
@@ -474,9 +469,6 @@ class DoImporterModel(LoginRequiredMixin, View):
                 for file_field in [f"file_field_first_{count}" for count in [1, 2, 3]]:
                     if values[file_field]:
                         settings["first_keys"].append(int(values[file_field].split("**field**")[1]))
-
-                # for first_field in values["file_field_first"]:
-                #     settings["first_keys"].append(int(first_field.split("**field**")[1]))
 
             elif values["file_field"] == "**split_field**":
                 strategy = "Split Field"
@@ -490,14 +482,12 @@ class DoImporterModel(LoginRequiredMixin, View):
                 settings["key"] = int(values['file_field'].split("**field**")[1])
 
             elif values["file_field"] == "**no_data**":
-                log.debug("Hit No Data")
                 strategy = "No Data"
                 
             else:
                 strategy = "Table Row"
                 settings["row"] = values['file_field']
 
-            log.debug(f"App: {app}, Model: {model}, Field: {field}, Strategy: {strategy}")
             import_scheme.create_or_update_item(app=app, 
                                                 model= model, 
                                                 field=field, 

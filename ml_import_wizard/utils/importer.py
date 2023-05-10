@@ -67,8 +67,7 @@ class ImporterModel(BaseImporter):
 
         super().__init__(parent, name, **settings)
         
-        # log.debug(f"Model from ImporterModel, Type: {type(model)}, Name: {model.__name__}, My type (ImporterModel): {type(self)}")
-        self.model = model # Get the Django model so we can do queries against it
+        self.model = model      # Get the Django model so we can do queries against it
         self.fields = []
         self.fields_by_name = {}
 
@@ -101,7 +100,7 @@ class ImporterField(BaseImporter):
 
         super().__init__(parent, name, **settings)
         
-        self.field = field # Get the Django field so we can do queries against it
+        self.field = field      # Get the Django field so we can do queries against it
         
         parent.fields.append(self)
         parent.fields_by_name[self.name] = self
@@ -117,7 +116,7 @@ class ImporterField(BaseImporter):
         return not self.field.null
     
 
-def inspect_models() -> None:
+def setup_importers() -> None:
     """ Initialize the importer objects from settings """
 
     for importer_setting, importer_value in settings.ML_IMPORT_WIZARD["Importers"].items():
