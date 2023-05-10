@@ -169,11 +169,12 @@ ML_EXPORT_WIZARD = {
                             "models": [
                                 {
                                     "name": "FeatureLocation",
-                                    "fields": ["feature", "chromosome", "landmark", "feature_start", "feature_end", "orientation_in_feature"],
+                                    "fields": ["feature", "chromosome", "feature_start", "feature_end", "feature_orientation"],
+                                    "join_only_fields": ["landmark"]
                                 },
                                 {
                                     "name": "IntegrationLocation",
-                                    "fields": ["integration", "location", "orientation_in_landmark"],
+                                    "fields": ["integration", "landmark", "location", "orientation_in_landmark"],
                                 },
                                 {
                                     "name": "Feature",
@@ -186,22 +187,32 @@ ML_EXPORT_WIZARD = {
                                 }
                             ],
                             "sql_from": "FROM {IntegrationLocation:table} " +
-                                        "JOIN {Integration:table} USING (feature_id)" +
+                                        "JOIN {Integration:table} USING (integration_id) " +
                                         "LEFT JOIN " +
+                                            # "{joined_table:joined} " +
                                             "(SELECT {FeatureLocation:fields} " +
                                                 "FROM {FeatureLocation:table} " +
                                                 "JOIN {Feature:table} USING (feature_id) " +
-                                                "WHERE {Feature:Table}.feature_type_id = (SELECT feature_type_id FROM {FeatureType:table} WHERE feature_type_name='gene')" + 
-                                                ") AS joined" + 
+                                                "WHERE {Feature:table}.feature_type_id = (SELECT feature_type_id FROM {FeatureType:table} WHERE feature_type_name='gene')" + 
+                                                ") AS joined " + 
                                             "ON CASE " + 
-                                                "WHEN (joined.orientation_in_landmark='F' AND ({Integration:table}.ltr='5p' OR {Integration:table}.ltr IS NULL)) " +
-                                                    " OR (joined.orientation_in_landmark='R' AND ({Integration:table}.ltr='3p' OR {Integration:table}.ltr IS NULL))) " +
+                                                "WHEN ({IntegrationLocation:table}.orientation_in_landmark='F' AND ({Integration:table}.ltr='5p' OR {Integration:table}.ltr IS NULL)) " +
+                                                    " OR ({IntegrationLocation:table}.orientation_in_landmark='R' AND ({Integration:table}.ltr='3p' OR {Integration:table}.ltr IS NULL)) " +
                                                 "THEN {IntegrationLocation:table}.location > joined.feature_start AND {IntegrationLocation:table}.location <= joined.feature_end " +
-                                                "WHEN (joined.orientation_in_landmark='R' AND ({Integration:table}.ltr='5p' OR {Integration:table}.ltr IS NULL)) " +
-                                                    " OR (joined.orientation_in_landmark='F' AND ({Integration:table}.ltr='3p' OR {Integration:table}.ltr IS NULL))) " +
+                                                "WHEN ({IntegrationLocation:table}.orientation_in_landmark='R' AND ({Integration:table}.ltr='5p' OR {Integration:table}.ltr IS NULL)) " +
+                                                    " OR ({IntegrationLocation:table}.orientation_in_landmark='F' AND ({Integration:table}.ltr='3p' OR {Integration:table}.ltr IS NULL)) " +
                                                 "THEN {IntegrationLocation:table}.location >= joined.feature_start AND {IntegrationLocation:table}.location < joined.feature_end " + 
                                             "END " + 
                                             "AND joined.landmark = {IntegrationLocation:table}.landmark",
+                            "joined_tables": [
+                                {
+                                    "name": "joined",
+                                    "sql": "SELECT {FeatureLocation:fields} " +
+                                                "FROM {FeatureLocation:table} " +
+                                                "JOIN {Feature:table} USING (feature_id) " +
+                                                "WHERE {Feature:table}.feature_type_id = (SELECT feature_type_id FROM {FeatureType:table} WHERE feature_type_name='gene')"
+                                }
+                            ]
                         },
                     ],
                 },

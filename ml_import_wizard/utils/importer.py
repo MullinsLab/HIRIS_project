@@ -24,7 +24,7 @@ class BaseImporter(object):
         self.settings = {}
         
         for setting, value in settings.items():
-            self.settings[setting] = [value]
+            self.settings[setting] = value
             
     @property
     def fancy_name(self) -> str:
