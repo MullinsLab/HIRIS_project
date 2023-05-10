@@ -160,21 +160,28 @@ ML_EXPORT_WIZARD = {
         "Genes": {
             'name': 'Genes',
             'description': 'Export',
+            "field_links": {
+                        "model:Feature.pkey": "pseudomodel:locations.feature_id",
+                        "model:Integration.pkey": "pseudomodel:locations.feature_id",
+            },
+            "exclude_fields": ["added", "updated"],
             'apps': [
                 {
                     "name": "core",
+                    "models": ["Feature"],
                     "pseudomodels": [
                         {
                             "name": "locations",
                             "models": [
                                 {
                                     "name": "FeatureLocation",
-                                    "fields": ["feature", "chromosome", "feature_start", "feature_end", "feature_orientation"],
-                                    "join_only_fields": ["landmark"]
+                                    "fields": ["feature"],
+                                    "join_only_fields": ["landmark", "chromosome", "feature_start", "feature_end", "feature_orientation"]
                                 },
                                 {
                                     "name": "IntegrationLocation",
-                                    "fields": ["integration", "landmark", "location", "orientation_in_landmark"],
+                                    "fields": ["integration"],
+                                    "join_only_fields": ["location", "orientation_in_landmark"]
                                 },
                                 {
                                     "name": "Feature",
@@ -189,7 +196,6 @@ ML_EXPORT_WIZARD = {
                             "sql_from": "FROM {IntegrationLocation:table} " +
                                         "JOIN {Integration:table} USING (integration_id) " +
                                         "LEFT JOIN " +
-                                            # "{joined_table:joined} " +
                                             "(SELECT {FeatureLocation:fields} " +
                                                 "FROM {FeatureLocation:table} " +
                                                 "JOIN {Feature:table} USING (feature_id) " +
@@ -204,15 +210,6 @@ ML_EXPORT_WIZARD = {
                                                 "THEN {IntegrationLocation:table}.location >= joined.feature_start AND {IntegrationLocation:table}.location < joined.feature_end " + 
                                             "END " + 
                                             "AND joined.landmark = {IntegrationLocation:table}.landmark",
-                            "joined_tables": [
-                                {
-                                    "name": "joined",
-                                    "sql": "SELECT {FeatureLocation:fields} " +
-                                                "FROM {FeatureLocation:table} " +
-                                                "JOIN {Feature:table} USING (feature_id) " +
-                                                "WHERE {Feature:table}.feature_type_id = (SELECT feature_type_id FROM {FeatureType:table} WHERE feature_type_name='gene')"
-                                }
-                            ]
                         },
                     ],
                 },

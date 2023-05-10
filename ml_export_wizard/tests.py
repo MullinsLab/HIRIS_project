@@ -25,6 +25,7 @@ class UtilsTest(TestCase):
     def setUpTestData(cls):
         """ Create two SQL dictionary objects """
         cls.dict1 = {"select": "one as one_thing",
+                     "select_no_table": "",
                     "from": "test1 as test_table_1",
                     "where": "thing1 = 1",
                     "group_by": "thing1",
@@ -32,6 +33,7 @@ class UtilsTest(TestCase):
                     }
         
         cls.dict2 = {"select": "two as two_thing",
+                     "select_no_table": "",
                     "from": "test2 as test_table_2",
                     "where": "thing2 = 2",
                     "group_by": "thing2",

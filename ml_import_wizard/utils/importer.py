@@ -200,7 +200,4 @@ def setup_importers() -> None:
                 if model_by_import_count >= len(working_app.models_by_import_order):
                     log.debug([object.name for object in working_app.models_by_import_order])
                     raise UnresolvedInspectionOrder("Order of importing models can't be resolved.  Potential circular ForeignKeys?")
-                    
-            # log.debug(f"Import Order: {[model.name for model in working_app.models_by_import_order]}")
-            # log.debug(f"Raw: {[model.name for model in working_app.models]}")
 

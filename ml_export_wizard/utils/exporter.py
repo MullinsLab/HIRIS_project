@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.apps import apps
-from django.db.models import ForeignKey
+from django.db.models import ForeignKey, ManyToOneRel
 
 import logging
 log = logging.getLogger(settings.ML_EXPORT_WIZARD['Logger'])
@@ -59,6 +59,9 @@ class Exporter(BaseExporter):
         if sql_dict.get("from"):
             sql += f"FROM {sql_dict['from']} "
 
+        if sql_dict.get("where"):
+            sql += f"WHERE {sql_dict['where']} "
+
         return sql
 
 
@@ -109,14 +112,14 @@ class ExporterModel(BaseExporter):
 
         return self.model.objects.model._meta.db_table
 
-    def _sql_dict(self) -> dict[str: str]:
+    def _sql_dict(self, *, table_name: str = None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this model"""
 
         sql_dict: dict[str: str] = {}
         sql_dict["from"] = self.table
 
         for field in self.fields:
-            sql_dict = merge_sql_dicts(sql_dict, field._sql_dict())
+            sql_dict = merge_sql_dicts(sql_dict, field._sql_dict(table_name=table_name))
             
         return sql_dict
 
@@ -141,11 +144,11 @@ class ExporterPseudomodel(BaseExporter):
         sql_dict: dict[str: str] = {}
 
         for model in self.models:
-            sql_dict = merge_sql_dicts(sql_dict, model._sql_dict())
+            sql_dict = merge_sql_dicts(sql_dict, model._sql_dict(table_name=self.name))
 
         if self.settings.get("sql_from"):
             sql_dict["from"] = self._replace_tags(self.settings["sql_from"])
-            sql_dict["from"] = f"(SELECT {sql_dict['select']} {sql_dict['from']}) as {self.name}"
+            sql_dict["from"] = f"(SELECT {sql_dict['select_no_table']} {sql_dict['from']}) as {self.name}"
 
         return sql_dict
     
@@ -192,12 +195,20 @@ class ExporterField(BaseExporter):
 
         return isinstance(self.field, ForeignKey)
     
-    def _sql_dict(self) -> dict[str: str]:
+    def _sql_dict(self, *, table_name: str = None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this field"""
 
+        if self.settings.get("join_only"):
+            return {}
+
         sql_dict: dict[str: str] = {}
-        #sql_dict["select"] = f"{self.parent.table}.{self.column}"
-        sql_dict["select"] = self.column
+        
+        if table_name:
+            sql_dict["select"] = f"{table_name}.{self.column}"
+        else:
+            sql_dict["select"] = f"{self.parent.table}.{self.column}"
+
+        sql_dict["select_no_table"] = self.column
 
         return sql_dict
 
@@ -216,6 +227,7 @@ def merge_sql_dicts(dict1: dict = None, dict2: dict = None) -> dict[str: str]:
 
     merged: dict[str: str] = {}
     mergers: dict[str: str] = {"select": ", ",
+                               "select_no_table": ", ",
                                "from": ", ",
                                "where": " AND ",
                                "group_by": ", ",
@@ -239,11 +251,9 @@ def setup_exporters() -> None:
     """ Initialize the exporter objects from settings """
 
     for exporter_setting, exporter_value in settings.ML_EXPORT_WIZARD["Exporters"].items():
-        working_exporter = exporters[exporter_setting] = Exporter(
-            name = exporter_setting, 
-            long_name = exporter_value.get('long_name', ''),
-            description = exporter_value.get('description', ''),
-        )
+        exclude_keys: tuple = ("name", "description", "apps")
+        exporter_settings = {setting: value for setting, value in exporter_value.items() if setting not in exclude_keys}
+        working_exporter = exporters[exporter_setting] = Exporter(name = exporter_setting, long_name = exporter_value.get('long_name', ''), description = exporter_value.get('description', ''), **exporter_settings)
 
         for app in exporter_value.get("apps", []):
             # Get settings for the app and save them in the object, except keys in exclude_keys
@@ -270,15 +280,12 @@ def setup_exporters() -> None:
 
                     for field in model.get("join_only_fields", []):
                         working_field = ExporterField(parent=working_model, name=field, field=working_model.model._meta.get_field(field))
-                        working_field.settings["join_only"]: True
+                        working_field.settings["join_only"] = True
 
             for model in app.get("models", []):
-                    # Get settings for the model
-                    exclude_keys: tuple = ("name", "fields")
-                    model_settings = {setting: value for setting, value in model.items() if setting not in exclude_keys}
+                working_model = ExporterModel(parent=working_app, name=model, model=apps.get_model(app_label=app['name'], model_name=model))
 
-                    working_model = ExporterModel(parent=working_pseudomodel, name=model.get("name", ""), model=apps.get_model(app_label=app['name'], model_name=model.get("name", "")), **model_settings)
-
-                    for field in model.get("fields", []):
-                        working_field = ExporterField(parent=working_model, name=field, field=working_model.model._meta.get_field(field))
-                        
+                # Add only fields that have columns in the db, and aren't in excluded fields
+                log.debug(working_exporter.settings.get("exclude_fields", []) )
+                for field in [field for field in working_model.model._meta.get_fields() if field.name not in working_exporter.settings.get("exclude_fields", []) and type(field) not in (ManyToOneRel, )]:
+                    working_field = ExporterField(parent=working_model, name=field.name, field=field)
