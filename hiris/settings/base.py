@@ -30,9 +30,31 @@ SECRET_KEY = env('SECRET_KEY')
 
 ALLOWED_HOSTS = env('DJANGO_ALLOWED_HOSTS').split(" ")
 
-# ALLOWED_HOSTS = []
-# Application definition
+# Manage sso/dual/local login differences
+LOGIN_TYPE = env('LOGIN_TYPE')
+LOGIN_URL = env('LOGIN_URL')
+LOGIN_REDIRECT_URL = "/"
+LOGIN_SSO_TITLE = ''
+LOGIN_SSO_COLLABORATOR_TITLE = ''
 
+if LOGIN_TYPE == "dual":
+    LOGIN_SSO_TITLE = env('LOGIN_SSO_TITLE')
+    LOGIN_SSO_COLLABORATOR_TITLE = env('LOGIN_SSO_COLLABORATOR_TITLE')
+
+if LOGIN_TYPE == "sso":
+    LOGIN_URL = reverse_lazy('saml_login')
+
+# The ports are only needed to get UW_SAML to not redirect to a bad port on login
+WEB_PORT = None
+EXTERNAL_WEB_PORT = None
+
+if LOGIN_TYPE in ("dual", "sso"):
+    WEB_PORT = env("WEB_PORT")
+    EXTERNAL_WEB_PORT = env("EXTERNAL_WEB_PORT")
+
+LOGOUT_REDIRECT_URL = "/"
+
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -57,11 +79,11 @@ INSTALLED_APPS = [
 
 AUTHENTICATION_BACKENDS = [
     # For UW_SAML
-    'django.contrib.auth.backends.ModelBackend',
     'django.contrib.auth.backends.RemoteUserBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
-MIDDLEWARE = [
+MIDDLEWARE = list(filter(None, [
     'django.middleware.security.SecurityMiddleware',
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -70,8 +92,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.contrib.auth.middleware.PersistentRemoteUserMiddleware'
-]
+    'django.contrib.auth.middleware.PersistentRemoteUserMiddleware',
+    
+    "hiris.middleware.AddHTTP_X_FORWARDED_PORTMiddleware" if LOGIN_TYPE in ("dual", "sso") and EXTERNAL_WEB_PORT else None,
+]))
 
 ROOT_URLCONF = 'hiris.urls'
 
@@ -299,30 +323,6 @@ logging.config.dictConfig({
 # Crispy Forms Settings
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
-
-# CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
-# CRISPY_TEMPLATE_PACK = "bootstrap4"
-
-
-LOGIN_TYPE = env('LOGIN_TYPE')
-LOGIN_URL = env('LOGIN_URL')
-LOGIN_REDIRECT_URL = "/"
-LOGIN_SSO_TITLE = ''
-LOGIN_SSO_COLLABORATOR_TITLE = ''
-
-# if LOGIN_TYPE == "dual" or LOGIN_TYPE == 'sso':
-#     from phylobook.settings.saml import UW_SAML as UW_SAML_CONF
-#     UW_SAML = UW_SAML_CONF
-
-if LOGIN_TYPE == "dual":
-    LOGIN_SSO_TITLE = env('LOGIN_SSO_TITLE')
-    LOGIN_SSO_COLLABORATOR_TITLE = env('LOGIN_SSO_COLLABORATOR_TITLE')
-
-if LOGIN_TYPE == "sso":
-    LOGIN_URL = reverse_lazy('saml_login')
-
-
-LOGOUT_REDIRECT_URL = "/"
 
 SETTINGS_EXPORT = [
     'LOGIN_TYPE',

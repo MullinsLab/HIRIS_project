@@ -10,6 +10,7 @@ from .base import env
 
 if env('UW_SAML_CERT_DIR'):
     UW_SAML_CERT_DIR = env('UW_SAML_CERT_DIR')
+
     UW_SAML_PRIVATE_KEY = env('UW_SAML_PRIVATE_KEY')
     with open(os.path.join(UW_SAML_CERT_DIR, UW_SAML_PRIVATE_KEY), "r") as file:
         UW_SAML_PRIVATE_KEY = file.read()
@@ -17,6 +18,10 @@ if env('UW_SAML_CERT_DIR'):
     UW_SAML_PUBLIC_CERT = env('UW_SAML_PUBLIC_CERT')
     with open(os.path.join(UW_SAML_CERT_DIR, UW_SAML_PUBLIC_CERT), "r") as file:
         UW_SAML_PUBLIC_CERT = file.read()
+
+    UW_SAML_IDPCERT = env('UW_SAML_IDPCERT')
+    with open(os.path.join(UW_SAML_CERT_DIR, UW_SAML_IDPCERT), "r") as file:
+        UW_SAML_IDPCERT = file.read()
 
 UW_SAML = {
     'strict': False,
@@ -46,7 +51,7 @@ UW_SAML = {
             'url': 'https://idp.u.washington.edu/idp/logout',
             'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
         },
-        'x509cert': UW_SAML_PUBLIC_CERT,
+        'x509cert': UW_SAML_IDPCERT,
     },
     'security': {
         # for encrypted saml assertions
