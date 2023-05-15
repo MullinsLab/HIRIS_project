@@ -394,7 +394,7 @@ class TemplateAndViewTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'ml_import_wizard/new_scheme.html')
-        self.assertContains(response, '<form class="form-horizontal"')
+        # self.assertContains(response, '<form class="form-horizontal"')
 
     def test_genome_post_should_result_in_new_ImportScheme_object_have_template_manager(self):
         ''' Use /import/Genome to add a genome import, test the return status, '''

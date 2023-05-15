@@ -74,7 +74,7 @@ INSTALLED_APPS = [
     # HIRIS apps
     'hiris.apps.core',
     'ml_import_wizard',
-    'hiris.apps.export_wizard',
+    'ml_export_wizard',
 ]
 
 AUTHENTICATION_BACKENDS = [

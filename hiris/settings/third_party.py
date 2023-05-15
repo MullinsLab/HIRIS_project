@@ -155,3 +155,70 @@ ML_IMPORT_WIZARD = {
         },
     }
 }
+
+
+ML_EXPORT_WIZARD = {
+    'Working_Files_Dir': os.path.join('/', env('WORKING_FILES_DIR'), ''),
+    'Logger': 'app',
+    "Setup_On_Start": True,
+    'Exporters': {
+        "Genes": {
+            'name': 'Genes',
+            'description': 'Export',
+            "field_links": {
+                        "model:Feature.pkey": "pseudomodel:locations.feature_id",
+                        "model:Integration.pkey": "pseudomodel:locations.feature_id",
+            },
+            "exclude_fields": ["added", "updated"],
+            'apps': [
+                {
+                    "name": "core",
+                    "models": ["Feature"],
+                    "pseudomodels": [
+                        {
+                            "name": "locations",
+                            "models": [
+                                {
+                                    "name": "FeatureLocation",
+                                    "fields": ["feature"],
+                                    "join_only_fields": ["landmark", "chromosome", "feature_start", "feature_end", "feature_orientation"]
+                                },
+                                {
+                                    "name": "IntegrationLocation",
+                                    "fields": ["integration"],
+                                    "join_only_fields": ["location", "orientation_in_landmark"]
+                                },
+                                {
+                                    "name": "Feature",
+                                },
+                                {
+                                    "name": "FeatureType",
+                                },
+                                {
+                                    "name": "Integration",
+                                }
+                            ],
+                            "sql_from": "FROM {IntegrationLocation:table} " +
+                                        "JOIN {Integration:table} USING (integration_id) " +
+                                        "LEFT JOIN " +
+                                            "(SELECT {FeatureLocation:fields} " +
+                                                "FROM {FeatureLocation:table} " +
+                                                "JOIN {Feature:table} USING (feature_id) " +
+                                                "WHERE {Feature:table}.feature_type_id = (SELECT feature_type_id FROM {FeatureType:table} WHERE feature_type_name='gene')" + 
+                                                ") AS joined " + 
+                                            "ON CASE " + 
+                                                "WHEN ({IntegrationLocation:table}.orientation_in_landmark='F' AND ({Integration:table}.ltr='5p' OR {Integration:table}.ltr IS NULL)) " +
+                                                    " OR ({IntegrationLocation:table}.orientation_in_landmark='R' AND ({Integration:table}.ltr='3p' OR {Integration:table}.ltr IS NULL)) " +
+                                                "THEN {IntegrationLocation:table}.location > joined.feature_start AND {IntegrationLocation:table}.location <= joined.feature_end " +
+                                                "WHEN ({IntegrationLocation:table}.orientation_in_landmark='R' AND ({Integration:table}.ltr='5p' OR {Integration:table}.ltr IS NULL)) " +
+                                                    " OR ({IntegrationLocation:table}.orientation_in_landmark='F' AND ({Integration:table}.ltr='3p' OR {Integration:table}.ltr IS NULL)) " +
+                                                "THEN {IntegrationLocation:table}.location >= joined.feature_start AND {IntegrationLocation:table}.location < joined.feature_end " + 
+                                            "END " + 
+                                            "AND joined.landmark = {IntegrationLocation:table}.landmark",
+                        },
+                    ],
+                },
+            ],
+        },
+    }
+}

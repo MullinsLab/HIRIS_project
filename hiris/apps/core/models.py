@@ -267,6 +267,9 @@ class Integration(CoreBaseModel):
 
     class Meta:
         db_table = "integrations"
+        indexes = [
+            models.Index(fields=['ltr']),
+        ]
 
 
 class IntegrationLocation(CoreBaseModel):
