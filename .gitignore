@@ -130,5 +130,6 @@ dmypy.json
 .pyre/
 .vscode/settings.json
 
-/certs
 /tmp
+certs/dev.cert.pem
+certs/dev.key.pem
