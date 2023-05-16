@@ -1,7 +1,7 @@
 from django.db import models
 import re
 
-# Overriding the default ID will make fore a more comprehensible database for non-Django queries.
+# Overriding the default ID will make for a more comprehensible database for non-Django queries.
 # Including dates for each object.  It's cheap to store and may be useful at some time.
 
 class CoreBaseModel(models.Model):
@@ -276,7 +276,7 @@ class IntegrationLocation(CoreBaseModel):
     """ Holds data about the locations of a specific integration """
     integration_location_id = models.BigAutoField(primary_key=True, editable=False)
     integration = models.ForeignKey(Integration, on_delete=models.CASCADE, related_name="integration_locations")
-    feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING, related_name="integration_locations", null=True)
+    feature_locations = models.ManyToManyField(FeatureLocation, related_name="integration_locations", through="IntegrationFeature")
     landmark = models.CharField(max_length=255)
     location = models.IntegerField()
     orientation_in_landmark = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=True)
@@ -294,6 +294,22 @@ class IntegrationLocation(CoreBaseModel):
         """ return landmark: location as name"""
 
         return f"{self.landmark}: {self.location}"
+
+
+class IntegrationFeature(CoreBaseModel):
+    """ Holds the links between Integrations and Features.  Doesn't inherit from CoreBaseModel """
+    integration_feature_id = models.BigAutoField(primary_key=True)
+    integration_location = models.ForeignKey(IntegrationLocation, on_delete=models.DO_NOTHING)
+    feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING)
+    feature_type_name = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "integration_features"
+        unique_together = ['integration_location', 'feature_location']
+        indexes = [
+            models.Index(fields=['integration_location']),
+            models.Index(fields=['feature_location']),
+        ]
 
 
 class BlastInfo(CoreBaseModel):

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.apps import apps
-from django.db.models import ForeignKey, ManyToOneRel
+from django.db.models import ForeignKey, ManyToOneRel, OneToOneRel, ManyToManyField
+from django.core.exceptions import ImproperlyConfigured
 
 import logging
 log = logging.getLogger(settings.ML_EXPORT_WIZARD['Logger'])
@@ -76,6 +77,9 @@ class ExporterApp(BaseExporter):
         self.models = []
         self.models_by_name = {}
 
+        # List of models that have been used in the SQL.
+        self.prepped_models = []
+
         parent.apps.append(self)
         parent.apps_by_name[self.name] = self
 
@@ -83,9 +87,16 @@ class ExporterApp(BaseExporter):
         """ Create an SQL_Dict for the query bits from this app"""
 
         sql_dict: dict[str: str] = {}
+        self.prepped_models = []
 
-        for model in self.models:
-            sql_dict = merge_sql_dicts(sql_dict, model._sql_dict())
+        # for model in self.models:
+        #     sql_dict = merge_sql_dicts(sql_dict, model._sql_dict())
+
+        # Check that we have valid a primary model or throw a ImproperlyConfigured error
+        if "primary_model" not in self.settings or not self.settings["primary_model"]:
+            raise ImproperlyConfigured(f"No valid primary_model in Exporter: {self.parent.name}, App: {self.name}")
+        
+        sql_dict = self.models_by_name[self.settings["primary_model"]]._sql_dict()
 
         return sql_dict
 
@@ -112,14 +123,30 @@ class ExporterModel(BaseExporter):
 
         return self.model.objects.model._meta.db_table
 
-    def _sql_dict(self, *, table_name: str = None) -> dict[str: str]:
+    def _sql_dict(self, *, table_name: str = None, left_join: bool = False, join_using: str = None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this model"""
 
         sql_dict: dict[str: str] = {}
-        sql_dict["from"] = self.table
+        if left_join:
+            if join_using:
+                sql_dict["from"] = f"LEFT JOIN {self.table} USING ({join_using})"
+        else:
+            sql_dict["from"] = self.table
 
         for field in self.fields:
             sql_dict = merge_sql_dicts(sql_dict, field._sql_dict(table_name=table_name))
+
+        # Add models that this model joins with
+        for field in self.fields:
+            field_object = field.field
+
+            if type(field_object) is ManyToOneRel and field_object.related_model.__name__ in self.parent.models_by_name:
+                join_model = self.parent.models_by_name[field_object.related_model.__name__]
+                
+                if join_model not in self.parent.prepped_models:
+                    sql_dict = merge_sql_dicts(sql_dict, join_model._sql_dict(left_join=True, join_using=field_object.field_name))
+                    self.parent.prepped_models.append(join_model)
+                    
             
         return sql_dict
 
@@ -198,9 +225,9 @@ class ExporterField(BaseExporter):
     def _sql_dict(self, *, table_name: str = None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this field"""
 
-        if self.settings.get("join_only"):
+        if self.settings.get("join_only") or type(self.field) in (ManyToOneRel, OneToOneRel, ManyToManyField):
             return {}
-
+        
         sql_dict: dict[str: str] = {}
         
         if table_name:
@@ -228,7 +255,7 @@ def merge_sql_dicts(dict1: dict = None, dict2: dict = None) -> dict[str: str]:
     merged: dict[str: str] = {}
     mergers: dict[str: str] = {"select": ", ",
                                "select_no_table": ", ",
-                               "from": ", ",
+                               "from": " ",
                                "where": " AND ",
                                "group_by": ", ",
                                "having": " AND "
@@ -286,6 +313,5 @@ def setup_exporters() -> None:
                 working_model = ExporterModel(parent=working_app, name=model, model=apps.get_model(app_label=app['name'], model_name=model))
 
                 # Add only fields that have columns in the db, and aren't in excluded fields
-                log.debug(working_exporter.settings.get("exclude_fields", []) )
-                for field in [field for field in working_model.model._meta.get_fields() if field.name not in working_exporter.settings.get("exclude_fields", []) and type(field) not in (ManyToOneRel, )]:
+                for field in [field for field in working_model.model._meta.get_fields() if field.name not in working_exporter.settings.get("exclude_fields", [])]: # and type(field) not in (ManyToOneRel, OneToOneRel)]:
                     working_field = ExporterField(parent=working_model, name=field.name, field=field)
