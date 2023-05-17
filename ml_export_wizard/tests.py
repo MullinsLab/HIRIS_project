@@ -30,6 +30,7 @@ class UtilsTest(TestCase):
                     "where": "thing1 = 1",
                     "group_by": "thing1",
                     "having": "count(thing1) = 11",
+                    "parameters": {},
                     }
         
         cls.dict2 = {"select": "two as two_thing",
@@ -38,6 +39,7 @@ class UtilsTest(TestCase):
                     "where": "thing2 = 2",
                     "group_by": "thing2",
                     "having": "count(thing2) = 22",
+                    "parameters": {},
                     }
 
     def test_merge_sql_dicts_none_dicts_should_return_none(self):
@@ -70,7 +72,7 @@ class UtilsTest(TestCase):
     def test_merge_sql_dicts_from(self):
         """ From strings from dicts should combine correctly """
         dict3 = merge_sql_dicts(self.dict1, self.dict2)
-        self.assertEqual(dict3["from"], "test1 as test_table_1, test2 as test_table_2")
+        self.assertEqual(dict3["from"], "test1 as test_table_1 test2 as test_table_2")
 
     def test_merge_sql_dicts_where(self):
         """ Where strings from dicts should combine correctly """

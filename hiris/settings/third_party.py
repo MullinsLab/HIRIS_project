@@ -164,7 +164,7 @@ ML_EXPORT_WIZARD = {
             "apps" : [
                 {
                     "name": "core",
-                    "models": ["IntegrationLocation", "IntegrationFeature", ],
+                    "models": ["IntegrationLocation", "IntegrationFeature", "Integration"],
                     "primary_model": "IntegrationLocation",
                 }
             ]
