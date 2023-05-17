@@ -1,12 +1,13 @@
 from django.conf import settings
 from django.apps import apps
-from django.db import models
+from django.db import models, connection
 from django.core.exceptions import ImproperlyConfigured
 
 import logging
 log = logging.getLogger(settings.ML_EXPORT_WIZARD['Logger'])
 
 from weakref import proxy
+from collections import namedtuple
 
 from ml_import_wizard.utils.simple import fancy_name
 
@@ -17,7 +18,7 @@ exporters: dict = {}
 class BaseExporter(object):
     """ Base class to inherit from """
 
-    def __init__(self, parent: object = None, name: str = '', **settings) -> None:
+    def __init__(self, parent: object = None, name: str='', **settings) -> None:
         """ Initialise the object """
 
         if parent: self.parent = proxy(parent)  # Use a weakref so we don't have a circular refrence, defeating garbage collection
@@ -45,7 +46,7 @@ class Exporter(BaseExporter):
         self.apps = []
         self.apps_by_name = {}
 
-    def sql(self, *, limit_before_join: dict = None) -> str:
+    def base_sql(self, *, sql_only: bool=False, limit_before_join: dict=None, limit_after_join: dict=None) -> tuple:
         """ Returns a raw SQL query that would be used to generate the exporter data"""
         
         sql: str = ""
@@ -63,7 +64,43 @@ class Exporter(BaseExporter):
         if sql_dict.get("where"):
             sql += f"WHERE {sql_dict['where']} "
 
-        return sql
+        if sql_only:
+            return sql
+
+        return (sql, sql_dict["parameters"])
+    
+    def query_count(self, *, count: str=None, limit_before_join: dict=None, limit_after_join: dict=None) -> int:
+        """ Build and execute a query to do a count, and return that count """
+
+        sql_dict: dict = {}
+
+        # Build the sql_dict in chunks in case we'll need more in the future
+        if not count or count == "*":
+            select_bit = "COUNT(*)"
+            
+        sql_dict["select"] = ", ".join(filter(None, (sql_dict.get("select"), select_bit)))
+
+        return self._execute_query(sql_dict=sql_dict, returns='single_value', limit_before_join=limit_before_join, limit_after_join=limit_after_join)
+
+    def _execute_query(self, *, limit_before_join: dict=None, limit_after_join: dict=None, sql_dict: dict=None, returns: str = None) -> object:
+        """ Build the final query and execute it unless told not to 
+            valid returns are: single_value """
+
+        data: object = None
+
+        sql, parameters = self.base_sql(limit_before_join=limit_before_join, limit_after_join=limit_after_join)
+        sql = f"SELECT {sql_dict['select']} FROM ({sql}) AS {self.name}"
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, parameters)
+
+            columns = [col[0] for col in cursor.description]
+            if returns == "single_value":
+                return cursor.fetchone()[0]
+
+            data = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        return data
 
 
 class ExporterApp(BaseExporter):
@@ -83,7 +120,7 @@ class ExporterApp(BaseExporter):
         parent.apps.append(self)
         parent.apps_by_name[self.name] = self
 
-    def _sql_dict(self, *, limit_before_join: dict = None) -> dict[str: str]:
+    def _sql_dict(self, *, limit_before_join: dict = None, limit_after_join: dict = None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this app"""
 
         sql_dict: dict[str: str] = {}
@@ -120,7 +157,7 @@ class ExporterModel(BaseExporter):
 
         return self.model.objects.model._meta.db_table
 
-    def _sql_dict(self, *, table_name: str = None, left_join: bool = False, join_using: str = None, limit_before_join: dict = None) -> dict[str: str]:
+    def _sql_dict(self, *, table_name: str = None, left_join: bool = False, join_using: str = None, limit_before_join: dict = None, limit_after_join: dict = None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this model"""
 
         sql_dict: dict[str: str] = {}
@@ -142,8 +179,6 @@ class ExporterModel(BaseExporter):
             
             if where_bit:
                 table = f" (SELECT * FROM {table} WHERE {where_bit}) AS {table}"
-                log.debug(table)
-
 
         if left_join:
             if join_using:
@@ -325,30 +360,40 @@ def setup_exporters() -> None:
             app_settings = {setting: value for setting, value in app.items() if setting not in exclude_keys}
             working_app: ExporterApp = ExporterApp(parent=working_exporter, name=app.get('name', ''), **app_settings)
 
-            for pseudomodel in app.get("pseudomodels", []):
-                # Get settingsfor the pseudomodel
-                exclude_keys: tuple = ("name", "models")
-                pseudomodel_settings = {setting: value for setting, value in pseudomodel.items() if setting not in exclude_keys}
+            # for pseudomodel in app.get("pseudomodels", []):
+            #     # Get settingsfor the pseudomodel
+            #     exclude_keys: tuple = ("name", "models")
+            #     pseudomodel_settings = {setting: value for setting, value in pseudomodel.items() if setting not in exclude_keys}
 
-                working_pseudomodel = ExporterPseudomodel(parent=working_app, name=pseudomodel.get("name", ""), **pseudomodel_settings)
+            #     working_pseudomodel = ExporterPseudomodel(parent=working_app, name=pseudomodel.get("name", ""), **pseudomodel_settings)
 
-                for model in pseudomodel.get("models", []):
-                    # Get settings for the model
-                    exclude_keys: tuple = ("name", "fields")
-                    model_settings = {setting: value for setting, value in model.items() if setting not in exclude_keys}
+            #     for model in pseudomodel.get("models", []):
+            #         # Get settings for the model
+            #         exclude_keys: tuple = ("name", "fields")
+            #         model_settings = {setting: value for setting, value in model.items() if setting not in exclude_keys}
 
-                    working_model = ExporterModel(parent=working_pseudomodel, name=model.get("name", ""), model=apps.get_model(app_label=app['name'], model_name=model.get("name", "")), **model_settings)
+            #         working_model = ExporterModel(parent=working_pseudomodel, name=model.get("name", ""), model=apps.get_model(app_label=app['name'], model_name=model.get("name", "")), **model_settings)
 
-                    for field in model.get("fields", []):
-                        working_field = ExporterField(parent=working_model, name=field, field=working_model.model._meta.get_field(field))
+            #         for field in model.get("fields", []):
+            #             working_field = ExporterField(parent=working_model, name=field, field=working_model.model._meta.get_field(field))
 
-                    for field in model.get("join_only_fields", []):
-                        working_field = ExporterField(parent=working_model, name=field, field=working_model.model._meta.get_field(field))
-                        working_field.settings["join_only"] = True
+            #         for field in model.get("join_only_fields", []):
+            #             working_field = ExporterField(parent=working_model, name=field, field=working_model.model._meta.get_field(field))
+            #             working_field.settings["join_only"] = True
 
-            for model in app.get("models", []):
-                working_model = ExporterModel(parent=working_app, name=model, model=apps.get_model(app_label=app['name'], model_name=model))
+            models: list = []
+
+            # Get models from include_models if it exists
+            if "include_models" in app:
+                models = [apps.get_model(app_label=app["name"], model_name=model) for model in app["include_models"]]
+            
+            # Get models from app if we don't have models yet
+            if not models:
+                models = [model for model in apps.get_app_config(app['name']).get_models() if model.__name__ not in app.get("exclude_models", [])]
+
+            for model in models:
+                working_model = ExporterModel(parent=working_app, name=model.__name__, model=model)
 
                 # Add only fields that have columns in the db, and aren't in excluded fields
-                for field in [field for field in working_model.model._meta.get_fields() if field.name not in working_exporter.settings.get("exclude_fields", [])]: # and type(field) not in (models.ManyToOneRel, models.OneToOneRel)]:
+                for field in [field for field in working_model.model._meta.get_fields() if field.name not in working_exporter.settings.get("exclude_fields", [])]:
                     working_field = ExporterField(parent=working_model, name=field.name, field=field)
