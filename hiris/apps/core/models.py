@@ -226,7 +226,7 @@ class Preparation(CoreBaseModel):
     
 class SequencingMethod(CoreBaseModel):
     """ Holds data about how the samples were sequenced """
-    sequence_method_id = models.BigAutoField(primary_key=True, editable=False)
+    sequencing_method_id = models.BigAutoField(primary_key=True, editable=False)
     preparation = models.ForeignKey(Preparation, on_delete=models.CASCADE, related_name="sequencing_methods")
     sequencing_method_name = models.CharField(max_length=255, null=True)
     sequencing_method_descripion = models.TextField(null=True)
@@ -315,7 +315,7 @@ class IntegrationFeature(CoreBaseModel):
 class BlastInfo(CoreBaseModel):
     """ Holds blast data about an individual location """
     blast_info_id = models.BigAutoField(primary_key=True, editable=False)
-    integration_location = models.OneToOneField(IntegrationLocation, on_delete=models.CASCADE)
+    integration_location = models.OneToOneField(IntegrationLocation, on_delete=models.CASCADE, related_name="blast_info")
     identity = models.CharField(max_length=255, null=True, blank=True)
     q_start = models.IntegerField(null=True, blank=True)
     gaps = models.CharField(max_length=255, null=True, blank=True)

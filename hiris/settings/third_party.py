@@ -164,9 +164,17 @@ ML_EXPORT_WIZARD = {
             "apps" : [
                 {
                     "name": "core",
-                    "include_models": ["IntegrationLocation", "IntegrationFeature", "Integration"],
+                    #"include_models": ["IntegrationLocation", "IntegrationFeature", "Integration", "FeatureLocation", "Feature", "FeatureType", "BlastInfo", "IntegrationEnvironment", "SequencingMethod", "Preparation", "Sample", "Subject", "DataSet", "DataSetSource", "GeneType", "GenomeVersion"],
                     #"exclude_models": []
                     "primary_model": "IntegrationLocation",
+                    "models": {
+                        "Integration": {
+                            "dont_link_to": ["DataSet"]
+                        },
+                        "DataSet": {
+                            "dont_link_to": ["GenomeVersion"]
+                        }
+                    },
                 }
             ],
         },

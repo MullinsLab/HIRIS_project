@@ -9,7 +9,7 @@ log = logging.getLogger(settings.ML_EXPORT_WIZARD['Logger'])
 from weakref import proxy
 from collections import namedtuple
 
-from ml_import_wizard.utils.simple import fancy_name
+from ml_import_wizard.utils.simple import fancy_name, deep_exists
 
 
 exporters: dict = {}
@@ -31,6 +31,10 @@ class BaseExporter(object):
     @property
     def fancy_name(self) -> str:
         return fancy_name(self.name)
+    
+    def __str__(self):
+        """ Return the name attribute as __str__ """
+        return self.name
     
 
 class Exporter(BaseExporter):
@@ -65,11 +69,11 @@ class Exporter(BaseExporter):
             sql += f"WHERE {sql_dict['where']} "
 
         if sql_only:
-            return sql
+            return sql % {key: f"'{value}'" for (key, value) in sql_dict["parameters"].items()}
 
         return (sql, sql_dict["parameters"])
     
-    def query_count(self, *, count: str=None, limit_before_join: dict=None, limit_after_join: dict=None) -> int:
+    def query_count(self, *, count: any=None, limit_before_join: dict=None, limit_after_join: dict=None) -> int:
         """ Build and execute a query to do a count, and return that count """
 
         sql_dict: dict = {}
@@ -100,7 +104,7 @@ class Exporter(BaseExporter):
 
             data = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-        return data
+            return data
 
 
 class ExporterApp(BaseExporter):
@@ -157,12 +161,13 @@ class ExporterModel(BaseExporter):
 
         return self.model.objects.model._meta.db_table
 
-    def _sql_dict(self, *, table_name: str = None, left_join: bool = False, join_using: str = None, limit_before_join: dict = None, limit_after_join: dict = None) -> dict[str: str]:
+    def _sql_dict(self, *, table_name: str=None, left_join: bool=False, join_model: object=None, join_using: str=None, limit_before_join: dict=None, limit_after_join: dict=None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this model"""
 
         sql_dict: dict[str: str] = {}
         table: str = self.table
 
+        # Enact limits that are supposed to happen before the tables are joined
         if limit_before_join and self.name in limit_before_join:
             where_bit: str = ""
 
@@ -180,11 +185,18 @@ class ExporterModel(BaseExporter):
             if where_bit:
                 table = f" (SELECT * FROM {table} WHERE {where_bit}) AS {table}"
 
+        join_criteria: str = ""
+
+        if join_model:
+            join_criteria = f"ON {self.table}.{join_using} = {join_model.table}.{join_using}"
+        else:
+            join_criteria = f"USING ({join_using})"
+
         if left_join:
             if join_using:
-                sql_dict["from"] = f"LEFT JOIN {table} USING ({join_using})"
+                sql_dict["from"] = f"LEFT JOIN {table} {join_criteria}"
         elif join_using:
-            sql_dict["from"] = f"JOIN {table} USING ({join_using})"
+            sql_dict["from"] = f"JOIN {table} {join_criteria}"
         else:
             sql_dict["from"] = table
 
@@ -198,19 +210,22 @@ class ExporterModel(BaseExporter):
         for field in self.fields:
             field_object = field.field
 
-            if type(field_object) is models.ManyToOneRel and field_object.related_model.__name__ in self.parent.models_by_name:
+            if type(field_object) in (models.ManyToOneRel, models.ForeignKey, models.OneToOneRel) and field_object.related_model.__name__ in self.parent.models_by_name:
                 join_model = self.parent.models_by_name[field_object.related_model.__name__]
                 
-                if join_model not in self.parent.prepped_models:
-                    sql_dict = merge_sql_dicts(sql_dict, join_model._sql_dict(left_join=True, join_using=field_object.field_name, limit_before_join=limit_before_join))
-
-            elif type(field_object) is models.ForeignKey and field_object.related_model.__name__ in self.parent.models_by_name:
-                join_model = self.parent.models_by_name[field_object.related_model.__name__]
-
-                if join_model not in self.parent.prepped_models:
-                    sql_dict = merge_sql_dicts(sql_dict, join_model._sql_dict(join_using=field_object.column, limit_before_join=limit_before_join))
+                # don't link to the model if it is in this models dont_link_to, or this model is in its dont_link_to
+                log.debug(f"Model: {self.name}, Linking model: {join_model.name}")
+                log.debug(getattr(join_model, 'settings', {}))
+                if join_model in self.parent.prepped_models or \
+                    ("dont_link_to" in self.settings and join_model.name in self.settings["dont_link_to"] or \
+                    "dont_link_to" in join_model.settings and self.name in join_model.settings["dont_link_to"]):
                     
-            
+                    log.debug("Skipping")
+                    continue
+
+                # Currently making all joins left joins.  Not sure how to handle this.
+                sql_dict = merge_sql_dicts(sql_dict, join_model._sql_dict(left_join=True, join_model=self, join_using=field.column, limit_before_join=limit_before_join))
+               
         return sql_dict
 
 
@@ -278,7 +293,11 @@ class ExporterField(BaseExporter):
     def column(self) -> str:
         """ returns the name of the DB column for the field"""
 
-        return self.field.column
+        if hasattr(self.field, "column"):
+            return self.field.column
+        
+        if hasattr(self.field, "field_name"):
+            return self.field.field_name
 
     def is_foreign_key(self) -> bool:
         """ returns True if the field has a foreign key """
@@ -288,11 +307,12 @@ class ExporterField(BaseExporter):
     def _sql_dict(self, *, table_name: str = None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this field"""
 
-        if self.settings.get("join_only") or type(self.field) in (models.ManyToOneRel, models.OneToOneRel, models.ManyToManyField):
+        if self.settings.get("join_only") or type(self.field) in (models.ManyToOneRel, models.ManyToManyField, models.ManyToManyRel, models.OneToOneRel,): #models.OneToOneRel, 
             return {}
         
         sql_dict: dict[str: str] = {}
-        
+        column: str = ""
+
         if table_name:
             sql_dict["select"] = f"{table_name}.{self.column}"
         else:
@@ -392,7 +412,12 @@ def setup_exporters() -> None:
                 models = [model for model in apps.get_app_config(app['name']).get_models() if model.__name__ not in app.get("exclude_models", [])]
 
             for model in models:
-                working_model = ExporterModel(parent=working_app, name=model.__name__, model=model)
+                model_settings: dict = {}
+
+                if deep_exists(app, ["models", model.__name__]):
+                    model_settings = app["models"][model.__name__]
+
+                working_model = ExporterModel(parent=working_app, name=model.__name__, model=model, **model_settings)
 
                 # Add only fields that have columns in the db, and aren't in excluded fields
                 for field in [field for field in working_model.model._meta.get_fields() if field.name not in working_exporter.settings.get("exclude_fields", [])]:
