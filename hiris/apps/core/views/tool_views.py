@@ -1,11 +1,12 @@
 import logging
-logger = logging.getLogger('app')
+log = logging.getLogger('app')
 
 from django.views.generic.base import View
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 
-from hiris.apps.core.utils.db import get_sources_count
+from hiris.apps.core.utils.db import get_environments_count, get_genes_count
+from hiris.apps.core.utils.simple import underscore_keys
 
 class Home(View):
     ''' The default view for HIRIS Home.  Currently shows the About page '''
@@ -32,5 +33,7 @@ class DataSources(View):
     def get(self, request, *args, **kwargs):
         """ Show the page """
 
-        counts: dict = get_sources_count()
-        return render(request, "data_sources.html", context={"counts": counts})
+        counts: dict = underscore_keys(get_environments_count())
+
+        gene_count: int = get_genes_count()
+        return render(request, "data_sources.html", context={"counts": counts, "gene_count": gene_count})

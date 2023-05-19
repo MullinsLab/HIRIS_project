@@ -9,7 +9,8 @@ log = logging.getLogger(settings.ML_EXPORT_WIZARD['Logger'])
 from weakref import proxy
 from collections import namedtuple
 
-from ml_import_wizard.utils.simple import fancy_name, deep_exists
+from ml_export_wizard.utils.simple import fancy_name, deep_exists
+from ml_export_wizard.exceptions import MLExportWizardNoFieldFound
 
 
 exporters: dict = {}
@@ -34,7 +35,7 @@ class BaseExporter(object):
     
     def __str__(self):
         """ Return the name attribute as __str__ """
-        return self.name
+        return f"{self.__class__}: {self.name}"
     
 
 class Exporter(BaseExporter):
@@ -73,39 +74,105 @@ class Exporter(BaseExporter):
 
         return (sql, sql_dict["parameters"])
     
-    def query_count(self, *, count: any=None, limit_before_join: dict=None, limit_after_join: dict=None) -> int:
+    def query_count(self, *, count: any=None, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None) -> int:
         """ Build and execute a query to do a count, and return that count """
 
         sql_dict: dict = {}
+        select_bit: str = ""
+        returns: str = ""
 
-        # Build the sql_dict in chunks in case we'll need more in the future
+        if group_by:
+            returns = "value_dict"
+        else:
+            returns = "single_value"
+
+        # set up Select
         if not count or count == "*":
             select_bit = "COUNT(*)"
-            
+        elif count.startswith("DISTINCT:"):
+            select_bit = f"COUNT(DISTINCT {count.replace('DISTINCT:', '')})"
+        else:
+            select_bit = f"COUNT({count})"
+
         sql_dict["select"] = ", ".join(filter(None, (sql_dict.get("select"), select_bit)))
 
-        return self._execute_query(sql_dict=sql_dict, returns='single_value', limit_before_join=limit_before_join, limit_after_join=limit_after_join)
+        return self._execute_query(sql_dict=sql_dict, group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join)
 
-    def _execute_query(self, *, limit_before_join: dict=None, limit_after_join: dict=None, sql_dict: dict=None, returns: str = None) -> object:
+    def _execute_query(self, *, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, sql_dict: dict=None, returns: str = None) -> object:
         """ Build the final query and execute it unless told not to 
-            valid returns are: single_value """
+            valid returns are: 
+                single_value = value of the first column 
+                value_dict = dict where the first column is the key, second column is the value"""
 
+        sql_dict = sql_dict.copy()
         data: object = None
 
+        # Set up Group By 
+        if group_by:
+            # If it's not a list stick it into a list so it can be processed the same
+            if type(group_by) is not list:
+                group_by = [group_by]
+            
+            for group in group_by:
+                if type(group) is str:
+                    field = self._get_field(field=group)
+                else:
+                    field = self._get_field(app=group.get("app"), model=group.get("model"), field=group.get("field"))
+
+                log.debug(field)
+
+                sql_dict["group_by"] = ", ".join(filter(None, (sql_dict.get("group_by"), field.column)))
+                sql_dict["select"] = ", ".join(filter(None, (field.column, sql_dict.get("select"))))
+
+        # Build the SQL
         sql, parameters = self.base_sql(limit_before_join=limit_before_join, limit_after_join=limit_after_join)
         sql = f"SELECT {sql_dict['select']} FROM ({sql}) AS {self.name}"
 
+        if sql_dict.get("group_by"):
+            sql = f"{sql} GROUP BY {sql_dict['group_by']}"
+
+        # Do the actual query
         with connection.cursor() as cursor:
             cursor.execute(sql, parameters)
 
             columns = [col[0] for col in cursor.description]
             if returns == "single_value":
                 return cursor.fetchone()[0]
+            
+            if returns == "value_dict":
+                return {row[0]: row[1] for row in cursor.fetchall()}
 
             data = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
             return data
 
+    def _get_field(self, app: str=None, model: str=None, field: str=None):
+        """ Return a field object defined by app, model, field """
+
+        if app and model and field:
+            try: 
+                app_object = self.apps_by_name[app]
+                model_object = app_object.models_by_name[model]
+                field_object = model_object.fields_by_name[field]
+            except:
+                raise MLExportWizardNoFieldFound(f"Field not found in exporter (exporter: {self.name}, app: {app}, model: {model}, field: {field})")
+        
+        elif field:
+            fields: list[object] = []
+            for app in self.apps:
+                fields += app._get_field(field=field)
+
+            if len(fields) == 0:
+                raise MLExportWizardNoFieldFound(f"Field not found in exporter (exporter: {self.name}, field: {field})")
+            elif len(fields) == 1:
+                field_object = fields[0]
+            else:
+                raise MLExportWizardNoFieldFound(f"Field is ambiguous, try indicating the model or app (exporter: {self.name}, field: {field})")
+            
+        else:
+            raise MLExportWizardNoFieldFound(f"Lookup for undefined field failed (exporter: {self.name})")
+
+        return field_object
 
 class ExporterApp(BaseExporter):
     """ Class to hold apps to export  """
@@ -137,6 +204,16 @@ class ExporterApp(BaseExporter):
         sql_dict = self.models_by_name[self.settings["primary_model"]]._sql_dict(limit_before_join=limit_before_join)
 
         return sql_dict
+    
+    def _get_field(self, *, field: str=None) -> list:
+        """ Gets a field from models in this app """
+        fields: list = []
+
+        for model in self.models:
+            if field in model.fields_by_name:
+                fields.append(model.fields_by_name[field])
+
+        return fields
 
 
 class ExporterModel(BaseExporter):
@@ -214,13 +291,10 @@ class ExporterModel(BaseExporter):
                 join_model = self.parent.models_by_name[field_object.related_model.__name__]
                 
                 # don't link to the model if it is in this models dont_link_to, or this model is in its dont_link_to
-                log.debug(f"Model: {self.name}, Linking model: {join_model.name}")
-                log.debug(getattr(join_model, 'settings', {}))
                 if join_model in self.parent.prepped_models or \
                     ("dont_link_to" in self.settings and join_model.name in self.settings["dont_link_to"] or \
                     "dont_link_to" in join_model.settings and self.name in join_model.settings["dont_link_to"]):
                     
-                    log.debug("Skipping")
                     continue
 
                 # Currently making all joins left joins.  Not sure how to handle this.

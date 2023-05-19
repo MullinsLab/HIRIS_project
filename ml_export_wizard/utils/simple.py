@@ -1,4 +1,3 @@
-# from django.contrib.auth.models import User # Caused circular import
 from django.conf import settings
 
 import logging

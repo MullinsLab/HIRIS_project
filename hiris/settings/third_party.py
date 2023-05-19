@@ -178,5 +178,14 @@ ML_EXPORT_WIZARD = {
                 }
             ],
         },
+        "Integrations": {
+            "apps" : [
+                {
+                    "name": "core",
+                    "include_models": ["IntegrationLocation", "Integration", "BlastInfo", "IntegrationEnvironment", "SequencingMethod", "Preparation", "Sample", "Subject"],
+                    "primary_model": "IntegrationLocation",
+                },
+            ],
+        },
     }
 }

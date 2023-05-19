@@ -1,9 +1,11 @@
 import logging
-logger = logging.getLogger('app')
+log = logging.getLogger('app')
 
 from django.db import connection
 
 from collections import namedtuple
+
+from ml_export_wizard.utils.exporter import exporters
 
 
 def generic_query(sql: str = None) -> list[dict]:
@@ -27,10 +29,21 @@ def generic_query_flat(sql: str = None) -> namedtuple:
     return result[0]
 
 
-def get_sources_count() -> dict:
+def get_environments_count() -> dict:
     """ Returns a count of in-vivo and in-virto observations """
 
-    return generic_query_flat("SELECT COUNT(CASE WHEN ie.integration_environment_name='in vivo' THEN 1 else Null END) AS in_vivo_count, " +
-                              "COUNT(CASE WHEN ie.integration_environment_name='in vitro' THEN 1 else Null END) AS in_vitro_count " + 
-                              "FROM integrations i, integration_environments ie "+
-                              "WHERE i.integration_environment_id=ie.integration_environment_id")
+    return exporters["Integrations"].query_count(group_by="integration_environment_name")
+
+def get_genes_count() -> int:
+    """ Returns a count of unique genes """
+
+    limit_before_join: dict = {
+        "IntegrationFeature": [
+            {
+                "field": "feature_type_name",
+                "value": "gene",
+            }
+        ]
+    }
+
+    return exporters["IntegrationFeatures"].query_count(limit_before_join=limit_before_join, count="DISTINCT:feature_name")
