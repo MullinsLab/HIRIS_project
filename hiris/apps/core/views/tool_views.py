@@ -5,7 +5,7 @@ from django.views.generic.base import View
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 
-from hiris.apps.core.utils.db import get_environments_count, get_genes_count
+from hiris.apps.core.utils.db import get_environments_count, get_genes_count, get_data_sources
 from hiris.apps.core.utils.simple import underscore_keys
 
 class Home(View):
@@ -34,6 +34,7 @@ class DataSources(View):
         """ Show the page """
 
         counts: dict = underscore_keys(get_environments_count())
+        data_sources: dict = get_data_sources()
 
         gene_count: int = get_genes_count()
         return render(request, "data_sources.html", context={"counts": counts, "gene_count": gene_count})

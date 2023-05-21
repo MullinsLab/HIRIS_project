@@ -173,7 +173,7 @@ ML_EXPORT_WIZARD = {
                         },
                         "DataSet": {
                             "dont_link_to": ["GenomeVersion"]
-                        }
+                        },
                     },
                 }
             ],
@@ -182,9 +182,18 @@ ML_EXPORT_WIZARD = {
             "apps" : [
                 {
                     "name": "core",
-                    "include_models": ["IntegrationLocation", "Integration", "BlastInfo", "IntegrationEnvironment", "SequencingMethod", "Preparation", "Sample", "Subject"],
+                    "include_models": ["IntegrationLocation", "Integration", "BlastInfo", "IntegrationEnvironment", "SequencingMethod", "Preparation", "Sample", "Subject", "DataSet","DataSetSource", "GenomeVersion", "GenomeSpecies"],
                     "primary_model": "IntegrationLocation",
+                    "models": {
+                        "Integration": {
+                            "dont_link_to": ["DataSet"]
+                        },
+                        "DataSet": {
+                            "dont_link_to": ["GenomeVersion"]
+                        },
+                    },
                 },
+                
             ],
         },
     }

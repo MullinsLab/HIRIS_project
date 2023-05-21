@@ -86,25 +86,31 @@ class Exporter(BaseExporter):
         else:
             returns = "single_value"
 
-        # set up Select
-        if not count or count == "*":
-            select_bit = "COUNT(*)"
-        elif count.startswith("DISTINCT:"):
-            select_bit = f"COUNT(DISTINCT {count.replace('DISTINCT:', '')})"
-        else:
-            select_bit = f"COUNT({count})"
+        aggregate: dict = {
+            "function": "count",
+            "argument": count
+        }
 
-        sql_dict["select"] = ", ".join(filter(None, (sql_dict.get("select"), select_bit)))
+        return self._execute_query(sql_dict=sql_dict, group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join, aggregate=aggregate)
 
-        return self._execute_query(sql_dict=sql_dict, group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join)
+    def query_rows(self, *, count: any=None, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, aggregate: dict|list=None) -> int:
+        """ Build and execute a query to do a count, and return that count """
 
-    def _execute_query(self, *, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, sql_dict: dict=None, returns: str = None) -> object:
+        returns: str = "list"
+
+        return self._execute_query(group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join, aggregate=aggregate)
+
+    def _execute_query(self, *, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, sql_dict: dict=None, returns: str=None, aggregate: dict|list=None) -> object:
         """ Build the final query and execute it unless told not to 
             valid returns are: 
                 single_value = value of the first column 
                 value_dict = dict where the first column is the key, second column is the value"""
 
-        sql_dict = sql_dict.copy()
+        if sql_dict: 
+            sql_dict = sql_dict.copy()
+        else:
+            sql_dict = {}
+
         data: object = None
 
         # Set up Group By 
@@ -119,10 +125,31 @@ class Exporter(BaseExporter):
                 else:
                     field = self._get_field(app=group.get("app"), model=group.get("model"), field=group.get("field"))
 
-                log.debug(field)
-
                 sql_dict["group_by"] = ", ".join(filter(None, (sql_dict.get("group_by"), field.column)))
                 sql_dict["select"] = ", ".join(filter(None, (field.column, sql_dict.get("select"))))
+
+        # Set up Select
+        if aggregate:
+            # If it's not a list stick it inot a list so it can be processed the same
+            if type(aggregate) is not list:
+                aggregate = [aggregate]
+
+            for column in aggregate:
+                if column.get("function") == "count":
+                    argument: str = column.get("argument", "*")
+                    select_bit: str = ""
+
+                    if not argument or argument == "*":
+                        select_bit = "COUNT(*)"
+                    elif argument.startswith("DISTINCT:"):
+                        select_bit = f"COUNT(DISTINCT {argument.replace('DISTINCT:', '')})"
+                    else:
+                        select_bit = f"COUNT({argument})"
+
+                    if "column_name" in column:
+                        select_bit = f"{select_bit} AS {column['column_name']}"
+
+                    sql_dict["select"] = ", ".join(filter(None, (sql_dict.get("select"), select_bit)))
 
         # Build the SQL
         sql, parameters = self.base_sql(limit_before_join=limit_before_join, limit_after_join=limit_after_join)
@@ -142,6 +169,9 @@ class Exporter(BaseExporter):
             if returns == "value_dict":
                 return {row[0]: row[1] for row in cursor.fetchall()}
 
+            if returns == "list":
+                return [dict(zip(columns, row)) for row in cursor.fetchall()]
+            
             data = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
             return data

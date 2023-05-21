@@ -47,3 +47,13 @@ def get_genes_count() -> int:
     }
 
     return exporters["IntegrationFeatures"].query_count(limit_before_join=limit_before_join, count="DISTINCT:feature_name")
+
+def get_data_sources() -> list:
+    """ Get a list of the sources grouped by in vitro or in vivo """
+
+    aggregate: dict ={
+        "column_name": "count_of_integrations",
+        "function": "count",
+    }
+
+    return exporters["Integrations"].query_rows(group_by=["data_set_name", "integration_environment_name"], aggregate=aggregate)
