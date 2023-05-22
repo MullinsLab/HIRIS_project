@@ -6,6 +6,7 @@ from django.db import connection
 from collections import namedtuple
 
 from ml_export_wizard.utils.exporter import exporters
+from hiris.apps.core.utils.simple import first_author
 
 
 def generic_query(sql: str = None) -> list[dict]:
@@ -34,6 +35,7 @@ def get_environments_count() -> dict:
 
     return exporters["Integrations"].query_count(group_by="integration_environment_name")
 
+
 def get_genes_count() -> int:
     """ Returns a count of unique genes """
 
@@ -48,6 +50,7 @@ def get_genes_count() -> int:
 
     return exporters["IntegrationFeatures"].query_count(limit_before_join=limit_before_join, count="DISTINCT:feature_name")
 
+
 def get_data_sources() -> list:
     """ Get a list of the sources grouped by in vitro or in vivo """
 
@@ -56,4 +59,11 @@ def get_data_sources() -> list:
         "function": "count",
     }
 
-    return exporters["Integrations"].query_rows(group_by=["data_set_name", "integration_environment_name"], aggregate=aggregate)
+    group_by: list = ["data_set_name", "integration_environment_name", "document_citation_author", "document_citation_title", "document_citation_url", "document_pubmed_id", "document_uri"]
+
+    sources = exporters["Integrations"].query_rows(group_by=group_by, aggregate=aggregate, order_by="data_set_name")
+
+    for source in sources:
+        source["document_citation_author"] = first_author(source["document_citation_author"])
+
+    return sources

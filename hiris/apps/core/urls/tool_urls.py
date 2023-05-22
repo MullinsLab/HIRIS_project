@@ -1,6 +1,9 @@
 from django.contrib.auth.decorators import login_required
 from django.urls import path, include
 
+import logging
+log = logging.getLogger('app')
+
 from hiris.apps.core import views
 
 # determine appname

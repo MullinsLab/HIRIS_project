@@ -93,14 +93,14 @@ class Exporter(BaseExporter):
 
         return self._execute_query(sql_dict=sql_dict, group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join, aggregate=aggregate)
 
-    def query_rows(self, *, count: any=None, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, aggregate: dict|list=None) -> int:
+    def query_rows(self, *, count: any=None, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, aggregate: dict|list=None, order_by: str|list=None) -> int:
         """ Build and execute a query to do a count, and return that count """
 
         returns: str = "list"
 
-        return self._execute_query(group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join, aggregate=aggregate)
+        return self._execute_query(group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join, aggregate=aggregate, order_by=order_by)
 
-    def _execute_query(self, *, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, sql_dict: dict=None, returns: str=None, aggregate: dict|list=None) -> object:
+    def _execute_query(self, *, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, sql_dict: dict=None, returns: str=None, aggregate: dict|list=None, order_by: str|list=None) -> object:
         """ Build the final query and execute it unless told not to 
             valid returns are: 
                 single_value = value of the first column 
@@ -139,17 +139,41 @@ class Exporter(BaseExporter):
                     argument: str = column.get("argument", "*")
                     select_bit: str = ""
 
-                    if not argument or argument == "*":
-                        select_bit = "COUNT(*)"
-                    elif argument.startswith("DISTINCT:"):
-                        select_bit = f"COUNT(DISTINCT {argument.replace('DISTINCT:', '')})"
-                    else:
-                        select_bit = f"COUNT({argument})"
+                    distinct: bool = False
+                    field: object = None
 
-                    if "column_name" in column:
-                        select_bit = f"{select_bit} AS {column['column_name']}"
+                    if type(argument) is str:
+                        if argument.startswith("DISTINCT:"):
+                            argument = argument.replace('DISTINCT:', '')
+                            distinct = True
+                        
+                        if argument and argument != "*":
+                            field = self._get_field(field=argument)
+
+                    elif type(argument) is dict:
+                        field = self._get_field(app=group.get("app"), model=group.get("model"), field=group.get("field"))
+
+                    if field:
+                        select_bit = f"COUNT({'DISTINCT ' if distinct else ''}{field.column})"
+                    else:
+                        select_bit = "COUNT(*)"
+
+                    log.debug(select_bit)
 
                     sql_dict["select"] = ", ".join(filter(None, (sql_dict.get("select"), select_bit)))
+
+        # Set up Order By
+        if order_by:
+            if type(order_by) is not list:
+                order_by = [order_by]
+
+            for order in order_by:
+                if type(order) is str:
+                    field = self._get_field(field=order)
+                else:
+                    field = self._get_field(app=order.get("app"), model=order.get("model"), field=order.get("field"))
+
+                sql_dict["order_by"] = ", ".join(filter(None, (sql_dict.get("order_by"), field.column)))
 
         # Build the SQL
         sql, parameters = self.base_sql(limit_before_join=limit_before_join, limit_after_join=limit_after_join)
@@ -157,6 +181,9 @@ class Exporter(BaseExporter):
 
         if sql_dict.get("group_by"):
             sql = f"{sql} GROUP BY {sql_dict['group_by']}"
+
+        if sql_dict.get("order_by"):
+            sql = f"{sql} ORDER BY {sql_dict['order_by']}"
 
         # Do the actual query
         with connection.cursor() as cursor:
