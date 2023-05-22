@@ -2,11 +2,75 @@
 {% load humanize %}
 
 {% block page_content %}
-<h2>Sources</h2>
-The database contains
-        <strong>{{ counts.in_vivo|intcomma }} <em>in vivo</em></strong> and
-        <strong>{{ counts.in_vitro|intcomma }} <em>in vitro</em> observations</strong>
-        across
-        <strong>{{ gene_count|intcomma }} genes</strong>
-        from the following sources.
+<div class="row">
+    <div class="col col-md-7 col-sm-12">
+        <h2>Sources</h2>
+        The database contains
+            <strong>{{ counts.in_vivo|intcomma }} <em>in vivo</em></strong> and
+            <strong>{{ counts.in_vitro|intcomma }} <em>in vitro</em> observations</strong>
+            across
+            <strong>{{ gene_count|intcomma }} genes</strong>
+            from the following sources.
+    </div>
+    <div class="col col-md-6 col-sm-12">
+        <h4><em>In vivo</em> datasets</h4>
+        <table class="table table-condensed table-striped source-table">
+            <thead>
+                <tr>
+                        <th class="source-name">Data source</th>
+                        <th class="author">First author</th>
+                        <th class="publication-name">Publication</th>
+                        <th class="n-count">n</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for source in data_sources.in_vivo %}
+                    {% if source.document_pubmed_id %}
+                        <tr>
+                                <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
+                                <td class="author">{{ source.document_citation_author }}</td>
+                                <td class="publication-name">{% if source.document_citation_url %}<a href='{{ source.document_citation_url }}'>{% endif %}{{ source.document_citation_title }}{% if source.document_citation_url %}</a>{% endif %}</td>
+                                <td class="n-count">{{ source.count|intcomma }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                {% for source in data_sources.in_vivo %}
+                    {% if not source.document_pubmed_id %}
+                        <tr>
+                                <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
+                                <td class="author" colspan=2><em>unpublished</em></td>
+                                <td class="n-count">{{ source.count|intcomma }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="col col-md-6 col-sm-12">
+        <h4><em>In vitro</em> datasets</h4>
+
+        <table class="table table-condensed table-striped source-table">
+            <thead>
+                <tr>
+                    <th class="source-name">Data source</th>
+                    <th class="author">First author</th>
+                    <th class="publication-name">Publication</th>
+                    <th class="n-count">n</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for source in data_sources.in_vitro %}
+                    {% if source.document_pubmed_id %}
+                        <tr>
+                            <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
+                            <td class="author">{{ source.document_citation_author }}</td>
+                            <td class="publication-name">{% if source.document_citation_url %}<a href='{{ source.document_citation_url }}'>{% endif %}{{ source.document_citation_title }}{% if source.document_citation_url %}</a>{% endif %}</td>
+                            <td class="n-count">{{ source.count|intcomma }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

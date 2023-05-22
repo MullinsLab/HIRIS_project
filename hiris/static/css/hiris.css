@@ -25,3 +25,86 @@
   25%  { transform: rotate(20deg) }
   to   { transform: rotate(0deg)  }
 }
+
+body {
+  overflow-y: scroll;
+}
+
+body > .container {
+  padding-bottom: 10em;
+}
+
+/* Pad top of navbar when not proceeded by the title */
+
+nav      { margin-top: 30px }
+h1 + nav { margin-top: 0    }
+
+.nav-active{
+    background-color: #dddddd;
+}
+
+.text-lg {
+  font-size: 1.2em;
+}
+
+/* Notices are generally used in combination with the contextual text and
+ * background color classes provided by Bootstrap */
+.notice {
+  padding: 0.5em 0.7em;
+}
+.notice p:last-child {
+  margin-bottom: 0;
+}
+.frozen-notice {
+  border: solid #f5efd3;
+  border-width:  0 1px 1px 1px;
+  border-radius: 0 0   4px 4px;
+}
+
+/* Don't pad headers at the top of a column */
+.col > h1:first-child,
+.col > h2:first-child,
+.col > h3:first-child,
+.col > h4:first-child {
+  margin-top: 0;
+} 
+
+/* Tables of data sources */
+.source-table .n-count {
+  text-align: right;
+}
+.source-table th:not(.publication-name),
+.source-table td:not(.publication-name) {
+  white-space: nowrap;
+}
+
+/* Attribution and copyright footer */
+.footer {
+  margin-top: 5em;
+}
+.footer .media .media-object {
+  height: 45px;
+  margin-left: 15px;
+  border-radius: 4px;
+  -webkit-filter: grayscale(100%);
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+.footer .media .media-object:hover {
+  -webkit-filter: none;
+  filter: none;
+  opacity: 1;
+}
+
+/* Nicer definition lists when used for column documentation */
+dt code {
+    font-weight: normal;
+}
+dd {
+    margin-bottom: 1.1em;
+    margin-left: 1.5em;
+}
+
+a:link{
+    text-decoration: none;
+}

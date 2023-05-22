@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 
 from hiris.apps.core.utils.db import get_environments_count, get_genes_count, get_data_sources
-from hiris.apps.core.utils.simple import underscore_keys
+from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
 
 class Home(View):
     ''' The default view for HIRIS Home.  Currently shows the About page '''
@@ -34,7 +34,7 @@ class DataSources(View):
         """ Show the page """
 
         counts: dict = underscore_keys(get_environments_count())
-        data_sources: dict = get_data_sources()
+        data_sources: dict = underscore_keys(group_dict_list(dict_list=get_data_sources(), key="integration_environment_name"))
 
         gene_count: int = get_genes_count()
-        return render(request, "data_sources.html", context={"counts": counts, "gene_count": gene_count})
+        return render(request, "data_sources.html", context={"counts": counts, "gene_count": gene_count, "data_sources": data_sources})
