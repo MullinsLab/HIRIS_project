@@ -157,10 +157,10 @@ ML_EXPORT_WIZARD = {
     'Working_Files_Dir': os.path.join('/', env('WORKING_FILES_DIR'), ''),
     'Logger': 'app',
     "Setup_On_Start": True,
-    'Exporters': {
-        "IntegrationFeatures": {
-            "exclude_fields": ["added", "updated"],
+    'Exporters': [
+        {
             "name": "IntegrationFeatures",
+            "exclude_fields": ["added", "updated"],
             "apps" : [
                 {
                     "name": "core",
@@ -178,7 +178,19 @@ ML_EXPORT_WIZARD = {
                 }
             ],
         },
-        "Integrations": {
+        {
+            "name": "IntegrationFeaturesSummary",
+            "rollups": [
+                {
+                    "name": "IntegrationFeaturesSummary",
+                    "exporter": "IntegrationFeatures",
+                    "group_by": ["integration_environment_name", "subject_identifier", "core.IntegrationFeature.feature_type_name", "core.IntegrationLocation.landmark", "location", "orientation_in_landmark", "feature_orientation"],
+                    "aggregate": [{"column_name": "multiplicity", "function": "count"}],
+                },
+            ],
+        },
+        {
+            "name": "Integrations",
             "apps" : [
                 {
                     "name": "core",
@@ -193,8 +205,7 @@ ML_EXPORT_WIZARD = {
                         },
                     },
                 },
-                
             ],
         },
-    }
+    ]
 }

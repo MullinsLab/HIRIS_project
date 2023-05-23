@@ -16,5 +16,5 @@ class LoggingException(Exception):
         return self.message
     
 
-class MLExportWizardNoFieldFound:
+class MLExportWizardNoFieldFound(LoggingException):
     """ A field (or app or model) was requested that doesn't exist """
