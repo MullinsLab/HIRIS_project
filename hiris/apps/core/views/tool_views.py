@@ -38,3 +38,11 @@ class DataSources(View):
 
         gene_count: int = get_genes_count()
         return render(request, "data_sources.html", context={"counts": counts, "gene_count": gene_count, "data_sources": data_sources})
+    
+class SummaryByGeneJS(View):
+    """ The JS file that holds the data for gene summaries """
+
+    def get(self, request, *args, **kwargs):
+        """ return the file """
+
+        return render(request, "summary-by-gene.js", context={}, content_type="text/javascript")

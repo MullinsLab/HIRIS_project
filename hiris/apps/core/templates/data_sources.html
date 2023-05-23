@@ -30,7 +30,7 @@
                                 <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
                                 <td class="author">{{ source.document_citation_author }}</td>
                                 <td class="publication-name">{% if source.document_citation_url %}<a href='{{ source.document_citation_url }}'>{% endif %}{{ source.document_citation_title }}{% if source.document_citation_url %}</a>{% endif %}</td>
-                                <td class="n-count">{{ source.count|intcomma }}</td>
+                                <td class="n-count">{{ source.count_of_integrations|intcomma }}</td>
                         </tr>
                     {% endif %}
                 {% endfor %}
@@ -39,7 +39,7 @@
                         <tr>
                                 <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
                                 <td class="author" colspan=2><em>unpublished</em></td>
-                                <td class="n-count">{{ source.count|intcomma }}</td>
+                                <td class="n-count">{{ source.count_of_integrations|intcomma }}</td>
                         </tr>
                     {% endif %}
                 {% endfor %}
@@ -65,7 +65,7 @@
                             <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
                             <td class="author">{{ source.document_citation_author }}</td>
                             <td class="publication-name">{% if source.document_citation_url %}<a href='{{ source.document_citation_url }}'>{% endif %}{{ source.document_citation_title }}{% if source.document_citation_url %}</a>{% endif %}</td>
-                            <td class="n-count">{{ source.count|intcomma }}</td>
+                            <td class="n-count">{{ source.count_of_integrations|intcomma }}</td>
                         </tr>
                     {% endif %}
                 {% endfor %}

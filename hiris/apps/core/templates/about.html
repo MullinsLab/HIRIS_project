@@ -1,8 +1,17 @@
 {% extends "base.html" %}
+{% load static %}
+{% block header_content %}
+    {% comment %} <script src="https://cdnjs.cloudflare.com/ajax/libs/vega/5.25.0/vega.min.js" integrity="sha512-XX9YBZNtGu/Bz3d3zstE6vcEf4coHTGyxTwzU+0DNR7kHoD37krFcyWnqKTdzV6yWS9a5g3H3a71bM4ctzE1kA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.4/d3.min.js" integrity="sha512-nfUlp2ZWPKWlnAH/OsMeAqRSYBxOdPYeBXwceyw6QqqZ7uTT/s5/eS1hMKphjVBouk0jf/JQ8ULVJRnEqSHkXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> {% endcomment %}
+    
+    <script src="summary-by-gene.js"></script>
+    <script src="{% static 'js/graphing/d3.min.js' %}"></script>
+    <script src="{% static 'js/graphing/vega.min.js' %}"></script>
+{% endblock %}
 
 {% block page_content %}
     <div class="row">
-      <div class="col">
+        <div class="col col-md-7 col-sm-12">
        
         <h5>
         HIRIS aims to provide a stable, authoritative, and standardized source of data for analysing HIV-1 
@@ -28,8 +37,21 @@
                 Transposon tagged Cancer Gene Database</a> aggregates viral integration sites derived from mouse tumor model experiments.
         </p>        
       </div>
-      <div class="col">
-        <p>top genes to be added</p>
+      <div class="col col-md-5 col-sm-12">
+        <h4>
+            Top 12 <i>in vivo</i> genes
+            <small>by # of Subjects and Unique IS</small>
+          </h4>
+    
+          <div id="top-genes-viz-mini"></div>
+    
+          <script src="{% static 'js/graphing/spec-mini.js' %}"></script>
+          <script src="{% static 'js/graphing/controller-mini.js' %}"></script>
+          
+          <p class="notice bg-info">
+            See an expanded version of this plot on the
+            <a href="top-genes.html">Top Genes</a> page.
+          </p>
         <p>table to be added</p>
       </div>
     </div>
