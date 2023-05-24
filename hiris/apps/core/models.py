@@ -176,7 +176,6 @@ class Subject(CoreBaseModel):
         db_table = "subjects"
         unique_together = ('data_set', 'subject_identifier')
 
-
 class Sample(CoreBaseModel):
     """ Holds data about a specific sample """
     sample_id = models.BigAutoField(primary_key=True, editable=False)
@@ -205,6 +204,29 @@ class Sample(CoreBaseModel):
     class Meta:
         db_table = "samples"
         unique_together = ("subject", "culture", "culture_day", "date", "disease", "genbank", "original_id", "provirus_activity", "pubmed_id", "replicates", "tissue", "tissue_url", "type", "visit", "years_on_art")
+
+
+class SampleData(CoreBaseModel):
+    """ Holds random data about the sample """
+    sample_data_id = models.BigAutoField(primary_key=True, editable=False)
+    sample = models.ForeignKey(Sample, on_delete=models.CASCADE, related_name="sample_data")
+    key = models.CharField(max_length=255, null=False, blank=False)
+    value = models.JSONField(null=False)
+
+    class Meta:
+        db_table = "sample_data"
+        unique_together = ("sample", "key")
+
+class SubjectData(CoreBaseModel):
+    """ Holds random data about the subject """
+    subject_data_id = models.BigAutoField(primary_key=True, editable=False)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="subject_data")
+    key = models.CharField(max_length=255, null=False, blank=False)
+    value = models.JSONField(null=False)
+
+    class Meta: 
+        db_table = "subject_data"
+        unique_together = ('subject', 'key')
 
 
 class Preparation(CoreBaseModel):
@@ -249,7 +271,6 @@ class Integration(CoreBaseModel):
     """ Holds data about an individual integration """
     integration_id = models.BigAutoField(primary_key=True, editable=False)
     integration_environment = models.ForeignKey(IntegrationEnvironment, on_delete=models.CASCADE, related_name="integrations", null=True)
-    data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="integrations")
     sequencing_method = models.ForeignKey(SequencingMethod, on_delete=models.CASCADE, related_name="integrations")
     ltr = models.CharField(max_length=2, choices=(('3p', '3p'), ('5p', '5p')), null=True)
     multiple_integration = models.BooleanField(null=True, blank=True)
