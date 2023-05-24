@@ -54,7 +54,7 @@ def get_genes_count() -> int:
 def get_data_sources() -> list:
     """ Get a list of the sources grouped by in vitro or in vivo """
 
-    aggregate: dict ={
+    aggregate: dict = {
         "column_name": "count_of_integrations",
         "function": "count",
     }
@@ -67,3 +67,49 @@ def get_data_sources() -> list:
         source["document_citation_author"] = first_author(source["document_citation_author"])
 
     return sources
+
+def get_summary_by_gene() -> list:
+    """ Get a list of genes with associated data """
+
+    limit_before_join: dict = {
+        "IntegrationFeature": [
+            {
+                "field": "feature_type_name",
+                "value": "gene",
+            }
+        ]
+    }
+
+    aggregate: list = [
+        {
+            "column_name": "total_in_gene",
+            "function": "sum",
+            "argument": "multiplicity",
+            "cast": "int",
+        },
+        {
+            "column_name": "subjects",
+            "function": "case",
+            "argument": "integration_environment_name",
+            "when": [
+                {
+                    "condition": "in vivo",
+                    "agragate": {
+                        "function": "count",
+                        "argument": "subject_identifier",
+                        "distinct": True,
+                    },
+                },
+                {
+                    "else": True,
+                    "agragate": {
+                        "value": None
+                    },
+                },
+            ]
+        }
+    ]
+
+    group_by: list = ["integration_environment_name", "feature_name", "gene_type_name"]
+
+    return exporters["IntegrationFeaturesSummary"].query_rows(limit_before_join=limit_before_join, group_by=group_by, aggregate=aggregate)
