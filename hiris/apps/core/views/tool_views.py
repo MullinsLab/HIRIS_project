@@ -5,7 +5,7 @@ from django.views.generic.base import View
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 
-from hiris.apps.core.utils.db import get_environments_count, get_genes_count, get_data_sources
+from hiris.apps.core.utils.db import get_environments_count, get_genes_count, get_data_sources, get_summary_by_gene
 from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
 
 class Home(View):
@@ -13,6 +13,11 @@ class Home(View):
     
     def get(self, request, *args, **kwargs):
         ''' Returns the default template on a get '''
+
+        summary_by_gene: list = get_summary_by_gene()
+        log.debug(summary_by_gene[0])
+        log.debug(f"Gene count: {len(summary_by_gene)}")
+
         return render(request, "about.html")
 
     def post(self, request, *args, **kwargs):
