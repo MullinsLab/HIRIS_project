@@ -54,14 +54,14 @@ def get_genes_count() -> int:
 def get_data_sources() -> list:
     """ Get a list of the sources grouped by in vitro or in vivo """
 
-    aggregate: dict = {
+    extra_field: dict = {
         "column_name": "count_of_integrations",
         "function": "count",
     }
 
     group_by: list = ["data_set_name", "integration_environment_name", "document_citation_author", "document_citation_title", "document_citation_url", "document_pubmed_id", "document_uri"]
 
-    sources = exporters["Integrations"].query_rows(group_by=group_by, aggregate=aggregate, order_by="data_set_name")
+    sources = exporters["Integrations"].query_rows(group_by=group_by, extra_field=extra_field, order_by="data_set_name")
 
     for source in sources:
         source["document_citation_author"] = first_author(source["document_citation_author"])
@@ -80,36 +80,33 @@ def get_summary_by_gene() -> list:
         ]
     }
 
-    aggregate: list = [
-        {
-            "column_name": "total_in_gene",
-            "function": "sum",
-            "argument": "multiplicity",
-            "cast": "int",
-        },
+    extra_field: list = [
         {
             "column_name": "subjects",
             "function": "case",
-            "argument": "integration_environment_name",
-            "when": [
-                {
-                    "condition": "in vivo",
-                    "agragate": {
-                        "function": "count",
-                        "argument": "subject_identifier",
-                        "distinct": True,
-                    },
+            "source_field": "integration_environment_name",
+            "when": {
+                "condition": "in vivo",
+                "extra_field": {
+                    "function": "count",
+                    "source_field": "subject_identifier",
+                    "distinct": True,
                 },
-                {
-                    "else": True,
-                    "agragate": {
-                        "value": None
-                    },
-                },
-            ]
-        }
+            }
+        },
+        {
+            "column_name": "unique_sites",
+            "function": "count",
+            "source_field": ["landmark", "location"]
+        },
+        {
+            "column_name": "total_in_gene",
+            "function": "sum",
+            "source_field": "multiplicity",
+            "cast": "int",
+        },
     ]
 
     group_by: list = ["integration_environment_name", "feature_name", "gene_type_name"]
 
-    return exporters["IntegrationFeaturesSummary"].query_rows(limit_before_join=limit_before_join, group_by=group_by, aggregate=aggregate)
+    return exporters["IntegrationFeaturesSummary"].query_rows(limit_before_join=limit_before_join, group_by=group_by, extra_field=extra_field)

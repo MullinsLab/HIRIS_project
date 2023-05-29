@@ -45,12 +45,12 @@ if LOGIN_TYPE == "sso":
     LOGIN_URL = reverse_lazy('saml_login')
 
 # The ports are only needed to get UW_SAML to not redirect to a bad port on login
-WEB_PORT = None
-EXTERNAL_WEB_PORT = None
-
 if LOGIN_TYPE in ("dual", "sso"):
     WEB_PORT = env("WEB_PORT")
     EXTERNAL_WEB_PORT = env("EXTERNAL_WEB_PORT")
+else:
+    WEB_PORT = None
+    EXTERNAL_WEB_PORT = None
 
 LOGOUT_REDIRECT_URL = "/"
 

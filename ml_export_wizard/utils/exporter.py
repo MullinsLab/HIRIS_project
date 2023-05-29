@@ -93,25 +93,25 @@ class Exporter(BaseExporter):
             returns = "single_value"
 
         if count and count.startswith("DISTINCT:"):
-            aggregate: dict = {
+            extra_field: dict = {
                 "function": "count",
-                "argument": count.replace('DISTINCT:', ''),
+                "source_field": count.replace('DISTINCT:', ''),
                 "distinct": True,
             }
         else:
-            aggregate: dict = {
+            extra_field: dict = {
                 "function": "count",
-                "argument": count
+                "source_field": count
             }
 
-        return self.execute_query(sql_dict=sql_dict, group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join, aggregate=aggregate)
+        return self.execute_query(sql_dict=sql_dict, group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join, extra_field=extra_field)
 
-    def query_rows(self, *, count: any=None, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, aggregate: dict|list=None, order_by: str|list=None) -> list:
+    def query_rows(self, *, count: any=None, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, extra_field: dict|list=None, order_by: str|list=None) -> list:
         """ Build and execute a query to do a count, and return that count """
 
         returns: str = "list"
 
-        return self.execute_query(group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join, aggregate=aggregate, order_by=order_by)
+        return self.execute_query(group_by=group_by, returns=returns, limit_before_join=limit_before_join, limit_after_join=limit_after_join, extra_field=extra_field, order_by=order_by)
 
     def get_field(self, app: str=None, model: str=None, field: str=None):
         """ Return a field object defined by app, model, field """
@@ -152,7 +152,8 @@ class Exporter(BaseExporter):
         """ execute the final query
             valid returns are: 
                 single_value = value of the first column 
-                value_dict = dict where the first column is the key, second column is the value"""
+                value_dict = dict where the first column is the key, second column is the value
+                list = list of rows containg key/value dict of the fields """
 
         # returns = kwargs.pop("returns", None)
         sql, parameters = self.final_sql(**kwargs)
@@ -174,8 +175,10 @@ class Exporter(BaseExporter):
 
             return data
 
-    def final_sql(self, *, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, sql_dict: dict=None, returns: str=None, aggregate: dict|list=None, order_by: str|list=None, query_layer: str=None) -> tuple[str, dict]:
+    def final_sql(self, *, group_by: dict|list|str=None, limit_before_join: dict=None, limit_after_join: dict=None, sql_dict: dict=None, returns: str=None, extra_field: dict|list=None, order_by: str|list=None, query_layer: str=None) -> tuple[str, dict]:
         """ Build the final query """
+
+        parameters: dict = {}
 
         if query_layer == "inner":
             field_query_layer = "middle"
@@ -203,13 +206,15 @@ class Exporter(BaseExporter):
                 sql_dict["select"] = ", ".join(filter(None, (field.column(query_layer=field_query_layer), sql_dict.get("select"))))
 
         # Set up Select
-        if aggregate:
+        if extra_field:
             # If it's not a list stick it into a list so it can be processed the same
-            if type(aggregate) is not list:
-                aggregate = [aggregate]
+            if type(extra_field) is not list:
+                extra_field = [extra_field]
 
-            for column in aggregate:
-                sql_dict["select"] = ", ".join(filter(None, (sql_dict.get("select"), self._resolve_aggragate(column=column, query_layer=query_layer, field_query_layer=field_query_layer))))
+            for column in extra_field:
+                (added_select_bit, added_parameters) = self._resolve_extra_field(column=column, query_layer=query_layer, field_query_layer=field_query_layer)
+                sql_dict["select"] = ", ".join(filter(None, (sql_dict.get("select"), added_select_bit)))
+                parameters = parameters | added_parameters
 
         # Set up Order By
         if order_by:
@@ -231,8 +236,9 @@ class Exporter(BaseExporter):
                 sql_dict["order_by"] = ", ".join(filter(None, (sql_dict.get("order_by"), order_bit)))
 
         # Build the SQL
-        sql, parameters = self.base_sql(limit_before_join=limit_before_join, limit_after_join=limit_after_join, query_layer=query_layer)
-        
+        sql, added_parameters = self.base_sql(limit_before_join=limit_before_join, limit_after_join=limit_after_join, query_layer=query_layer)
+        parameters = parameters | added_parameters
+
         if sql_dict.get("select"):
             sql = f"SELECT {sql_dict['select']} FROM ({sql}) AS {self.name}"
         else:
@@ -246,37 +252,86 @@ class Exporter(BaseExporter):
 
         return (sql, parameters)
     
-    def _resolve_aggragate(self, *, column: dict=None, query_layer: str=None, field_query_layer: str=None):
-        """ Resolve the aggragates to sql statements """
+    def _resolve_extra_field(self, *, column: dict=None, query_layer: str=None, field_query_layer: str=None) -> tuple[str, dict]:
+        """ Resolve the aggragates to sql statements.  Returns an SQL string, and a dictionary of parameters """
+
+        if "value" in column:
+            if column["value"] is None:
+                return ("Null", [])
 
         field: object = None
         select_bit: str = ""
-        argument: str = column.get("argument")
-        
+        parameters: dict = {}
+        field_column: str = ""
+        fields: list = []
+
         # Get the field object to work with
-        if type(argument) is str:
+        if column.get("source_field"):
+            if type(column["source_field"]) is not list:
+                log.debug(column)
 
-            # If argument in app.model.field format
-            if argument.count(".") == 2:
-                app, model, field = argument.split(".")
-                field = self.get_field(app=app, model=model, field=field)
-
-            elif argument and argument != "*":
-                field = self.get_field(field=argument)
-
-        elif type(argument) is dict:
-            field = self.get_field(app=column.get("app"), model=column.get("model"), field=column.get("field"))
-
-        # Resolve the select bit for the agragate
-        if column.get("function") == "sum":
-            if field:
-                select_bit = f"SUM({field.column(query_layer=field_query_layer)})"
-
-        elif column.get("function") == "count":
-            if field:
-                select_bit = f"COUNT({'DISTINCT ' if column.get('distinct') else ''}{field.column(query_layer=field_query_layer)})"
+                source_fields = [column["source_field"]]
             else:
-                select_bit = "COUNT(*)"
+                source_fields = column["source_field"]
+
+            for source_field in source_fields:
+                if type(source_field) is str:
+
+                    # If source_field in app.model.field format
+                    if source_field.count(".") == 2:
+                        app, model, field = source_field.split(".")
+                        fields.append(self.get_field(app=app, model=model, field=field))
+
+                    elif source_field and source_field != "*":
+                        fields.append(self.get_field(field=source_field))
+
+                elif type(source_field) is dict:
+                    fields.append(self.get_field(app=column.get("app"), model=column.get("model"), field=column.get("field")))
+
+            # Resolve the select bit for the agragate
+            if len(fields) == 1:
+                field_column = fields[0].column(query_layer=field_query_layer)
+            
+            else:
+                for field in fields:
+                    field_column = ", ".join(filter(None, (field_column, field.column(query_layer=field_query_layer))))
+
+                field_column = f"ROW({field_column})"
+        else:
+            field_column = None
+
+        match column.get("function"):
+            case "sum":
+                if field_column:
+                    select_bit = f"SUM({field_column})"
+
+            case "count":
+                if field_column:
+                    select_bit = f"COUNT({'DISTINCT ' if column.get('distinct') else ''}{field_column})"
+                else:
+                    select_bit = "COUNT(*)"
+
+            case "case":
+                if field_column:
+                    select_bit = f"CASE {field_column}"
+                
+                if type(column.get("when")) is dict:
+                    column["when"] = [column["when"]]
+
+                for when in column.get("when", []):
+                    if when.get("condition"):
+                        (added_select_bit, added_parameters) = self._resolve_extra_field(column=when['extra_field'])
+                        select_bit = f"{select_bit} WHEN %({column['column_name']}_{column['when'].index(when)})s THEN {added_select_bit}"
+                        parameters[f"{column['column_name']}_{column['when'].index(when)}"] = when["condition"]
+                        parameters = parameters | added_parameters
+
+                    elif when.get("else"):
+                        (added_select_bit, added_parameters) = self._resolve_extra_field(column=when['extra_field'])
+                        select_bit = f"{select_bit} ELSE {added_select_bit}"
+                        parameters = parameters | added_parameters
+
+                select_bit = f"{select_bit} END"
+
 
         if column.get("cast"):
             select_bit = f"{select_bit}::{column['cast']}"
@@ -284,8 +339,8 @@ class Exporter(BaseExporter):
         if column.get("column_name"):
             select_bit = f"{select_bit} AS {column['column_name']}"
 
-        return select_bit
-    
+        return (select_bit, parameters)
+
 
 class ExporterApp(BaseExporter):
     """ Class to hold apps to export  """
@@ -444,8 +499,8 @@ class ExporterRollup(BaseExporter):
             self.fields_by_name[field_object.name] = field_object
 
         # Add psudofields for agragates so field names can be looked up
-        for aggregate in self.settings.get("aggregate", []):
-            pseudofield = ExporterPseudofield(parent=self, name=aggregate["column_name"])
+        for extra_field in self.settings.get("extra_field", []):
+            pseudofield = ExporterPseudofield(parent=self, name=extra_field["column_name"])
 
             self.fields.append(pseudofield)
             self.fields_by_name[pseudofield.name] = pseudofield
@@ -463,14 +518,14 @@ class ExporterRollup(BaseExporter):
 
         sql_dict: dict = {}
 
-        from_bit, sql_dict["parameters"] = self.exporter.final_sql(limit_before_join=limit_before_join, limit_after_join=limit_after_join, group_by=self.settings.get("group_by"), aggregate=self.settings.get("aggregate"), query_layer="inner")
+        from_bit, sql_dict["parameters"] = self.exporter.final_sql(limit_before_join=limit_before_join, limit_after_join=limit_after_join, group_by=self.settings.get("group_by"), extra_field=self.settings.get("extra_field"), query_layer="inner")
         
         sql_dict["from"] = f"({from_bit}) AS {self.name}"
 
         for field in self.fields:
             sql_dict = merge_sql_dicts(sql_dict, field._sql_dict(table_name=self.name, query_layer="outer"))
 
-        for aggragate in self.settings.get("aggregate", []):
+        for aggragate in self.settings.get("extra_field", []):
             sql_dict["select"] = ", ".join(filter(None, (sql_dict["select"], f"{self.name}.{aggragate['column_name']}")))
 
         return sql_dict
@@ -561,7 +616,7 @@ class ExporterPseudofield(BaseExporter):
         parent.fields_by_name[self.name] = self
 
     def column(self, *, query_layer: str=None) -> str:
-        """ returns the name of the DB column for the pseudofield"""
+        """ returns the name of the DB column for the pseudofiel """
 
         column: str = self.name
         
@@ -580,7 +635,7 @@ class ExporterPseudofield(BaseExporter):
         return {}
     
 
-def merge_sql_dicts(dict1: dict = None, dict2: dict = None) -> dict[str: str]:
+def merge_sql_dicts(dict1: dict = None, dict2: dict = None) -> dict[str: any]:
     """ Merge SQL dictionaries together """
 
     if dict1 is None and dict2 is None:
