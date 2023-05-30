@@ -424,10 +424,11 @@ class ImportScheme(ImportBaseModel):
                                 test_attributes: dict[str, any] = {}
                                 test_attributes_string: str = ""
 
-                                for unique_field in unique_set:
+                                for unique_field in [unique_field for unique_field in unique_set if unique_field in working_attributes]:
                                     test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
-                                    # log.debug(f"{unique_field}")
-                                    # log.debug(f"{working_attributes[unique_field]}")
+                                    # log.debug(unique_field)
+                                    # log.debug(working_attributes[unique_field])
+                                    # log.debug("Test\n")
                                     test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
 
                                 temp_object: any = cache_thing.find(key=(model.name, test_attributes_string), report=False)

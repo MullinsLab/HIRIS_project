@@ -129,7 +129,7 @@ ML_IMPORT_WIZARD = {
             'apps': [
                 {
                     'name': 'core',
-                    'include_models': ['GenomeVersion', 'DataSet', "DataSetSource", "Subject", "Sample", "Preparation", "SequencingMethod", "IntegrationEnvironment", "Integration", "IntegrationLocation", "BlastInfo"],
+                    'include_models': ["GenomeVersion", "DataSet", "Publication", "DataSetSource", "Subject", "Sample", "Preparation", "SequencingMethod", "IntegrationEnvironment", "Integration", "IntegrationLocation", "BlastInfo"],
                     "models": {
                         "GenomeVersion": {
                             "exclude_fields": ["external_gene_id_source"],
@@ -144,6 +144,9 @@ ML_IMPORT_WIZARD = {
                         },
                         "BlastInfo": {
                             "suppress_on_empty": True,
+                        },
+                        "DataSetSource": {
+                            "exclude_fields": ["document_citation_url", "document_citation_doi", "document_citation_issn", "document_citation_year", "document_citation_type", "document_citation_pages", "document_citation_title", "document_citation_author", "document_citation_issue_number", "document_citation_volume", "document_citation_journal", "document_citation_citekey"]
                         },
                     },
                 },
@@ -164,8 +167,8 @@ ML_EXPORT_WIZARD = {
             "apps" : [
                 {
                     "name": "core",
-                    #"include_models": ["IntegrationLocation", "IntegrationFeature", "Integration", "FeatureLocation", "Feature", "FeatureType", "BlastInfo", "IntegrationEnvironment", "SequencingMethod", "Preparation", "Sample", "Subject", "DataSet", "DataSetSource", "GeneType", "GenomeVersion"],
-                    #"exclude_models": []
+                    #"include_models": [],
+                    #"exclude_models": [],
                     "primary_model": "IntegrationLocation",
                     "models": {
                         "Integration": {
@@ -194,7 +197,7 @@ ML_EXPORT_WIZARD = {
             "apps" : [
                 {
                     "name": "core",
-                    "include_models": ["IntegrationLocation", "Integration", "BlastInfo", "IntegrationEnvironment", "SequencingMethod", "Preparation", "Sample", "Subject", "DataSet","DataSetSource", "GenomeVersion", "GenomeSpecies"],
+                    "include_models": ["IntegrationLocation", "Integration", "BlastInfo", "IntegrationEnvironment", "SequencingMethod", "Preparation", "Sample", "Subject", "DataSet", "Publication", "DataSetSource", "GenomeVersion", "GenomeSpecies"],
                     "primary_model": "IntegrationLocation",
                     "models": {
                         "Integration": {

@@ -18,7 +18,8 @@ class CoreBaseModel(models.Model):
         ''' Returns the specific class name field as name 
         uses explicit name_field if it exists, otherwise defaults to the class name + "_name" '''
         if hasattr(self, 'name_field') and self.name_field:         # type: ignore
-            return eval("self." + self.name_field)                  # type: ignore   # pragma: no cover
+            #return str(eval("self." + self.name_field))            # type: ignore   # pragma: no cover
+            return str(getattr(self, self.name_field))              # type: ignore   # pragma: no cover
         else:
             name_list: list[str] = re.sub( r"([A-Z])", r" \1", self.__class__.__name__).split()
             name = '_'.join(name_list)
@@ -160,10 +161,40 @@ class DataSetSource(CoreBaseModel):
         unique_together = ("data_set", "document_pubmed_id", "document_uri", "document_citation_url", "document_citation_doi", "document_citation_issn", "document_citation_year", "document_citation_type", "document_citation_pages", "document_citation_title", "document_citation_author", "document_citation_issue_number", "document_citation_volume", "document_citation_journal", "document_citation_citekey")
 
 
+class Publication(CoreBaseModel):
+    """ Holds information about the publications that the data comes from """
+    publication_id = models.BigAutoField(primary_key=True, editable=False)
+    data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="publications")
+    pubmed_id = models.IntegerField(null=True)
+
+    name_field = "pubmed_id"
+
+    class Meta:
+        db_table = "publications"
+        unique_together = ("data_set", "pubmed_id")
+
+
+class PublicationData(CoreBaseModel):
+    """ Holds information about publications, one row per key/value pair """
+    publication_data_id = models.BigAutoField(primary_key=True, editable=False)
+    publication = models.OneToOneField(Publication, on_delete=models.CASCADE, related_name="publication_data")
+    key = models.CharField(max_length=255)
+    value = models.JSONField()
+
+    class Meta:
+        db_table = "publication_data"
+        unique_together = ("publication", "key")
+        
+        indexes = [
+            models.Index(fields=["key"]),
+            models.Index(fields=["publication", "key"]),
+        ]
+
+
 class Subject(CoreBaseModel):
     """ Holds data about the subject the samples were collected from """
     subject_id = models.BigAutoField(primary_key=True, editable=False)
-    data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="subjects")
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE, related_name="subjects")
     subject_identifier = models.CharField(max_length=255, null=True, blank=True)
 
     @property
@@ -174,7 +205,7 @@ class Subject(CoreBaseModel):
 
     class Meta:
         db_table = "subjects"
-        unique_together = ('data_set', 'subject_identifier')
+        unique_together = ('publication', 'subject_identifier')
 
 class Sample(CoreBaseModel):
     """ Holds data about a specific sample """
@@ -216,6 +247,7 @@ class SampleData(CoreBaseModel):
     class Meta:
         db_table = "sample_data"
         unique_together = ("sample", "key")
+
 
 class SubjectData(CoreBaseModel):
     """ Holds random data about the subject """
@@ -297,7 +329,7 @@ class IntegrationLocation(CoreBaseModel):
     """ Holds data about the locations of a specific integration """
     integration_location_id = models.BigAutoField(primary_key=True, editable=False)
     integration = models.ForeignKey(Integration, on_delete=models.CASCADE, related_name="integration_locations")
-    feature_locations = models.ManyToManyField(FeatureLocation, related_name="integration_locations", through="IntegrationFeature")
+    feature_locations = models.ManyToManyField(FeatureLocation, related_name="integration_locations", through="IntegrationFeature", editable=False)
     landmark = models.CharField(max_length=255)
     location = models.IntegerField()
     orientation_in_landmark = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=True)

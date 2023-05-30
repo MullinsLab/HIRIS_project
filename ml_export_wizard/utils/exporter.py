@@ -291,9 +291,7 @@ class Exporter(BaseExporter):
                 field_column = fields[0].column(query_layer=field_query_layer)
             
             elif len(fields) > 1:
-                log.debug(fields)
                 for field in fields:
-                    log.debug(field.column(query_layer=field_query_layer))
                     field_column = ", ".join(filter(None, (field_column, field.column(query_layer=field_query_layer))))
 
                 field_column = f"ROW({field_column})"
