@@ -312,6 +312,13 @@ class Integration(CoreBaseModel):
     junction_3p = models.IntegerField(null=True, blank=True)
     sequence_name = models.TextField(null=True, blank=True)
     sequence_uri = models.TextField(null=True, blank=True)
+    ltr_sequence_5p = models.TextField(null=True, blank=True)
+    breakpoint_sequence_5p = models.TextField(null=True, blank=True)
+    umi_sequence_5p = models.TextField(null=True, blank=True)
+    ltr_sequence_3p = models.TextField(null=True, blank=True)
+    breakpoint_sequence_3p = models.TextField(null=True, blank=True)
+    umi_sequence_3p = models.TextField(null=True, blank=True)
+    provirus_sequence = models.TextField(null=True, blank=True)
     replicate = models.IntegerField(null=True, blank=True)
     replicates = models.IntegerField(null=True, blank=True)
     note = models.TextField(null=True, blank=True)
@@ -330,8 +337,22 @@ class IntegrationLocation(CoreBaseModel):
     integration_location_id = models.BigAutoField(primary_key=True, editable=False)
     integration = models.ForeignKey(Integration, on_delete=models.CASCADE, related_name="integration_locations")
     feature_locations = models.ManyToManyField(FeatureLocation, related_name="integration_locations", through="IntegrationFeature", editable=False)
+    
     landmark = models.CharField(max_length=255)
     location = models.IntegerField()
+    breakpoint_landmark = models.CharField(max_length=255, null=True)
+    breakpoint_location = models.IntegerField(null=True)
+    
+    landmark_5p = models.CharField(max_length=255, null=True)
+    location_5p = models.IntegerField(null=True)
+    breakpoint_landmark_5p = models.CharField(max_length=255, null=True)
+    breakpoint_location_5p = models.IntegerField(null=True)
+
+    landmark_3p = models.CharField(max_length=255, null=True)
+    location_3p = models.IntegerField(null=True)
+    breakpoint_landmark_3p = models.CharField(max_length=255, null=True)
+    breakpoint_location_3p = models.IntegerField(null=True)
+
     orientation_in_landmark = models.CharField(max_length=1, choices=(('F', 'Forward'), ('R', 'Reverse')), null=True)
 
     class Meta:
