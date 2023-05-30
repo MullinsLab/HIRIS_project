@@ -100,6 +100,18 @@ def get_summary_by_gene() -> list:
             "source_field": ["landmark", "location"]
         },
         {
+            "column_name": "proliferating_sites",
+            "function": "count",
+            "source_field": ["landmark", "location"],
+            "filter": [
+                {
+                    "field": "multiplicity",
+                    "operator": ">=",
+                    "value": 2,
+                },
+            ]
+        },
+        {
             "column_name": "total_in_gene",
             "function": "sum",
             "source_field": "multiplicity",

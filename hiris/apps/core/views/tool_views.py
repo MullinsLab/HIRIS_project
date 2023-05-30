@@ -14,10 +14,6 @@ class Home(View):
     def get(self, request, *args, **kwargs):
         ''' Returns the default template on a get '''
 
-        summary_by_gene: list = get_summary_by_gene()
-        log.debug(summary_by_gene[0])
-        log.debug(f"Gene count: {len(summary_by_gene)}")
-
         return render(request, "about.html")
 
     def post(self, request, *args, **kwargs):
@@ -50,4 +46,6 @@ class SummaryByGeneJS(View):
     def get(self, request, *args, **kwargs):
         """ return the file """
 
-        return render(request, "summary-by-gene.js", context={}, content_type="text/javascript")
+        summary_by_gene: list = get_summary_by_gene()
+
+        return render(request, "summary-by-gene.js", context={"summary": summary_by_gene}, content_type="text/javascript")

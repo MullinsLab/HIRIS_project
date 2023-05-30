@@ -268,8 +268,6 @@ class Exporter(BaseExporter):
         # Get the field object to work with
         if column.get("source_field"):
             if type(column["source_field"]) is not list:
-                log.debug(column)
-
                 source_fields = [column["source_field"]]
             else:
                 source_fields = column["source_field"]
@@ -292,8 +290,10 @@ class Exporter(BaseExporter):
             if len(fields) == 1:
                 field_column = fields[0].column(query_layer=field_query_layer)
             
-            else:
+            elif len(fields) > 1:
+                log.debug(fields)
                 for field in fields:
+                    log.debug(field.column(query_layer=field_query_layer))
                     field_column = ", ".join(filter(None, (field_column, field.column(query_layer=field_query_layer))))
 
                 field_column = f"ROW({field_column})"
@@ -322,19 +322,34 @@ class Exporter(BaseExporter):
                     if when.get("condition"):
                         (added_select_bit, added_parameters) = self._resolve_extra_field(column=when['extra_field'])
                         select_bit = f"{select_bit} WHEN %({column['column_name']}_{column['when'].index(when)})s THEN {added_select_bit}"
+
                         parameters[f"{column['column_name']}_{column['when'].index(when)}"] = when["condition"]
                         parameters = parameters | added_parameters
 
                     elif when.get("else"):
                         (added_select_bit, added_parameters) = self._resolve_extra_field(column=when['extra_field'])
+
                         select_bit = f"{select_bit} ELSE {added_select_bit}"
                         parameters = parameters | added_parameters
 
                 select_bit = f"{select_bit} END"
 
-
         if column.get("cast"):
             select_bit = f"{select_bit}::{column['cast']}"
+
+        if column.get("filter"):
+            if type (column["filter"]) is not list:
+                column["filter"] = [column["filter"]]
+
+            where_bit: str = ""
+
+            for filter_item in column.get("filter", []):
+                field = self.get_field(field=filter_item["field"])
+                where_bit, added_parameters = _resolve_where(operator=filter_item["operator"], value=filter_item["value"], field=field)
+
+            if where_bit:
+                select_bit = f"{select_bit} FILTER (WHERE {where_bit})"
+                parameters = parameters | added_parameters
 
         if column.get("column_name"):
             select_bit = f"{select_bit} AS {column['column_name']}"
@@ -419,13 +434,8 @@ class ExporterModel(BaseExporter):
             for field_name, value, operator in [(limit.get("field"), limit.get("value"), limit.get("operator", "=")) for limit in limit_before_join[self.name]]:
                 field = self.fields_by_name[field_name]
                 
-                if operator == "=":
-                    where_bit = "AND ".join(filter(None, (where_bit, f"{field.column()}=%({field.column()})s")))
-
-                    if "parameters" not in sql_dict:
-                        sql_dict["parameters"] = {}
-
-                    sql_dict["parameters"][field.column()] = value
+                where_bit, parameters = _resolve_where(field=field, operator=operator, value=value)
+                sql_dict["parameters"] = sql_dict.get("parameters", {}) | parameters
             
             if where_bit:
                 table = f" (SELECT * FROM {table} WHERE {where_bit}) AS {table}"
@@ -504,8 +514,6 @@ class ExporterRollup(BaseExporter):
 
             self.fields.append(pseudofield)
             self.fields_by_name[pseudofield.name] = pseudofield
-
-            log.debug(f"Adding pseudofield: {pseudofield.name}")
 
     @property
     def table(self) -> str:
@@ -633,7 +641,24 @@ class ExporterPseudofield(BaseExporter):
         """ Reuturns a blank sql_dict """
 
         return {}
-    
+
+
+def _resolve_where(*, operator: str=None, field: ExporterField|ExporterPseudofield=None, value: str|int|float=None) -> tuple[str, dict]:
+    """ Resolve the where bit of a query. Returns a tuple with the where part and parameters """
+
+    if not operator or not field or not value:
+        return (None, None)
+
+    where_bit: str = ""
+    parameters: dict = {}
+
+    if operator in ("=", ">=", "<=", "<>", "!="):
+        where_bit = "AND ".join(filter(None, (where_bit, f"{field.column()}{operator}%({field.column()})s")))
+
+    parameters[field.column()] = value
+
+    return (where_bit, parameters)
+
 
 def merge_sql_dicts(dict1: dict = None, dict2: dict = None) -> dict[str: any]:
     """ Merge SQL dictionaries together """
