@@ -6,7 +6,6 @@ import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from weakref import proxy
-from functools import lru_cache
 
 from ml_import_wizard.utils.simple import fancy_name, deep_exists
 from ml_import_wizard.exceptions import UnresolvedInspectionOrder
