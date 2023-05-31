@@ -38,7 +38,7 @@ def get_environments_count() -> dict:
 def get_genes_count() -> int:
     """ Returns a count of unique genes """
 
-    limit_before_join: dict = {
+    where_before_join: dict = {
         "IntegrationFeature": [
             {
                 "field": "feature_type_name",
@@ -47,7 +47,7 @@ def get_genes_count() -> int:
         ]
     }
 
-    return exporters["IntegrationFeatures"].query_count(limit_before_join=limit_before_join, count="DISTINCT:feature_name")
+    return exporters["IntegrationFeatures"].query_count(where_before_join=where_before_join, count="DISTINCT:feature_name")
 
 
 def get_data_sources() -> list:
@@ -76,7 +76,7 @@ def get_data_sources() -> list:
 def get_summary_by_gene() -> list:
     """ Get a list of genes with associated data """
 
-    limit_before_join: dict = {
+    where_before_join: dict = {
         "IntegrationFeature": [
             {
                 "field": "feature_type_name",
@@ -126,4 +126,4 @@ def get_summary_by_gene() -> list:
 
     group_by: list = ["integration_environment_name", "feature_name", "gene_type_name"]
 
-    return exporters["IntegrationFeaturesSummary"].query_rows(limit_before_join=limit_before_join, group_by=group_by, extra_field=extra_field)
+    return exporters["IntegrationFeaturesSummary"].query_rows(where_before_join=where_before_join, group_by=group_by, extra_field=extra_field)
