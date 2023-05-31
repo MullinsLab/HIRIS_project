@@ -595,7 +595,8 @@ class ExporterField(BaseExporter):
     def _sql_dict(self, *, table_name: str=None, query_layer: str=None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this field"""
 
-        if self.settings.get("join_only") or type(self.field) in (models.ManyToOneRel, models.ManyToManyField, models.ManyToManyRel, models.OneToOneRel,): #models.OneToOneRel, 
+        # Don't include this field in the select if it's there just for joining, or if it is a reference to a different table
+        if self.settings.get("join_only") or type(self.field) in (models.ManyToOneRel, models.ManyToManyField, models.ManyToManyRel, models.OneToOneRel, models.ForeignKey): #models.OneToOneRel, 
             return {}
         
         sql_dict: dict[str: str] = {}
