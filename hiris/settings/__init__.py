@@ -12,5 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import *       # All Django related settings
-from .third_party import *  # UW-SAML2, ML_Import, etc
+from .base_settings import *       # All Django related settings
+from .third_party_settings import *  # UW-SAML2
+from .importer_settings import *
+from .exporter_settings import *
