@@ -25,17 +25,17 @@
             </thead>
             <tbody>
                 {% for source in data_sources.in_vivo %}
-                    {% if source.document_pubmed_id %}
+                    {% if source.publication_pubmed_id %}
                         <tr>
                                 <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
-                                <td class="author">{{ source.document_citation_author }}</td>
-                                <td class="publication-name">{% if source.document_citation_url %}<a href='{{ source.document_citation_url }}'>{% endif %}{{ source.document_citation_title }}{% if source.document_citation_url %}</a>{% endif %}</td>
+                                <td class="author">{{ source.first_author }}</td>
+                                <td class="publication-name"><a href='https://www.ncbi.nlm.nih.gov/pubmed/{{ source.publication_pubmed_id }}'>{{ source.title }}</a></td>
                                 <td class="n-count">{{ source.count_of_integrations|intcomma }}</td>
                         </tr>
                     {% endif %}
                 {% endfor %}
                 {% for source in data_sources.in_vivo %}
-                    {% if not source.document_pubmed_id %}
+                    {% if not source.publication_pubmed_id %}
                         <tr>
                                 <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
                                 <td class="author" colspan=2><em>unpublished</em></td>
@@ -60,17 +60,17 @@
             </thead>
             <tbody>
                 {% for source in data_sources.in_vitro %}
-                    {% if source.document_pubmed_id %}
+                    {% if source.publication_pubmed_id %}
                         <tr>
                             <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
-                            <td class="author">{{ source.document_citation_author }}</td>
-                            <td class="publication-name">{% if source.document_citation_url %}<a href='{{ source.document_citation_url }}'>{% endif %}{{ source.document_citation_title }}{% if source.document_citation_url %}</a>{% endif %}</td>
+                            <td class="author">{{ source.first_author }}</td>
+                            <td class="publication-name"><a href='https://www.ncbi.nlm.nih.gov/pubmed/{{ source.publication_pubmed_id }}'>{{ source.title }}</a></td>
                             <td class="n-count">{{ source.count_of_integrations|intcomma }}</td>
                         </tr>
                     {% endif %}
                 {% endfor %}
                 {% for source in data_sources.in_vitro %}
-                    {% if not source.document_pubmed_id %}
+                    {% if not source.publication_pubmed_id %}
                         <tr>
                                 <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
                                 <td class="author" colspan=2><em>unpublished</em></td>

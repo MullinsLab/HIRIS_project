@@ -165,19 +165,19 @@ class Publication(CoreBaseModel):
     """ Holds information about the publications that the data comes from """
     publication_id = models.BigAutoField(primary_key=True, editable=False)
     data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="publications")
-    pubmed_id = models.IntegerField(null=True)
+    publication_pubmed_id = models.IntegerField(null=True)
 
-    name_field = "pubmed_id"
+    name_field = "publication_pubmed_id"
 
     class Meta:
         db_table = "publications"
-        unique_together = ("data_set", "pubmed_id")
+        unique_together = ("data_set", "publication_pubmed_id")
 
 
 class PublicationData(CoreBaseModel):
     """ Holds information about publications, one row per key/value pair """
     publication_data_id = models.BigAutoField(primary_key=True, editable=False)
-    publication = models.OneToOneField(Publication, on_delete=models.CASCADE, related_name="publication_data")
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE, related_name="publication_data")
     key = models.CharField(max_length=255)
     value = models.JSONField()
 
@@ -187,7 +187,7 @@ class PublicationData(CoreBaseModel):
         
         indexes = [
             models.Index(fields=["key"]),
-            models.Index(fields=["publication", "key"]),
+            models.Index(fields=["publication"]),
         ]
 
 
@@ -207,6 +207,23 @@ class Subject(CoreBaseModel):
         db_table = "subjects"
         unique_together = ('publication', 'subject_identifier')
 
+
+class SubjectData(CoreBaseModel):
+    """ Holds random data about the subject """
+    subject_data_id = models.BigAutoField(primary_key=True, editable=False)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="subject_data")
+    key = models.CharField(max_length=255, null=False, blank=False)
+    value = models.JSONField(null=False, blank=False)
+
+    class Meta: 
+        db_table = "subject_data"
+        unique_together = ('subject', 'key')
+
+        indexes = [
+            models.Index(fields=["key"]),
+            models.Index(fields=["subject"]),
+        ]
+
 class Sample(CoreBaseModel):
     """ Holds data about a specific sample """
     sample_id = models.BigAutoField(primary_key=True, editable=False)
@@ -218,7 +235,6 @@ class Sample(CoreBaseModel):
     genbank = models.CharField(max_length=255, null=True, blank=True)
     original_id = models.CharField(max_length=255, null=True, blank=True)
     provirus_activity = models.CharField(max_length=255, null=True, blank=True)
-    pubmed_id = models.IntegerField(null=True, blank=True)
     replicates = models.IntegerField(null=True, blank=True)
     tissue = models.CharField(max_length=255, null=True, blank=True)
     tissue_url = models.TextField(null=True, blank=True)
@@ -234,7 +250,7 @@ class Sample(CoreBaseModel):
 
     class Meta:
         db_table = "samples"
-        unique_together = ("subject", "culture", "culture_day", "date", "disease", "genbank", "original_id", "provirus_activity", "pubmed_id", "replicates", "tissue", "tissue_url", "type", "visit", "years_on_art")
+        unique_together = ("subject", "culture", "culture_day", "date", "disease", "genbank", "original_id", "provirus_activity", "replicates", "tissue", "tissue_url", "type", "visit", "years_on_art")
 
 
 class SampleData(CoreBaseModel):
@@ -248,17 +264,10 @@ class SampleData(CoreBaseModel):
         db_table = "sample_data"
         unique_together = ("sample", "key")
 
-
-class SubjectData(CoreBaseModel):
-    """ Holds random data about the subject """
-    subject_data_id = models.BigAutoField(primary_key=True, editable=False)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="subject_data")
-    key = models.CharField(max_length=255, null=False, blank=False)
-    value = models.JSONField(null=False)
-
-    class Meta: 
-        db_table = "subject_data"
-        unique_together = ('subject', 'key')
+        indexes = [
+            models.Index(fields=["key"]),
+            models.Index(fields=["sample"]),
+        ]
 
 
 class Preparation(CoreBaseModel):

@@ -6,8 +6,7 @@ from django.db import connection
 from collections import namedtuple
 
 from ml_export_wizard.utils.exporter import exporters
-from hiris.apps.core.utils.simple import first_author
-
+from hiris.apps.core.models import Publication
 
 def generic_query(sql: str = None) -> list[dict]:
     """ Reuturns a list of namedtuples with the data """
@@ -59,14 +58,20 @@ def get_data_sources() -> list:
         "function": "count",
     }
 
-    group_by: list = ["data_set_name", "integration_environment_name", "document_citation_author", "document_citation_title", "document_citation_url", "document_pubmed_id", "document_uri"]
+    group_by: list = ["data_set_name", "integration_environment_name", "publication_pubmed_id", "publication_id"]
 
     sources = exporters["Integrations"].query_rows(group_by=group_by, extra_field=extra_field, order_by="data_set_name")
 
-    for source in sources:
-        source["document_citation_author"] = first_author(source["document_citation_author"])
+    # log.debug(sources)
+
+    for source in [source for source in sources if source["publication_pubmed_id"]]:
+        log.debug(source["publication_pubmed_id"])
+        publication = Publication.objects.get(publication_id=source["publication_id"])
+        source["first_author"] = publication.publication_data.filter(key="first_author")[0].value
+        source["title"] = publication.publication_data.filter(key="title")[0].value
 
     return sources
+
 
 def get_summary_by_gene() -> list:
     """ Get a list of genes with associated data """

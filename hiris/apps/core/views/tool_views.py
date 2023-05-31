@@ -8,6 +8,7 @@ from django.contrib.auth import authenticate, login
 from hiris.apps.core.utils.db import get_environments_count, get_genes_count, get_data_sources, get_summary_by_gene
 from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
 
+
 class Home(View):
     ''' The default view for HIRIS Home.  Currently shows the About page '''
     
@@ -28,6 +29,7 @@ class Home(View):
 
         return render(request, "about.html")
     
+
 class DataSources(View):
     """ View to show the data sources in the database """
 
@@ -36,10 +38,11 @@ class DataSources(View):
 
         counts: dict = underscore_keys(get_environments_count())
         data_sources: dict = underscore_keys(group_dict_list(dict_list=get_data_sources(), key="integration_environment_name"))
-
         gene_count: int = get_genes_count()
+
         return render(request, "data_sources.html", context={"counts": counts, "gene_count": gene_count, "data_sources": data_sources})
     
+
 class SummaryByGeneJS(View):
     """ The JS file that holds the data for gene summaries """
 

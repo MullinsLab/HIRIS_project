@@ -228,7 +228,8 @@ class Exporter(BaseExporter):
                     field = self.get_field(app=order.get("app"), model=order.get("model"), field=order.get("field"))
                 
                 if field.is_text:
-                    order_bit = f"lower({field.column(query_layer=field_query_layer)})"
+                    #order_bit = f"lower({field.column(query_layer=field_query_layer)})"
+                    order_bit = f"{field.column(query_layer=field_query_layer)}"
                 else:
                     order_bit = field.column(query_layer=field_query_layer)
 

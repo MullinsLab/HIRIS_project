@@ -493,7 +493,6 @@ class ImportScheme(ImportBaseModel):
                 # Roll back cache_thing changes if the transaction is rolled back
                 log.debug(err)
                 cache_thing.rollback()
-                #ImportSchemeRowRejected(import_scheme=self, errors="Row rejected due to query error or invalid null in critical model.", row=row).save()
                 ImportSchemeRowRejected(import_scheme=self, errors=str(err), row=row).save()
         
             print(f"{row_count:,}")

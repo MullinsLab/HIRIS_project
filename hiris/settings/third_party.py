@@ -129,7 +129,7 @@ ML_IMPORT_WIZARD = {
             'apps': [
                 {
                     'name': 'core',
-                    'include_models': ["GenomeVersion", "DataSet", "Publication", "DataSetSource", "Subject", "Sample", "Preparation", "SequencingMethod", "IntegrationEnvironment", "Integration", "IntegrationLocation", "BlastInfo"],
+                    'include_models': ["GenomeVersion", "DataSet", "Publication", "DataSetSource", "Subject", "SubjectData", "Sample", "Preparation", "SequencingMethod", "IntegrationEnvironment", "Integration", "IntegrationLocation", "BlastInfo"],
                     "models": {
                         "GenomeVersion": {
                             "exclude_fields": ["external_gene_id_source"],
@@ -148,6 +148,11 @@ ML_IMPORT_WIZARD = {
                         "DataSetSource": {
                             "exclude_fields": ["document_citation_url", "document_citation_doi", "document_citation_issn", "document_citation_year", "document_citation_type", "document_citation_pages", "document_citation_title", "document_citation_author", "document_citation_issue_number", "document_citation_volume", "document_citation_journal", "document_citation_citekey"]
                         },
+                        "SubjectData": {
+                            "column_to_row": True,
+                            "restriction": "deferred",
+                            "restrict_on_column": "key"
+                        }
                     },
                 },
             ],
