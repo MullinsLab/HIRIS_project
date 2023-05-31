@@ -60,11 +60,16 @@ class Exporter(BaseExporter):
         sql: str = ""
         sql_dict: dict[str: str] = {}
 
+        if query_layer == "inner":
+            rollup_query_layer="middle"
+        else:
+            rollup_query_layer = "outer"
+
         for app in self.apps:
             sql_dict = merge_sql_dicts(sql_dict, app._sql_dict(where_before_join=where_before_join, query_layer=query_layer))
 
         for rollup in self.rollups:
-            sql_dict = merge_sql_dicts(sql_dict, rollup._sql_dict(where_before_join=where_before_join))
+            sql_dict = merge_sql_dicts(sql_dict, rollup._sql_dict(where_before_join=where_before_join, query_layer=rollup_query_layer))
 
         if sql_dict.get("select"):
             sql += f"SELECT {sql_dict['select']} "
@@ -127,6 +132,7 @@ class Exporter(BaseExporter):
                 field_object = model_object.fields_by_name[field]
             except:
                 raise MLExportWizardNoFieldFound(f"Field not found in exporter (exporter: {self.name}, app: {app}, model: {model}, field: {field})")
+        
         elif field:
             fields: list[object] = []
 
@@ -327,14 +333,14 @@ class Exporter(BaseExporter):
 
                 for when in column.get("when", []):
                     if when.get("condition"):
-                        (added_select_bit, added_parameters) = self._resolve_extra_field(column=when['extra_field'])
+                        (added_select_bit, added_parameters) = self._resolve_extra_field(column=when['extra_field'], field_query_layer=field_query_layer)
                         select_bit = f"{select_bit} WHEN %({column['column_name']}_{column['when'].index(when)})s THEN {added_select_bit}"
 
                         parameters[f"{column['column_name']}_{column['when'].index(when)}"] = when["condition"]
                         parameters = parameters | added_parameters
 
                     elif when.get("else"):
-                        (added_select_bit, added_parameters) = self._resolve_extra_field(column=when['extra_field'])
+                        (added_select_bit, added_parameters) = self._resolve_extra_field(column=when['extra_field'], field_query_layer=field_query_layer)
 
                         select_bit = f"{select_bit} ELSE {added_select_bit}"
                         parameters = parameters | added_parameters
@@ -352,13 +358,17 @@ class Exporter(BaseExporter):
 
             for filter_item in column.get("filter", []):
                 field = self.get_field(field=filter_item["field"])
-                where_bit, added_parameters = _resolve_where(operator=filter_item["operator"], value=filter_item["value"], field=field)
+                where_bit, added_parameters = _resolve_where(operator=filter_item["operator"], value=filter_item["value"], field=field, query_layer=field_query_layer)
 
             if where_bit:
                 select_bit = f"{select_bit} FILTER (WHERE {where_bit})"
                 parameters = parameters | added_parameters
 
         if column.get("column_name"):
+            # if field_query_layer != 'outer':
+            #     select_bit = f"{select_bit} AS {self.name}_{column['column_name']}"
+            # else:
+            #     select_bit = f"{select_bit} AS {column['column_name']}"
             select_bit = f"{select_bit} AS {column['column_name']}"
 
         return (select_bit, parameters)
@@ -528,20 +538,23 @@ class ExporterRollup(BaseExporter):
 
         return self.name
     
-    def _sql_dict(self, *, where_before_join: dict=None, where_after_join: dict=None) -> tuple|str:
+    def _sql_dict(self, *, where_before_join: dict=None, where_after_join: dict=None, query_layer: str=None) -> tuple|str:
         """ Returns a raw SQL query that would be used to generate the exporter data"""
 
         sql_dict: dict = {}
+
+        if not where_before_join and "where_before_join" in self.settings:
+            where_before_join = self.settings["where_before_join"]
 
         from_bit, sql_dict["parameters"] = self.exporter.final_sql(where_before_join=where_before_join, where_after_join=where_after_join, group_by=self.settings.get("group_by"), extra_field=self.settings.get("extra_field"), query_layer="inner")
         
         sql_dict["from"] = f"({from_bit}) AS {self.name}"
 
         for field in self.fields:
-            sql_dict = merge_sql_dicts(sql_dict, field._sql_dict(table_name=self.name, query_layer="outer"))
+            sql_dict = merge_sql_dicts(sql_dict, field._sql_dict(table_name=self.name, query_layer=query_layer))
 
         for aggragate in self.settings.get("extra_field", []):
-            sql_dict["select"] = ", ".join(filter(None, (sql_dict["select"], f"{self.name}.{aggragate['column_name']}")))
+            sql_dict["select"] = ", ".join(filter(None, (sql_dict["select"], aggragate['column_name'])))
 
         return sql_dict
     
@@ -632,26 +645,38 @@ class ExporterPseudofield(BaseExporter):
         parent.fields_by_name[self.name] = self
 
     def column(self, *, query_layer: str=None) -> str:
-        """ returns the name of the DB column for the pseudofiel """
+        """ returns the name of the DB column for the pseudofield """
 
         column: str = self.name
         
-        if query_layer == "inner":
-            column = f"{column} AS {self.parent.table}_{column}"
-        elif query_layer=="middle":
-            column = f"{self.parent.table}_{column}"
-        elif query_layer == "outer":
-            column = f"{self.parent.table}_{column} as {column}"
+        # if query_layer == "inner":
+        #     column = f"{column} AS {self.parent.table}_{column}"
+        # elif query_layer=="middle":
+        #     column = f"{self.parent.table}_{column}"
+        # elif query_layer == "outer":
+        #     column = f"{self.parent.table}_{column} as {column}"
 
         return column
 
     def _sql_dict(self, *, table_name: str=None, query_layer: str=None) -> dict[str: str]:
         """ Reuturns a blank sql_dict """
+        
+        sql_dict: dict[str: str] = {}
+        # field_name = self.column(query_layer=query_layer)
 
-        return {}
+        # log.debug(f"Table name: {table_name}, Field name: {field_name}")
+
+        # if table_name:
+        #     sql_dict["select"] = f"{table_name}.{field_name}"
+        # else:
+        #     sql_dict["select"] = f"{self.parent.table}.{field_name}"
+
+        # sql_dict["select_no_table"] = field_name
+
+        return sql_dict
 
 
-def _resolve_where(*, operator: str=None, field: ExporterField|ExporterPseudofield=None, value: str|int|float=None) -> tuple[str, dict]:
+def _resolve_where(*, operator: str=None, field: ExporterField|ExporterPseudofield=None, value: str|int|float=None, query_layer: str=None) -> tuple[str, dict]:
     """ Resolve the where bit of a query. Returns a tuple with the where part and parameters """
 
     if not operator or not field or not value:
@@ -659,11 +684,12 @@ def _resolve_where(*, operator: str=None, field: ExporterField|ExporterPseudofie
 
     where_bit: str = ""
     parameters: dict = {}
+    field_column = field.column(query_layer=query_layer)
 
     if operator in ("=", ">=", "<=", "<>", "!="):
-        where_bit = "AND ".join(filter(None, (where_bit, f"{field.column()}{operator}%({field.column()})s")))
+        where_bit = "AND ".join(filter(None, (where_bit, f"{field_column}{operator}%({field_column})s")))
 
-    parameters[field.column()] = value
+    parameters[field_column] = value
 
     return (where_bit, parameters)
 

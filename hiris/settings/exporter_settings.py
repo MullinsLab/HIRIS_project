@@ -7,6 +7,7 @@ ML_EXPORT_WIZARD = {
     "Setup_On_Start": True,
     'Exporters': [
         {
+            # IntegrationFeatures
             "name": "IntegrationFeatures",
             "exclude_fields": ["added", "updated"],
             "apps" : [
@@ -27,6 +28,7 @@ ML_EXPORT_WIZARD = {
             ],
         },
         {
+            # IntegrationFeaturesSummary
             "name": "IntegrationFeaturesSummary",
             "rollups": [
                 {
@@ -38,6 +40,64 @@ ML_EXPORT_WIZARD = {
             ],
         },
         {
+            # SummaryByGene
+            "name": "SummaryByGene",
+            "rollups": [
+                {
+                    "name": "SummaryByGene",
+                    "exporter": "IntegrationFeaturesSummary",
+                    "where_before_join": {
+                        "IntegrationFeature": [
+                            {
+                                "field": "feature_type_name",
+                                "value": "gene",
+                            },
+                        ],
+                    },
+                    "extra_field":[
+                        {
+                            "column_name": "subjects",
+                            "function": "case",
+                            "source_field": "integration_environment_name",
+                            "when": {
+                                "condition": "in vivo",
+                                "extra_field": {
+                                    "function": "count",
+                                    "source_field": "subject_identifier",
+                                    "distinct": True,
+                                },
+                            }
+                        },
+                        {
+                            "column_name": "unique_sites",
+                            "function": "count",
+                            "source_field": ["landmark", "location"]
+                        },
+                        {
+                            "column_name": "proliferating_sites",
+                            "function": "count",
+                            "source_field": ["landmark", "location"],
+                            "filter": [
+                                {
+                                    "field": "multiplicity",
+                                    "operator": ">=",
+                                    "value": 2,
+                                },
+                            ]
+                        },
+                        {
+                            "column_name": "total_in_gene",
+                            "function": "sum",
+                            "source_field": "multiplicity",
+                            "cast": "int",
+                        },
+                    ],
+                    "group_by": ["integration_environment_name", "feature_name", "gene_type_name"],
+                },
+            ],
+        },
+        {
+            #Integrations
             "name": "Integrations",
             "apps" : [
                 {
