@@ -4,7 +4,6 @@
 
   var viz  = document.querySelector("#top-genes-viz-mini"),
       spec = TopGenesVizMini.Spec;
-    console.log(document.querySelector("#top-genes-viz-mini"));
 
   vg.parse.spec(spec, function(error, chart) {
     if (error) {
