@@ -1,0 +1,36 @@
+{% load ml_import_wizard_tags %}
+
+Select file fields to import into {{model.fancy_name}}<br>
+<div class="container">
+    <div class="row">
+        <div class="col-5">
+            <br><select 
+                name='key_value_model_feeder_{{ model.name }}' 
+                id='key_value_model_feeder_{{ model.name }}' 
+                class="selectpicker border rounded-3 file-fields-dropdown" 
+                title="Importing options..."
+                data-width=100%
+                onchange="manage_key_value_model_feeder_input('{{ model.name }}')" >
+                {% for file in scheme.files.all %}
+                    {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file set_data_name=True %}
+                {% endfor %}
+            </select> 
+        </div>
+        <div class="col">
+            <br>
+            <button type="button" class="btn btn-primary disabled" id="key_value_model_button_{{ model.name }}" data-model="{{ model.name }}">Add</button>
+        </div>
+        <div class="col-6">
+            <table class="table" id="key_value_model_table_{{ model.name }}">
+                <thead>
+                    <tr>
+                        <th scope="col">Field from Files</th>
+                        <th scope="col">{{ model.settings.key_field|title }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

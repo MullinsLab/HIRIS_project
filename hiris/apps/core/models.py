@@ -215,6 +215,10 @@ class SubjectData(CoreBaseModel):
     key = models.CharField(max_length=255, null=False, blank=False)
     value = models.JSONField(null=False, blank=False)
 
+    def __str__(self) -> str:
+        """ Return key: value as string """
+        return f"{self.key}: {self.value}"
+
     class Meta: 
         db_table = "subject_data"
         unique_together = ('subject', 'key')

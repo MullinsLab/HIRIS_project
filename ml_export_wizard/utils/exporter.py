@@ -161,7 +161,6 @@ class Exporter(BaseExporter):
                 value_dict = dict where the first column is the key, second column is the value
                 list = list of rows containg key/value dict of the fields """
 
-        # returns = kwargs.pop("returns", None)
         sql, parameters = self.final_sql(**kwargs)
 
         with connection.cursor() as cursor:

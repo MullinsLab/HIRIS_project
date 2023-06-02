@@ -18,10 +18,10 @@ from ml_import_wizard.utils.simple import sound_user_name, resolve_true
 from ml_import_wizard.utils.importer import importers
 
 class ManageImports(LoginRequiredMixin, View):
-    ''' The starting place for importing.  Show information on imports, started imports, new import, etc. '''
+    """ The starting place for importing.  Show information on imports, started imports, new import, etc. """
 
     def get(self, request, *args, **kwargs):
-        ''' Handle a get request.  Returns a starting import page. '''
+        """ Handle a get request.  Returns a starting import page. """
         importers: list[dict] = []
         user_import_schemes: list[dict] = []
 
@@ -51,10 +51,10 @@ class ManageImports(LoginRequiredMixin, View):
 
 
 class NewImportScheme(LoginRequiredMixin, View):
-    ''' View for creating a new import '''
+    """ View for creating a new import """
 
     def get(self, request, *args, **kwargs):
-        ''' Build a new Import '''
+        """ Build a new Import """
     
         importer: str = kwargs['importer_slug']
         importer_name: str = settings.ML_IMPORT_WIZARD['Importers'][importer]['name']
@@ -66,7 +66,7 @@ class NewImportScheme(LoginRequiredMixin, View):
     
     
     def post(self, request, *args, **kwargs):
-        ''' Save the new import '''
+        """ Save the new import """
 
         importer: str = kwargs["importer_slug"]
         form: form = NewImportSchemeForm(request.POST)
@@ -85,10 +85,10 @@ class NewImportScheme(LoginRequiredMixin, View):
 
 
 class DoImportScheme(View):
-    ''' Do the actual import stuff '''
+    """ Do the actual import stuff """
 
     def get(self, request, *args, **kwargs):
-        ''' Do the actual import stuff '''
+        """ Do the actual import stuff """
         import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
 
         # Return the user to the /import page if they don't have a valid import_scheme_id to work on
@@ -122,10 +122,10 @@ class DoImportScheme(View):
     
     
 class ListImportSchemeItems(LoginRequiredMixin, View):
-    '''' List the ImportSchemeItems for a particular ImportScheme '''
+    """' List the ImportSchemeItems for a particular ImportScheme """
 
     def get(self, request, *args, **kwargs):
-        ''' Produce the list of ImportSchemeItems  '''
+        """ Produce the list of ImportSchemeItems  """
 
         import_scheme: ImportScheme = ImportScheme.objects.get(pk=kwargs['import_scheme_id'])
         file_settings: dict = import_scheme.files_min_status_settings()
@@ -158,10 +158,10 @@ class ListImportSchemeItems(LoginRequiredMixin, View):
 
     
 class DoImportSchemeItem(LoginRequiredMixin, View):
-    ''' Show and store ImportItems '''
+    """ Show and store ImportItems """
 
     def get(self, request, *args, **kwargs):
-        ''' Get information about an Import Item '''
+        """ Get information about an Import Item """
 
         import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
         import_item_id: int = kwargs['import_item_id']
@@ -263,21 +263,12 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                     "selectpicker": selectpicker,
                     "tooltip": tooltip,
                 }
-        else:
-            ### Seems to be orphaned.  Should be discared probably ###
-            # Import items that aren't files
-            item = ImportSchemeItem.objects.get(pk=import_item_id)
-            return_data = {
-                "name": item.fancy_value,
-                "description": item.items_for_html(),
-                "start_expanded": True,
-            }
       
         return JsonResponse(return_data)
 
 
     def post(self, request, *args, **kwargs):
-        ''' Save or create an Import Item '''
+        """ Save or create an Import Item """
         
         import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
         import_item_id: int = kwargs['import_item_id']
@@ -359,10 +350,10 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
             
 
 class DoImporterModel(LoginRequiredMixin, View):
-    ''' Show and store Models for imort '''
+    """ Show and store Models for imort """
 
     def get(self, request, *args, **kwargs):
-        ''' Get information about a Model for import '''
+        """ Get information about a Model for import """
 
         import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
         app, model = kwargs['model_name'].split("-")
@@ -381,7 +372,9 @@ class DoImporterModel(LoginRequiredMixin, View):
         field_list: list[str] = []                                              # List of fields for the javascript to itterate through
         field_strategies: dict[str: any] = {}                                   # List of field strategies to fill the form from
         show_files: bool = True if import_scheme.files.count() > 1 else False   # Supress file name in selector if there is only one file
-        
+        is_key_value_model: bool = False                                        # Indicates that this model is a key_value_model
+        key_value_model_keys = []                                               # Get the default values for column_to_row models
+
         # fill field_values
         for field in model_object.settings.get("load_value_fields", []):
             field_values[field] = model_object.model.objects.values_list(field, flat=True)
@@ -398,12 +391,21 @@ class DoImporterModel(LoginRequiredMixin, View):
 
             field_strategies[field.name] = item.settings
             field_strategies[field.name]["strategy"] = item.strategy
+        
+        # Stuff for column_to_row models
+        if model_object.settings.get("key_value_model"):
+            is_key_value_model = True
 
+            key_field = model_object.settings["key_field"]
+            key_value_model_keys = [getattr(object, key_field) for object in model_object.model.objects.order_by(key_field).distinct(key_field)]
+            
         return_data = {
             'name': model_object.fancy_name,
             'model': model_object.name,
             "description": '',
             "fields": field_list,
+            "is_key_value_model": is_key_value_model,
+            "key_value_model_keys": key_value_model_keys,
 
             'form': render_to_string('ml_import_wizard/fragments/model.html', 
                                             request=request, 
@@ -430,7 +432,7 @@ class DoImporterModel(LoginRequiredMixin, View):
 
 
     def post(self, request, *args, **kwargs):
-        ''' Store information about a Model to import '''
+        """ Store information about a Model to import """
 
         import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
         try:

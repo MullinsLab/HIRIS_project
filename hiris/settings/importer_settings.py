@@ -70,9 +70,12 @@ ML_IMPORT_WIZARD = {
                             "exclude_fields": ["document_citation_url", "document_citation_doi", "document_citation_issn", "document_citation_year", "document_citation_type", "document_citation_pages", "document_citation_title", "document_citation_author", "document_citation_issue_number", "document_citation_volume", "document_citation_journal", "document_citation_citekey"]
                         },
                         "SubjectData": {
-                            "column_to_row": True,
+                            "key_value_model": True,
                             "restriction": "deferred",
-                            "restrict_on_column": "key"
+                            # "key_field": "key",
+                            # "value_field": "value",
+                            "restrict_on_key": True,
+                            "restrict_on_value": False
                         }
                     },
                 },

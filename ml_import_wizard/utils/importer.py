@@ -17,7 +17,7 @@ importers: dict = {}
 class BaseImporter(object):
     """ Base class to inherit from """
 
-    def __init__(self, parent: object = None, name: str = '', **settings) -> None:
+    def __init__(self, parent: object = None, name: str = None, **settings) -> None:
         if parent: self.parent = proxy(parent)  # Use a weakref so we don't have a circular refrence, defeating garbage collection
         self.name = name
         self.settings = {}
@@ -33,7 +33,7 @@ class BaseImporter(object):
 class Importer(BaseImporter):
     """ Class to hold the importers from settings.ML_IMPORT_WIZARD """
 
-    def __init__(self, *, parent: object = None, name: str = '', type: str = '', description: str = '', long_name: str = '', **settings) -> None:
+    def __init__(self, *, parent: object = None, name: str = None, type: str = None, description: str = None, long_name: str = None, **settings) -> None:
         """ Initalize the object """
         super().__init__(parent, name, **settings)
 
@@ -61,7 +61,7 @@ class ImporterApp(BaseImporter):
 class ImporterModel(BaseImporter):
     """ Holds information about a model that should be imported from files """
 
-    def __init__(self, *, parent: object = None, name: str = '', model: object = '', **settings) -> None:
+    def __init__(self, *, parent: object = None, name: str = None, model: object = None, **settings) -> None:
         """ Initialize the object """
 
         super().__init__(parent, name, **settings)
@@ -72,6 +72,13 @@ class ImporterModel(BaseImporter):
 
         parent.models.append(self)
         parent.models_by_name[self.name] = self
+
+        if self.settings.get("key_value_model"):
+            if "key_field" not in self.settings:
+                self.settings["key_field"] = "key"
+            
+            if "value_field" not in self.settings:
+                self.settings["value_field"] = "value"
 
     @property
     def foreign_key_fields(self) -> list:
@@ -88,13 +95,14 @@ class ImporterModel(BaseImporter):
     
     @property
     def shown_fields(self) -> list:
+        """ Lists all the fields that should be shown in the importer """
         return [field for field in self.fields if not field.is_foreign_key()]
     
 
 class ImporterField(BaseImporter):
     """ Holds information about a field that should be imported from files """
 
-    def __init__(self, *, parent: object = None, name: str = '', field: object = '', **settings) -> None:
+    def __init__(self, *, parent: object = None, name: str = None, field: object=None, **settings) -> None:
         """ Initialize the object """
 
         super().__init__(parent, name, **settings)
@@ -147,24 +155,25 @@ def setup_importers() -> None:
                                 apps.get_app_config(app['name']).get_models()
                 )
 
-            for model in models:
-                working_model: ImporterModel = ImporterModel(parent=working_app, name=model.__name__, model=model)
+            for model_object in models:
+                model: dict = {}
+                if deep_exists(dictionary=app, keys=["models", model_object.__name__]):
+                    model = app["models"].get(model_object.__name__, {})
 
                 # Get settingsfor the model and save them in the object, except keys in exclude_keys
-                model_settings: dict = {}
-                
-                if deep_exists(dictionary=app, keys=["models", model.__name__]):
-                    model_settings = app["models"].get(model.__name__, {})
-                
                 exclude_keys: tuple = ("exclude_fields", "fields")
-                for key in filter(lambda key: key not in exclude_keys, model_settings.keys()):
-                    working_model.settings[key]=model_settings[key]
+                model_settings: dict = {}
+
+                if deep_exists(dictionary=app, keys=["models", model_object.__name__]):
+                    model_settings: dict = {setting: value for setting, value in model.items() if setting not in exclude_keys}
                 
-                for field in filter(lambda field: field.editable and (field.name not in model_settings.get("exclude_fields", [])), model._meta.get_fields()):
+                working_model: ImporterModel = ImporterModel(parent=working_app, name=model_object.__name__, model=model_object, **model_settings)
+
+                for field in filter(lambda field: field.editable and (field.name not in model.get("exclude_fields", [])), model_object._meta.get_fields()):
                     working_field: ImporterField = ImporterField(parent=working_model, name=field.name, field=field)
 
                     # Get settings for the field and save them in the object, except keys in exclude_keys
-                    field_settings: dict = model_settings.get("fields", {}).get(field.name, {})
+                    field_settings: dict = model.get("fields", {}).get(field.name, {})
 
                     exclude_keys: tuple = ()
                     for key in filter(lambda key: key not in exclude_keys, field_settings.keys()):
@@ -175,14 +184,14 @@ def setup_importers() -> None:
             while len(working_app.models) > len(working_app.models_by_import_order):
                 model_by_import_count = len(working_app.models_by_import_order)
                 
-                for model in working_app.models:
-                    if model in working_app.models_by_import_order:
+                for model_object in working_app.models:
+                    if model_object in working_app.models_by_import_order:
                         continue
 
                     # Check to see if the model has any foreign keys
-                    foreign_keys = model.foreign_key_fields
+                    foreign_keys = model_object.foreign_key_fields
                     if not foreign_keys:
-                        working_app.models_by_import_order.append(model)
+                        working_app.models_by_import_order.append(model_object)
                         continue
                     
                     dependancy_satisfied = True
@@ -193,7 +202,7 @@ def setup_importers() -> None:
                             continue
                     
                     if dependancy_satisfied:
-                        working_app.models_by_import_order.append(model)
+                        working_app.models_by_import_order.append(model_object)
                 
                 # Raise an exception if we make a loop and haven't increased the number of models in models_by_import_order
                 if model_by_import_count >= len(working_app.models_by_import_order):

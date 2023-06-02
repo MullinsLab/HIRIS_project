@@ -7,7 +7,8 @@
     name='file_field_{{ model.name }}__-__{{ field.name }}' 
     id='file_field_{{ model.name }}__-__{{ field.name }}' 
     class="selectpicker border rounded-3 file-fields-dropdown" 
-    title="Importing options...">
+    title="Importing options..."
+    data-width=30%>
 
     <option></option>
     {% if field.name in model.settings.load_value_fields %}

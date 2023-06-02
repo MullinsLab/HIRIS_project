@@ -46,19 +46,22 @@ class ImportScheme {
 };
 
 class ImportSchemeItem{
-    id;                     // ID from the database or name.  Used for loading
-    index;                  // Index number of the list of items from the parent
-    name;                   // Name to be displayed in the accoridon button
-    description;            // Description to be displayed in the accordion body - placeholder for HTML form or whatnot
-    form;                   // The form to use to collect information about this item
-    urgent = false;         // Is the Item urgent, meaning that it needs to be dealt with before the import can happen
-    start_expanded;         // If true, the accordion will start in an expanded state
-    dirty;                  // Indicates that the item is dirty and needs to be rerendered
-    parent;                 // ImportScheme this Item belongs to
-    selectpicker;           // If true, executes $('.selectpicker').selectpicker();
-    tooltip;                // If true, executes $('[data-toggle="tooltip"]').tooltip()
-    fields = []             // Holds a list of all the fields in this item
-    model;                  // name of the model this item represents
+    id;                         // ID from the database or name.  Used for loading
+    index;                      // Index number of the list of items from the parent
+    name;                       // Name to be displayed in the accoridon button
+    description;                // Description to be displayed in the accordion body - placeholder for HTML form or whatnot
+    form;                       // The form to use to collect information about this item
+    urgent = false;             // Is the Item urgent, meaning that it needs to be dealt with before the import can happen
+    start_expanded;             // If true, the accordion will start in an expanded state
+    dirty;                      // Indicates that the item is dirty and needs to be rerendered
+    parent;                     // ImportScheme this Item belongs to
+    selectpicker;               // If true, executes $('.selectpicker').selectpicker();
+    tooltip;                    // If true, executes $('[data-toggle="tooltip"]').tooltip()
+    fields = [];                // Holds a list of all the fields in this item
+    model;                      // name of the model this item represents
+    is_key_value_model;         // If true sets up script and objects to handle column_to_row
+    key_value_model_fields = [];// A list of the fields that will be used in the column_to_row
+    key_value_model_keys = [];  // A list of the existing key values
 
     // objects that corrispond with the dom objects for this item
     accordion;
@@ -93,6 +96,8 @@ class ImportSchemeItem{
             this.caller.set_with_dirty({field: 'tooltip', value: data.tooltip});
             this.caller.set_with_dirty({field: 'model', value: data.model});
             this.caller.set_with_dirty({field: 'fields', value: data.fields});
+            this.caller.set_with_dirty({field: 'is_key_value_model', value: data.is_key_value_model});
+            this.caller.set_with_dirty({field: 'key_value_model_keys', value: data.key_value_model_keys});
 
             this.caller.render();
         })
@@ -163,9 +168,63 @@ class ImportSchemeItem{
         if (this.tooltip){
             $('[data-toggle="tooltip"]').tooltip()
         };
-
-        // Attach ajax function to submit the form
+        
         if (this.form){
+            // Attach funciton to move file fields into a key_value_model table
+            var caller = this;
+
+            $("#key_value_model_button_"+this.model).button().click(function(){
+                let feeder = $("#key_value_model_feeder_"+caller.model).find(":selected");
+                let table = document.getElementById("key_value_model_table_"+caller.model);
+                let row_number = table.rows.length-1;
+
+                // Create a dropdown for the keys
+                let key_fields = "<select id='key_value_model_table_key_" + row_number + "' ";
+                key_fields += "class='selectpicker border rounded-3' title='Key name...' ";
+                // key_fields += "data-width=100% ";
+                key_fields += "onchange=\"manage_key_value_model_table('" + caller.model + "', '" + row_number + "')\" >";
+                key_fields += "<option></option>"
+
+                key_fields += "<optgroup label='Keys already in " + caller.name + "...'>";
+                for (let key_index in caller.key_value_model_keys){
+                    let key = caller.key_value_model_keys[key_index];
+                    key_fields += "<option value='" + key + "'>" + key + "</option>";
+                }
+                key_fields += "</optgroup>";
+
+                key_fields += "<optgroup label='Raw text...'>";
+                key_fields += "<option value='**raw_text**'>Enter Text</option>";
+                key_fields += "</optgroup>";
+
+                key_fields += "<optgroup label='File field name...'>";
+                key_fields += "<option value='" + feeder.attr("data-name") + "'>" + feeder.attr("data-name") + "</option>"
+                key_fields += "</optgroup>";
+
+                key_fields += "</select>";
+
+                // Text field
+                key_fields += "<input type='text' placeholder='Specify key name ...' ";
+                key_fields += "id='key_value_model_table_key_" + row_number + "_raw_text' class='form-control not-visible'";
+                key_fields += "oninput=\"manage_key_value_model_table('" + caller.model + "', '" + row_number + "')\" >";
+
+                let row=table.insertRow();
+                let cell1=row.insertCell();
+                let cell2=row.insertCell();
+
+                cell1.classList.add("align-middle")
+                cell2.classList.add("align-middle")
+
+                cell1.innerHTML=feeder.attr("data-name");
+                cell2.innerHTML=key_fields;
+
+                caller.key_value_model_fields.push(feeder.val())
+
+                $('.selectpicker').selectpicker();
+                check_submittable(caller.model);
+                manage_key_value_model_feeder_input(caller.model)
+            });    
+
+            // Attach ajax function to submit the form
             $("#item_form_"+this.model).submit(function (event) {
                 event.preventDefault();
 
@@ -231,22 +290,42 @@ class ImportSchemeItem{
         // Check to see if the form is good to be submitted
         // If it is set the submit button to enabled
 
-        for (let field_id in this.fields){
-            let field = this.fields[field_id];
-
-            // Reject if field is blank
-            if($("#file_field_" + field).attr("data-is_radio")){
-                if($("#file_field_" + field + " input:radio:checked").val() == undefined){
-                    return false;
+        if (this.is_key_value_model){
+            if ($("[id^='key_value_model_table_key_']").length == 0){
+                return false;
+            }
+            else {
+                // I will never understand why JS gives you keys instead of values with a for .. in
+                let stupid_list = $("[id^='key_value_model_table_key_']").map(function(){return $(this).find(":selected").val()}).get();
+                for (let key in stupid_list){
+                    if (! stupid_list[key]){
+                        return false;
+                    }
+                    if (stupid_list[key] == "**raw_text**"){
+                        if(! $("#key_value_model_table_key_" + key + "_raw_text").val()){
+                            return false;
+                        }
+                    }
                 }
             }
+        }
+        else {
+            for (let field_id in this.fields){
+                let field = this.fields[field_id];
 
-            if($("#file_field_" + field).attr("data-is_dropdown")){
-                if($("#file_field_" + field).find(":selected").val() == ""){
-                    return false;
+                // Reject if field is blank
+                if($("#file_field_" + field).attr("data-is_radio")){
+                    if($("#file_field_" + field + " input:radio:checked").val() == undefined){
+                        return false;
+                    }
                 }
-            }
-            // else{
+
+                if($("#file_field_" + field).attr("data-is_dropdown")){
+                    if($("#file_field_" + field).find(":selected").val() == ""){
+                        return false;
+                    }
+                }
+
                 if($("#file_field_" + field).find(":selected").val() == ""){
                     return false;
                 };
@@ -289,7 +368,7 @@ class ImportSchemeItem{
                         return false;
                     };
                 }; 
-            // };
+            };
         };
 
         // Accept if we get to this point
@@ -307,6 +386,31 @@ function check_submittable(model){
     else {
         $("#submit_" + model).addClass('disabled');
     };
+}
+
+
+function manage_key_value_model_feeder_input(model){
+    /// Chech key_value_model_feeder to decide if the add button should be disabled
+
+    let feeder = $("#key_value_model_feeder_" + model).find(":selected");
+    if (feeder.val() && ! window.import_scheme.find_item_by_model(model).key_value_model_fields.includes(feeder.val())) {
+        $("#key_value_model_button_" + model).removeClass('disabled');
+    }
+    else {
+        $("#key_value_model_button_" + model).addClass('disabled');
+    }
+}
+
+
+function manage_key_value_model_table(model, row){
+    if($("#key_value_model_table_key_" + row).find(":selected").val() == "**raw_text**"){
+        $("#key_value_model_table_key_" + row + "_raw_text").removeClass('not-visible');
+    }
+    else {
+        $("#key_value_model_table_key_" + row + "_raw_text").addClass('not-visible');
+    }
+
+    check_submittable(model)
 }
 
 
