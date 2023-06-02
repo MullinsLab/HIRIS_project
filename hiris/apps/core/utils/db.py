@@ -64,7 +64,7 @@ def get_data_sources() -> list:
 
     for source in [source for source in sources if source["publication_pubmed_id"]]:
         publication = Publication.objects.get(publication_id=source["publication_id"])
-        #source["first_author"] = publication.publication_data.filter(key="first_author")[0].value
+        
         source["first_author"] = publication.publication_data.get(key="first_author").value
         source["title"] = publication.publication_data.get(key="title").value
 

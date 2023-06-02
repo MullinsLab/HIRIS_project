@@ -60,8 +60,9 @@ class ImportSchemeItem{
     fields = [];                // Holds a list of all the fields in this item
     model;                      // name of the model this item represents
     is_key_value_model;         // If true sets up script and objects to handle column_to_row
-    key_value_model_fields = [];// A list of the fields that will be used in the column_to_row
+    key_value_model_fields = {};// A dict of the fields that will be used in the column_to_row
     key_value_model_keys = [];  // A list of the existing key values
+    key_value_next_row = 0;     // Holds the ID for the next row
 
     // objects that corrispond with the dom objects for this item
     accordion;
@@ -174,14 +175,14 @@ class ImportSchemeItem{
             var caller = this;
 
             $("#key_value_model_button_"+this.model).button().click(function(){
-                let feeder = $("#key_value_model_feeder_"+caller.model).find(":selected");
-                let table = document.getElementById("key_value_model_table_"+caller.model);
-                let row_number = table.rows.length-1;
+                let feeder = $("#key_value_model_feeder_" + caller.model).find(":selected");
+                let table = document.getElementById("key_value_model_table_" + caller.model);
+                let row_number = caller.key_value_next_row ++;
+                //this.key_value_next_row ++;
 
                 // Create a dropdown for the keys
-                let key_fields = "<select id='key_value_model_table_key_" + row_number + "' ";
+                let key_fields = "<select id='key_value_model_table_key_" + caller.model + "_" + row_number + "' ";
                 key_fields += "class='selectpicker border rounded-3' title='Key name...' ";
-                // key_fields += "data-width=100% ";
                 key_fields += "onchange=\"manage_key_value_model_table('" + caller.model + "', '" + row_number + "')\" >";
                 key_fields += "<option></option>"
 
@@ -204,20 +205,25 @@ class ImportSchemeItem{
 
                 // Text field
                 key_fields += "<input type='text' placeholder='Specify key name ...' ";
-                key_fields += "id='key_value_model_table_key_" + row_number + "_raw_text' class='form-control not-visible'";
+                key_fields += "id='key_value_model_table_key_" + caller.model + "_" + row_number + "_raw_text' class='form-control not-visible'";
                 key_fields += "oninput=\"manage_key_value_model_table('" + caller.model + "', '" + row_number + "')\" >";
 
                 let row=table.insertRow();
+                
+                row.id = "key_value_model_table_row_" + caller.model + "_" + row_number;
+
                 let cell1=row.insertCell();
                 let cell2=row.insertCell();
 
-                cell1.classList.add("align-middle")
-                cell2.classList.add("align-middle")
+                cell1.id = "key_value_model_table_field_" + caller.model + "_" + row_number;
 
-                cell1.innerHTML=feeder.attr("data-name");
+                cell1.classList.add("align-middle");
+                cell2.classList.add("align-middle");
+
+                cell1.innerHTML="<a onclick=\"delete_key_value_model_row('" + caller.model + "', '" + row_number + "')\"> <img class='pointer' src='/static/ml_import_wizard/images/close.svg' height=25 width=25></a>"+feeder.attr("data-name");
                 cell2.innerHTML=key_fields;
 
-                caller.key_value_model_fields.push(feeder.val())
+                caller.key_value_model_fields[row_number]=feeder.val();
 
                 $('.selectpicker').selectpicker();
                 check_submittable(caller.model);
@@ -238,31 +244,59 @@ class ImportSchemeItem{
                     form_data["---file_saved---"] = $(this).attr("data-file_saved");
                 };
 
-                for (let field_index in model.fields){
-                    let field = model.fields[field_index];
-                    
-                    if($("#file_field_" + field).attr("data-is_radio")){
-                        form_data[field] = $("#file_field_" + field + " input:radio:checked").val()
-                    }
-                    else if($("#file_field_" + field).attr("data-is_dropdown")){
-                        form_data[field] = $("#file_field_" + field).find(":selected").val()
-                    }
-                    else{
-                        let field_name = field.split("__-__")[1];
-                    
-                        form_data[field_name + ":file_field"] = $("#file_field_"+field).find(":selected").val();
+                // Prepare if the model is a key_value model
+                if (model.is_key_value_model){
+                    form_data["**is_key_value_model**"] = true;
 
-                        form_data[field_name + ":file_field_raw_text"] = $("#file_field_" + field + "_raw_text").val();
+                    console.log("Import? " + $("input[name='key_value_model_control_import_" + model.model + "']:checked").val());
 
-                        form_data[field_name + ":file_field_first_1"] = $("#file_field_" + field + "_first_1").val();
-                        form_data[field_name + ":file_field_first_2"] = $("#file_field_" + field + "_first_2").val();
-                        form_data[field_name + ":file_field_first_3"] = $("#file_field_" + field + "_first_3").val();
-
-                        form_data[field_name + ":file_field_split"] = $("#file_field_" + field + "_split").val();
-                        form_data[field_name + ":file_field_split_splitter"] = $("#file_field_" + field + "_split_splitter").val();
-                        form_data[field_name + ":file_field_split_position"] = $("#file_field_" + field + "_split_position").val();
+                    if ($("input[name='key_value_model_control_import_" + model.model + "']:checked").val() == "no_import"){
+                        form_data["**no_import**"] = true;
                     }
-                };
+                    else {
+                        console.log(model.key_value_model_fields);
+                        
+                        for (let row in model.key_value_model_fields){
+                            let key = $("#key_value_model_table_key_" + model.model + "_" + row).find(":selected").val();
+                            if (key == "**raw_text**"){
+                                key = $("#key_value_model_table_key_" + model.model + "_" + row + "_raw_text").val()
+                            }
+                            let value = model.key_value_model_fields[row];
+
+                            console.log("Row: " + row + ", Key: " + key + ", Value: " + value)
+                            form_data[key] = value;
+                        }
+                    }
+                }
+
+                // Prepare for standard models
+                else{
+                    for (let field_index in model.fields){
+                        let field = model.fields[field_index];
+                        
+                        if($("#file_field_" + field).attr("data-is_radio")){
+                            form_data[field] = $("#file_field_" + field + " input:radio:checked").val()
+                        }
+                        else if($("#file_field_" + field).attr("data-is_dropdown")){
+                            form_data[field] = $("#file_field_" + field).find(":selected").val()
+                        }
+                        else{
+                            let field_name = field.split("__-__")[1];
+                        
+                            form_data[field_name + ":file_field"] = $("#file_field_"+field).find(":selected").val();
+
+                            form_data[field_name + ":file_field_raw_text"] = $("#file_field_" + field + "_raw_text").val();
+
+                            form_data[field_name + ":file_field_first_1"] = $("#file_field_" + field + "_first_1").val();
+                            form_data[field_name + ":file_field_first_2"] = $("#file_field_" + field + "_first_2").val();
+                            form_data[field_name + ":file_field_first_3"] = $("#file_field_" + field + "_first_3").val();
+
+                            form_data[field_name + ":file_field_split"] = $("#file_field_" + field + "_split").val();
+                            form_data[field_name + ":file_field_split_splitter"] = $("#file_field_" + field + "_split_splitter").val();
+                            form_data[field_name + ":file_field_split_position"] = $("#file_field_" + field + "_split_position").val();
+                        }
+                    }
+                }
 
                 console.log(form_data);
 
@@ -291,18 +325,20 @@ class ImportSchemeItem{
         // If it is set the submit button to enabled
 
         if (this.is_key_value_model){
-            if ($("[id^='key_value_model_table_key_']").length == 0){
-                return false;
-            }
-            else {
+            if ($("input[name='key_value_model_control_import_" + this.model + "']:checked").val() == "import"){
+
+                if ($("[id^='key_value_model_table_key_" + this.model + "_']").length == 0){
+                    return false;
+                }
+
                 // I will never understand why JS gives you keys instead of values with a for .. in
-                let stupid_list = $("[id^='key_value_model_table_key_']").map(function(){return $(this).find(":selected").val()}).get();
+                let stupid_list = $("[id^='key_value_model_table_key_" + this.model + "_']").map(function(){return $(this).find(":selected").val()}).get();
                 for (let key in stupid_list){
                     if (! stupid_list[key]){
                         return false;
                     }
                     if (stupid_list[key] == "**raw_text**"){
-                        if(! $("#key_value_model_table_key_" + key + "_raw_text").val()){
+                        if(! $("#key_value_model_table_key_" + this.model + "_" + key + "_raw_text").val()){
                             return false;
                         }
                     }
@@ -389,11 +425,36 @@ function check_submittable(model){
 }
 
 
+function manage_key_value_model_control_import(model){
+    /// Turn on and off key_value model inputs
+
+    if ($("input[name='key_value_model_control_import_" + model + "']:checked").val() == "import"){
+        $("#key_value_model_outer_" + model).removeClass("not-visible")
+    }
+    else {
+        $("#key_value_model_outer_" + model).addClass("not-visible")
+    }
+
+    check_submittable(model);
+}
+
+
+function delete_key_value_model_row(model, row){
+    /// Delete a row from the key_value_model_table
+
+    $("#key_value_model_table_row_" + model + "_" + row).remove();
+
+    // Remove the field from the list of fields
+    delete(window.import_scheme.find_item_by_model(model).key_value_model_fields[row]);
+    manage_key_value_model_feeder_input(model)
+}
+
+
 function manage_key_value_model_feeder_input(model){
-    /// Chech key_value_model_feeder to decide if the add button should be disabled
+    /// Check key_value_model_feeder to decide if the add button should be disabled
 
     let feeder = $("#key_value_model_feeder_" + model).find(":selected");
-    if (feeder.val() && ! window.import_scheme.find_item_by_model(model).key_value_model_fields.includes(feeder.val())) {
+    if (feeder.val() && ! Object.values(window.import_scheme.find_item_by_model(model).key_value_model_fields).includes(feeder.val())) {
         $("#key_value_model_button_" + model).removeClass('disabled');
     }
     else {
@@ -403,11 +464,11 @@ function manage_key_value_model_feeder_input(model){
 
 
 function manage_key_value_model_table(model, row){
-    if($("#key_value_model_table_key_" + row).find(":selected").val() == "**raw_text**"){
-        $("#key_value_model_table_key_" + row + "_raw_text").removeClass('not-visible');
+    if($("#key_value_model_table_key_" + model + "_" + row).find(":selected").val() == "**raw_text**"){
+        $("#key_value_model_table_key_" + model + "_" + row + "_raw_text").removeClass('not-visible');
     }
     else {
-        $("#key_value_model_table_key_" + row + "_raw_text").addClass('not-visible');
+        $("#key_value_model_table_key_" + model + "_" + row + "_raw_text").addClass('not-visible');
     }
 
     check_submittable(model)

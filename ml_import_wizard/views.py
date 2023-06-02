@@ -397,7 +397,9 @@ class DoImporterModel(LoginRequiredMixin, View):
             is_key_value_model = True
 
             key_field = model_object.settings["key_field"]
-            key_value_model_keys = [getattr(object, key_field) for object in model_object.model.objects.order_by(key_field).distinct(key_field)]
+            
+            keys_from_db = [getattr(object, key_field) for object in model_object.model.objects.order_by(key_field).distinct(key_field)]
+            key_value_model_keys = list(set(sorted(keys_from_db + model_object.settings.get("initial_values", []))))
             
         return_data = {
             'name': model_object.fancy_name,
@@ -442,59 +444,67 @@ class DoImporterModel(LoginRequiredMixin, View):
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
         
         app, model = kwargs.get('model_name', '').split("-")
-
-        fields: dict[str, dict[str, any]] = {}
-        for attribute, value in request.POST.items():
-            if attribute == 'csrfmiddlewaretoken': continue
-
-            # Get the value if it's a list, and rename our field to not include the []
-            if attribute[-2:] == "[]":
-                value = request.POST.getlist(attribute)
-                attribute = attribute[0:-2]
-
-            field, attribute = attribute.split(":")
-            if field in fields: fields[field][attribute] = value 
-            else: fields[field] = {attribute: value}
-
-        for field, values in fields.items():
-            strategy: str = ''
-            settings: dict = {}
-
-            if values["file_field"] == "**raw_text**":
-                strategy = "Raw Text"
-                settings["raw_text"] = values["file_field_raw_text"]
-
-            elif values["file_field"] == "**select_first**":
-                strategy = "Select First"
-                settings["first_keys"] = []
-
-                for file_field in [f"file_field_first_{count}" for count in [1, 2, 3]]:
-                    if values[file_field]:
-                        settings["first_keys"].append(int(values[file_field].split("**field**")[1]))
-
-            elif values["file_field"] == "**split_field**":
-                strategy = "Split Field"
-                
-                settings["split_key"] = int(values['file_field_split'].split("**field**")[1])
-                settings["splitter"] = values["file_field_split_splitter"]
-                settings["splitter_position"] = int(values["file_field_split_position"])
-
-            elif "**field**" in values["file_field"]:
-                strategy = "File Field"
-                settings["key"] = int(values['file_field'].split("**field**")[1])
-
-            elif values["file_field"] == "**no_data**":
-                strategy = "No Data"
-                
+        
+        if request.POST.get("**is_key_value_model**"):
+            log.debug("Got key_value model")
+            if request.POST.get("**no_import**"):
+                pass
             else:
-                strategy = "Table Row"
-                settings["row"] = values['file_field']
+                pass
 
-            import_scheme.create_or_update_item(app=app, 
-                                                model= model, 
-                                                field=field, 
-                                                strategy=strategy, 
-                                                settings=settings)
+        else:
+            fields: dict[str, dict[str, any]] = {}
+            for attribute, value in request.POST.items():
+                if attribute == 'csrfmiddlewaretoken': continue
+
+                # Get the value if it's a list, and rename our field to not include the []
+                if attribute[-2:] == "[]":
+                    value = request.POST.getlist(attribute)
+                    attribute = attribute[0:-2]
+
+                field, attribute = attribute.split(":")
+                if field in fields: fields[field][attribute] = value 
+                else: fields[field] = {attribute: value}
+
+            for field, values in fields.items():
+                strategy: str = ''
+                settings: dict = {}
+
+                if values["file_field"] == "**raw_text**":
+                    strategy = "Raw Text"
+                    settings["raw_text"] = values["file_field_raw_text"]
+
+                elif values["file_field"] == "**select_first**":
+                    strategy = "Select First"
+                    settings["first_keys"] = []
+
+                    for file_field in [f"file_field_first_{count}" for count in [1, 2, 3]]:
+                        if values[file_field]:
+                            settings["first_keys"].append(int(values[file_field].split("**field**")[1]))
+
+                elif values["file_field"] == "**split_field**":
+                    strategy = "Split Field"
+                    
+                    settings["split_key"] = int(values['file_field_split'].split("**field**")[1])
+                    settings["splitter"] = values["file_field_split_splitter"]
+                    settings["splitter_position"] = int(values["file_field_split_position"])
+
+                elif "**field**" in values["file_field"]:
+                    strategy = "File Field"
+                    settings["key"] = int(values['file_field'].split("**field**")[1])
+
+                elif values["file_field"] == "**no_data**":
+                    strategy = "No Data"
+                    
+                else:
+                    strategy = "Table Row"
+                    settings["row"] = values['file_field']
+
+                import_scheme.create_or_update_item(app=app, 
+                                                    model= model, 
+                                                    field=field, 
+                                                    strategy=strategy, 
+                                                    settings=settings)
         
 
         return_data = {'saved': True,}

@@ -50,7 +50,7 @@ ML_IMPORT_WIZARD = {
             'apps': [
                 {
                     'name': 'core',
-                    'include_models': ["GenomeVersion", "DataSet", "Publication", "DataSetSource", "Subject", "SubjectData", "Sample", "Preparation", "SequencingMethod", "IntegrationEnvironment", "Integration", "IntegrationLocation", "BlastInfo"],
+                    'include_models': ["GenomeVersion", "DataSet", "Publication", "DataSetSource", "Subject", "SubjectData", "Sample", "SampleData", "Preparation", "SequencingMethod", "IntegrationEnvironment", "Integration", "IntegrationLocation", "BlastInfo"],
                     "models": {
                         "GenomeVersion": {
                             "exclude_fields": ["external_gene_id_source"],
@@ -75,8 +75,16 @@ ML_IMPORT_WIZARD = {
                             # "key_field": "key",
                             # "value_field": "value",
                             "restrict_on_key": True,
-                            "restrict_on_value": False
-                        }
+                            "restrict_on_value": False,
+                            "initial_values": []
+                        },
+                        "SampleData": {
+                            "key_value_model": True,
+                            "restriction": "deferred",
+                            "restrict_on_key": True,
+                            "restrict_on_value": False,
+                            "initial_values": []
+                        },
                     },
                 },
             ],
