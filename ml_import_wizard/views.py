@@ -13,7 +13,7 @@ import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from ml_import_wizard.forms import UploadFileForImportForm, NewImportSchemeForm
-from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem
+from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem, ImportSchemeFileField
 from ml_import_wizard.utils.simple import sound_user_name, resolve_true
 from ml_import_wizard.utils.importer import importers
 
@@ -359,7 +359,9 @@ class DoImporterModel(LoginRequiredMixin, View):
         app, model = kwargs['model_name'].split("-")
 
         return_data: dict = {}
-
+        urgent: bool = True
+        start_expanded: bool = True
+        
         try:
             import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
         except ImportScheme.DoesNotExist:
@@ -373,26 +375,10 @@ class DoImporterModel(LoginRequiredMixin, View):
         field_strategies: dict[str: any] = {}                                   # List of field strategies to fill the form from
         show_files: bool = True if import_scheme.files.count() > 1 else False   # Supress file name in selector if there is only one file
         is_key_value_model: bool = False                                        # Indicates that this model is a key_value_model
-        key_value_model_keys = []                                               # Get the default values for column_to_row models
+        key_value_model_keys = []                                               # Get the default values for key_value models
+        key_value_model_setup = []                                              # Object to set up the initial table
 
-        # fill field_values
-        for field in model_object.settings.get("load_value_fields", []):
-            field_values[field] = model_object.model.objects.values_list(field, flat=True)
-
-        # fill field_list and field_stragegies
-        for field in model_object.shown_fields:
-            field_list.append(f"{model_object.name}__-__{field.name}")
-
-            items = import_scheme.items.filter(app=app, model=model, field=field.name)
-            if items.count() == 0:
-                continue
-            
-            item = items[0]
-
-            field_strategies[field.name] = item.settings
-            field_strategies[field.name]["strategy"] = item.strategy
-        
-        # Stuff for column_to_row models
+        # Stuff for key_value models
         if model_object.settings.get("key_value_model"):
             is_key_value_model = True
 
@@ -400,6 +386,49 @@ class DoImporterModel(LoginRequiredMixin, View):
             
             keys_from_db = [getattr(object, key_field) for object in model_object.model.objects.order_by(key_field).distinct(key_field)]
             key_value_model_keys = list(set(sorted(keys_from_db + model_object.settings.get("initial_values", []))))
+
+            try:
+                import_item: ImportSchemeItem = import_scheme.items.get(app=app, model=model, field="key_value")
+            except:
+                import_item = None
+            
+            if import_item:
+                # urgent = False
+                # start_expanded = False
+
+                field_strategies = import_item.strategy
+
+                for setting, value in import_item.settings.items():
+                    file_field: ImportSchemeFileField = ImportSchemeFileField.objects.get(pk=value.get("key"))
+                    key_value_model_setup.append({"name": file_field.name, "key": setting, "id": value.get("key")})
+
+
+        # Stuff for standard models
+        else:
+            # fill field_values
+            for field in model_object.settings.get("load_value_fields", []):
+                field_values[field] = model_object.model.objects.values_list(field, flat=True)
+
+            # fill field_list and field_stragegies
+            for field in model_object.shown_fields:
+                field_list.append(f"{model_object.name}__-__{field.name}")
+
+                items = import_scheme.items.filter(app=app, model=model, field=field.name)
+                if items.count() == 0:
+                    continue
+                
+                item = items[0]
+
+                field_strategies[field.name] = item.settings
+                field_strategies[field.name]["strategy"] = item.strategy
+
+            # if field.name in field_strategies: 
+            if field_strategies:
+                urgent = False
+                start_expanded = False
+            else: 
+                urgent = True
+                start_expanded = True
             
         return_data = {
             'name': model_object.fancy_name,
@@ -408,30 +437,27 @@ class DoImporterModel(LoginRequiredMixin, View):
             "fields": field_list,
             "is_key_value_model": is_key_value_model,
             "key_value_model_keys": key_value_model_keys,
+            "key_value_model_setup": key_value_model_setup,
+            "urgent": urgent,
+            "start_expanded": start_expanded, 
 
-            'form': render_to_string('ml_import_wizard/fragments/model.html', 
-                                            request=request, 
-                                            context={"model": model_object, 
-                                                     "scheme": import_scheme,
-                                                     "field_values": field_values,
-                                                     "app": app,
-                                                     "strategies": field_strategies,
-                                                     "show_files": show_files,
-                                            },
+            'form': render_to_string(
+                'ml_import_wizard/fragments/model.html', 
+                request=request, 
+                context={
+                    "model": model_object, 
+                    "scheme": import_scheme,
+                    "field_values": field_values,
+                    "app": app,
+                    "strategies": field_strategies,
+                    "show_files": show_files,
+                },
             ),
             'tooltip': True,        # Needed to trigger tooltip
             'selectpicker': True,   # Needed to trigger the selectpicker from jquery to reformat the options
         }
 
-        if field.name in field_strategies: 
-            return_data["urgent"] = False
-            return_data["start_expanded"] = False
-        else: 
-            return_data["urgent"] = True
-            return_data["start_expanded"] = True
-
         return JsonResponse(return_data)
-
 
     def post(self, request, *args, **kwargs):
         """ Store information about a Model to import """
@@ -444,16 +470,31 @@ class DoImporterModel(LoginRequiredMixin, View):
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
         
         app, model = kwargs.get('model_name', '').split("-")
-        
+        fields: dict[str, dict[str, any]] = {}
+            
         if request.POST.get("**is_key_value_model**"):
             log.debug("Got key_value model")
+            field = "key_value"
+            settings = {}
+
             if request.POST.get("**no_import**"):
-                pass
+                strategy = "No Data"
+
             else:
-                pass
+                strategy = "Key Value"
+
+                for key, value in request.POST.items():
+                    if key in ("csrfmiddlewaretoken", "**is_key_value_model**"): 
+                        continue
+                    
+                    if "**field**" in value:
+                        value = {"key": value.replace("**field**", "")}
+                    settings[key] = value
+
+                log.debug(settings)
 
         else:
-            fields: dict[str, dict[str, any]] = {}
+            log.debug("Got standard model")
             for attribute, value in request.POST.items():
                 if attribute == 'csrfmiddlewaretoken': continue
 
@@ -461,7 +502,7 @@ class DoImporterModel(LoginRequiredMixin, View):
                 if attribute[-2:] == "[]":
                     value = request.POST.getlist(attribute)
                     attribute = attribute[0:-2]
-
+                    
                 field, attribute = attribute.split(":")
                 if field in fields: fields[field][attribute] = value 
                 else: fields[field] = {attribute: value}
@@ -500,13 +541,12 @@ class DoImporterModel(LoginRequiredMixin, View):
                     strategy = "Table Row"
                     settings["row"] = values['file_field']
 
-                import_scheme.create_or_update_item(app=app, 
-                                                    model= model, 
-                                                    field=field, 
-                                                    strategy=strategy, 
-                                                    settings=settings)
+        import_scheme.create_or_update_item(app=app, 
+                                            model= model, 
+                                            field=field, 
+                                            strategy=strategy, 
+                                            settings=settings)
         
-
         return_data = {'saved': True,}
 
         return JsonResponse(return_data)

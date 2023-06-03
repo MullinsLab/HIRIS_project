@@ -981,7 +981,7 @@ class ImportSchemeItem(ImportBaseModel):
     @property
     def name(self) -> str:
         """ Custom name for the ImportSchemeItem """
-        return f"{self.app}{self.model}{self.field}"
+        return f"{self.app}.{self.model}.{self.field}"
 
     class Meta:
         unique_together = ["import_scheme", "app", "model", "field"]

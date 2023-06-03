@@ -1,15 +1,15 @@
 {% load ml_import_wizard_tags %}
 <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
-    <input type="radio" value="import" class="btn-check" name="key_value_model_control_import_{{ model.name }}" id="import_{{ model.name }}" autocomplete="off" checked
+    <input type="radio" value="import" class="btn-check" name="key_value_model_control_import_{{ model.name }}" id="import_{{ model.name }}" autocomplete="off" {% if strategies != "No Data" %}checked{% endif %}
         onclick=manage_key_value_model_control_import("{{ model.name }}")>
     <label class="btn btn-outline-primary" for="import_{{ model.name }}">Used</label>
 
-    <input type="radio" value="no_import" class="btn-check" name="key_value_model_control_import_{{ model.name }}" id="no_import_{{ model.name }}" autocomplete="off"
+    <input type="radio" value="no_import" class="btn-check" name="key_value_model_control_import_{{ model.name }}" id="no_import_{{ model.name }}" autocomplete="off" {% if strategies == "No Data" %}checked{% endif %}
         onclick=manage_key_value_model_control_import("{{ model.name }}")>
     <label class="btn btn-outline-primary" for="no_import_{{ model.name }}">Unused</label>
 </div>
 <br>
-<div id=key_value_model_outer_{{ model.name }}>
+<div id=key_value_model_outer_{{ model.name }}{% if strategies == "No Data" %} class="not-visible"{% endif %}>
     Select file fields to import into {{model.fancy_name}}<br>
     <div class="container">
         <div class="row">
@@ -22,7 +22,7 @@
                     data-width=100%
                     onchange="manage_key_value_model_feeder_input('{{ model.name }}')" >
                     {% for file in scheme.files.all %}
-                        {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file set_data_name=True %}
+                        {% include "ml_import_wizard/fragments/field_file_fields_option.html" with set_data_name=True %}
                     {% endfor %}
                 </select> 
             </div>

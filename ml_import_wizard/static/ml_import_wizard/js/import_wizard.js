@@ -35,11 +35,13 @@ class ImportScheme {
             cache: false,
         }).done(function(data){
             let items = data.import_scheme_items;
+            
             for (let item in items){
                 this.caller.items.push(new ImportSchemeItem({id: items[item], index: this.caller.items.length, parent: this.caller}))
                 
                 // Set up a base_accordion_X as a placeholder for the accordion block
-                $(this.caller.accordion_container).append("<div id='base_accordion_" + (this.caller.items.length-1) + "'>");
+    
+                $(this.caller.accordion_container).append("<div id='base_accordion_" + (this.caller.items.length-1) + "'></div>");
             };
         });
     };
@@ -61,7 +63,8 @@ class ImportSchemeItem{
     model;                      // name of the model this item represents
     is_key_value_model;         // If true sets up script and objects to handle column_to_row
     key_value_model_fields = {};// A dict of the fields that will be used in the column_to_row
-    key_value_model_keys = [];  // A list of the existing key values
+    key_value_model_setup = []; // A list of dicts, one per row, to set up the table
+    key_value_model_keys = [];  // A list of the existing key values available to select for rows
     key_value_next_row = 0;     // Holds the ID for the next row
 
     // objects that corrispond with the dom objects for this item
@@ -99,7 +102,8 @@ class ImportSchemeItem{
             this.caller.set_with_dirty({field: 'fields', value: data.fields});
             this.caller.set_with_dirty({field: 'is_key_value_model', value: data.is_key_value_model});
             this.caller.set_with_dirty({field: 'key_value_model_keys', value: data.key_value_model_keys});
-
+            this.caller.set_with_dirty({field: 'key_value_model_setup', value: data.key_value_model_setup});
+            
             this.caller.render();
         })
     };
@@ -169,65 +173,19 @@ class ImportSchemeItem{
         if (this.tooltip){
             $('[data-toggle="tooltip"]').tooltip()
         };
+
+        for (let row in this.key_value_model_setup) {
+            console.log("Row: " + row + ", Name: " + this.key_value_model_setup[row].name)
+            
+            this.create_key_value_row(this, this.key_value_model_setup[row].name, this.key_value_model_setup[row].id, this.key_value_model_setup[row].key)
+        }
         
         if (this.form){
             // Attach funciton to move file fields into a key_value_model table
             var caller = this;
 
             $("#key_value_model_button_"+this.model).button().click(function(){
-                let feeder = $("#key_value_model_feeder_" + caller.model).find(":selected");
-                let table = document.getElementById("key_value_model_table_" + caller.model);
-                let row_number = caller.key_value_next_row ++;
-                //this.key_value_next_row ++;
-
-                // Create a dropdown for the keys
-                let key_fields = "<select id='key_value_model_table_key_" + caller.model + "_" + row_number + "' ";
-                key_fields += "class='selectpicker border rounded-3' title='Key name...' ";
-                key_fields += "onchange=\"manage_key_value_model_table('" + caller.model + "', '" + row_number + "')\" >";
-                key_fields += "<option></option>"
-
-                key_fields += "<optgroup label='Keys already in " + caller.name + "...'>";
-                for (let key_index in caller.key_value_model_keys){
-                    let key = caller.key_value_model_keys[key_index];
-                    key_fields += "<option value='" + key + "'>" + key + "</option>";
-                }
-                key_fields += "</optgroup>";
-
-                key_fields += "<optgroup label='Raw text...'>";
-                key_fields += "<option value='**raw_text**'>Enter Text</option>";
-                key_fields += "</optgroup>";
-
-                key_fields += "<optgroup label='File field name...'>";
-                key_fields += "<option value='" + feeder.attr("data-name") + "'>" + feeder.attr("data-name") + "</option>"
-                key_fields += "</optgroup>";
-
-                key_fields += "</select>";
-
-                // Text field
-                key_fields += "<input type='text' placeholder='Specify key name ...' ";
-                key_fields += "id='key_value_model_table_key_" + caller.model + "_" + row_number + "_raw_text' class='form-control not-visible'";
-                key_fields += "oninput=\"manage_key_value_model_table('" + caller.model + "', '" + row_number + "')\" >";
-
-                let row=table.insertRow();
-                
-                row.id = "key_value_model_table_row_" + caller.model + "_" + row_number;
-
-                let cell1=row.insertCell();
-                let cell2=row.insertCell();
-
-                cell1.id = "key_value_model_table_field_" + caller.model + "_" + row_number;
-
-                cell1.classList.add("align-middle");
-                cell2.classList.add("align-middle");
-
-                cell1.innerHTML="<a onclick=\"delete_key_value_model_row('" + caller.model + "', '" + row_number + "')\"> <img class='pointer' src='/static/ml_import_wizard/images/close.svg' height=25 width=25></a>"+feeder.attr("data-name");
-                cell2.innerHTML=key_fields;
-
-                caller.key_value_model_fields[row_number]=feeder.val();
-
-                $('.selectpicker').selectpicker();
-                check_submittable(caller.model);
-                manage_key_value_model_feeder_input(caller.model)
+                caller.create_key_value_row(caller)
             });    
 
             // Attach ajax function to submit the form
@@ -409,6 +367,78 @@ class ImportSchemeItem{
 
         // Accept if we get to this point
         return true;
+    }
+
+    create_key_value_row(caller, initial_name, initial_id, initial_key){
+        // Set up to feed from the dropdown if not given specific data
+        let feeder = $("#key_value_model_feeder_" + caller.model).find(":selected");
+        let field_name = "";
+        let field_id = "";
+        let raw_text = false;
+        let selected = "";
+
+        if (initial_name) {field_name = initial_name} else {field_name = feeder.attr("data-name")}''
+        if (initial_id) {field_id = "**field**" + initial_id} else {field_id = feeder.val()};
+        
+        let table = document.getElementById("key_value_model_table_" + caller.model);
+        let row_number = caller.key_value_next_row ++;
+
+        caller.key_value_model_fields[row_number]=field_id;
+        
+        // Create a dropdown for the keys
+        let key_fields = "<select id='key_value_model_table_key_" + caller.model + "_" + row_number + "' ";
+        key_fields += "class='selectpicker border rounded-3' title='Key name...' ";
+        key_fields += "onchange=\"manage_key_value_model_table('" + caller.model + "', '" + row_number + "')\" >";
+        key_fields += "<option></option>";
+
+        key_fields += "<optgroup label='Keys already in " + caller.name + "...'>";
+        for (let key_index in caller.key_value_model_keys){
+            let key = caller.key_value_model_keys[key_index];
+            if (key == initial_key) {selected = " selected"} else {selected = ""};
+
+            key_fields += "<option value='" + key + "'" + selected + ">" + key + "</option>";
+        }
+        key_fields += "</optgroup>";
+
+        key_fields += "<optgroup label='Raw text...'>";
+        if (field_name != initial_key && ! caller.key_value_model_keys.includes(initial_key)) {selected = " selected"} else {selected = ""};
+        key_fields += "<option value='**raw_text**'" + selected + ">Enter Text</option>";
+        key_fields += "</optgroup>";
+
+        key_fields += "<optgroup label='File field name...'>";
+        if (field_name == initial_key) {selected = " selected"} else {selected = ""};
+        key_fields += "<option value='" + field_name + "'" + selected + ">" + field_name + "</option>"
+        key_fields += "</optgroup>";
+
+        key_fields += "</select>";
+
+        // Text field
+        let text_value = "";
+        let visibility = " not-visible";
+
+        if (field_name != initial_key && ! caller.key_value_model_keys.includes(initial_key)) {text_value = ' value="' + initial_key + '"'; visibility=""};
+        key_fields += "<input type='text' placeholder='Specify key name ...' ";
+        key_fields += "id='key_value_model_table_key_" + caller.model + "_" + row_number + "_raw_text' class='form-control" + visibility + "'";
+        key_fields += "oninput=\"manage_key_value_model_table('" + caller.model + "', '" + row_number + "')\"" + text_value + ">";
+
+        let row=table.insertRow();
+        
+        row.id = "key_value_model_table_row_" + caller.model + "_" + row_number;
+
+        let cell1=row.insertCell();
+        let cell2=row.insertCell();
+
+        cell1.id = "key_value_model_table_field_" + caller.model + "_" + row_number;
+
+        cell1.classList.add("align-middle");
+        cell2.classList.add("align-middle");
+
+        cell1.innerHTML="<a onclick=\"delete_key_value_model_row('" + caller.model + "', '" + row_number + "')\"> <img class='pointer' src='/static/ml_import_wizard/images/close.svg' height=25 width=25></a>"+field_name;
+        cell2.innerHTML=key_fields;
+
+        $('.selectpicker').selectpicker();
+        check_submittable(caller.model);
+        manage_key_value_model_feeder_input(caller.model)
     }
 };
 

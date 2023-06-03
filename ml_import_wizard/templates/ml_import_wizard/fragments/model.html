@@ -19,7 +19,7 @@
     data-url="{{ app }}-{{ model.name }}"
     data-model="{{ model.name }}">
     {% if model.settings.key_value_model %}
-        {% include "ml_import_wizard/fragments/key_value_model_field.html" with field=field model=model %}
+        {% include "ml_import_wizard/fragments/key_value_model_field.html" %}
     {% else %}
         {% for field in model.shown_fields %}
             {% include "ml_import_wizard/fragments/field.html" with field=field %}
