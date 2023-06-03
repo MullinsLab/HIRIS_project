@@ -175,8 +175,6 @@ class ImportSchemeItem{
         };
 
         for (let row in this.key_value_model_setup) {
-            console.log("Row: " + row + ", Name: " + this.key_value_model_setup[row].name)
-            
             this.create_key_value_row(this, this.key_value_model_setup[row].name, this.key_value_model_setup[row].id, this.key_value_model_setup[row].key)
         }
         
@@ -206,23 +204,17 @@ class ImportSchemeItem{
                 if (model.is_key_value_model){
                     form_data["**is_key_value_model**"] = true;
 
-                    console.log("Import? " + $("input[name='key_value_model_control_import_" + model.model + "']:checked").val());
-
                     if ($("input[name='key_value_model_control_import_" + model.model + "']:checked").val() == "no_import"){
                         form_data["**no_import**"] = true;
                     }
                     else {
-                        console.log(model.key_value_model_fields);
-                        
                         for (let row in model.key_value_model_fields){
                             let key = $("#key_value_model_table_key_" + model.model + "_" + row).find(":selected").val();
                             if (key == "**raw_text**"){
                                 key = $("#key_value_model_table_key_" + model.model + "_" + row + "_raw_text").val()
                             }
-                            let value = model.key_value_model_fields[row];
-
-                            console.log("Row: " + row + ", Key: " + key + ", Value: " + value)
-                            form_data[key] = value;
+                            
+                            form_data[key] = model.key_value_model_fields[row];
                         }
                     }
                 }

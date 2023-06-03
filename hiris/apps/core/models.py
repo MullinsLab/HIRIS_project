@@ -18,13 +18,13 @@ class CoreBaseModel(models.Model):
         ''' Returns the specific class name field as name 
         uses explicit name_field if it exists, otherwise defaults to the class name + "_name" '''
         if hasattr(self, 'name_field') and self.name_field:         # type: ignore
-            #return str(eval("self." + self.name_field))            # type: ignore   # pragma: no cover
             return str(getattr(self, self.name_field))              # type: ignore   # pragma: no cover
         else:
             name_list: list[str] = re.sub( r"([A-Z])", r" \1", self.__class__.__name__).split()
             name = '_'.join(name_list)
 
-            return eval("self." + name.lower() + "_name")
+            #return eval("self." + name.lower() + "_name")
+            return str(getattr(self, f"{name.lower()}_name"))
 
     def __str__(self) ->str:
         ''' Generic stringify function.  Most objects will have a name so it's the default. '''

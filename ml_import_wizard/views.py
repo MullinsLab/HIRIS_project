@@ -388,13 +388,13 @@ class DoImporterModel(LoginRequiredMixin, View):
             key_value_model_keys = list(set(sorted(keys_from_db + model_object.settings.get("initial_values", []))))
 
             try:
-                import_item: ImportSchemeItem = import_scheme.items.get(app=app, model=model, field="key_value")
+                import_item: ImportSchemeItem = import_scheme.items.get(app=app, model=model, field="**key_value**")
             except:
                 import_item = None
             
             if import_item:
-                # urgent = False
-                # start_expanded = False
+                urgent = False
+                start_expanded = False
 
                 field_strategies = import_item.strategy
 
@@ -474,7 +474,7 @@ class DoImporterModel(LoginRequiredMixin, View):
             
         if request.POST.get("**is_key_value_model**"):
             log.debug("Got key_value model")
-            field = "key_value"
+            field = "**key_value**"
             settings = {}
 
             if request.POST.get("**no_import**"):
