@@ -78,6 +78,9 @@ ML_IMPORT_WIZARD = {
                             "restrict_on_value": False,
                             "initial_values": []
                         },
+                        "Sample": {
+                            "exclude_fields": ["culture", "culture_day", "date", "disease", "genbank", "original_id", "provirus_activity", "replicates", "tissue", "tissue_url", "type", "visit", "years_on_art"]
+                        },
                         "SampleData": {
                             "key_value_model": True,
                             "restriction": "deferred",

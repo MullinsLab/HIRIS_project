@@ -232,6 +232,7 @@ class Sample(CoreBaseModel):
     """ Holds data about a specific sample """
     sample_id = models.BigAutoField(primary_key=True, editable=False)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="samples")
+    sample_name = models.CharField(max_length=255, null=True, blank=True)
     culture = models.CharField(max_length=255, null=True, blank=True)
     culture_day = models.IntegerField(null=True, blank=True)
     date = models.DateField(null=True, blank=True)
@@ -317,6 +318,7 @@ class Integration(CoreBaseModel):
     integration_id = models.BigAutoField(primary_key=True, editable=False)
     integration_environment = models.ForeignKey(IntegrationEnvironment, on_delete=models.CASCADE, related_name="integrations", null=True)
     sequencing_method = models.ForeignKey(SequencingMethod, on_delete=models.CASCADE, related_name="integrations")
+    integration_name = models.CharField(max_length=255, null=True, blank=True)
     ltr = models.CharField(max_length=2, choices=(('3p', '3p'), ('5p', '5p')), null=True)
     multiple_integration = models.BooleanField(null=True, blank=True)
     multiple_integration_count = models.IntegerField(null=True, blank=True)
