@@ -493,6 +493,12 @@ class DoImporterModel(LoginRequiredMixin, View):
 
                 log.debug(settings)
 
+                import_scheme.create_or_update_item(app=app, 
+                                                    model= model, 
+                                                    field=field, 
+                                                    strategy=strategy, 
+                                                    settings=settings)
+
         else:
             log.debug("Got standard model")
             for attribute, value in request.POST.items():
