@@ -531,6 +531,7 @@ class DoImporterModel(LoginRequiredMixin, View):
                     settings["splitter_position"] = int(values["file_field_split_position"])
 
                 elif "**field**" in values["file_field"]:
+                    log.debug(f"Got file field: {values['file_field']}")
                     strategy = "File Field"
                     settings["key"] = int(values['file_field'].split("**field**")[1])
 
@@ -541,11 +542,11 @@ class DoImporterModel(LoginRequiredMixin, View):
                     strategy = "Table Row"
                     settings["row"] = values['file_field']
 
-        import_scheme.create_or_update_item(app=app, 
-                                            model= model, 
-                                            field=field, 
-                                            strategy=strategy, 
-                                            settings=settings)
+                import_scheme.create_or_update_item(app=app, 
+                                                    model= model, 
+                                                    field=field, 
+                                                    strategy=strategy, 
+                                                    settings=settings)
         
         return_data = {'saved': True,}
 
