@@ -75,3 +75,29 @@ def get_summary_by_gene() -> list:
     """ Get a list of genes with associated data """
 
     return exporters["SummaryByGene"].query_rows()
+
+
+def process_integration_feature_links() -> None:
+    """ Execute the query that links Integrations to Features """
+
+    sql = """INSERT INTO integration_features (added, updated, integration_location_id, feature_location_id, feature_type_name)
+SELECT now(), now(), integration_location_id, feature_locations.feature_location_id, feature_types.feature_type_name
+from integration_locations
+	join integrations
+		using (integration_id)
+	join feature_locations
+		on 
+			CASE 
+				WHEN (integration_locations.orientation_in_landmark='F' AND (integrations.ltr='5p' OR integrations.ltr IS NULL))  
+					OR (integration_locations.orientation_in_landmark='R' AND (integrations.ltr='3p' OR integrations.ltr IS NULL)) 
+				THEN integration_locations.location > feature_locations.feature_start AND integration_locations.location <= feature_locations.feature_end 
+				WHEN (integration_locations.orientation_in_landmark='R' AND (integrations.ltr='5p' OR integrations.ltr IS NULL))  
+					OR (integration_locations.orientation_in_landmark='F' AND (integrations.ltr='3p' OR integrations.ltr IS NULL)) 
+				THEN integration_locations.location >= feature_locations.feature_start AND integration_locations.location < feature_locations.feature_end 
+			END 
+			AND feature_locations.landmark = integration_locations.landmark
+	join features using (feature_id)
+	join feature_types using (feature_type_id)
+WHERE integration_location_id NOT IN (SELECT integration_location_id FROM integration_features);"""
+
+    return generic_query(sql=sql)
