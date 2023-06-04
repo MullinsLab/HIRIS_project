@@ -24,7 +24,11 @@ class BaseImporter(object):
         
         for setting, value in settings.items():
             self.settings[setting] = value
-            
+    
+    def __str__(self):
+        """ Return the name attribute as __str__ """
+        return f"{self.__class__}: {self.name}"
+
     @property
     def fancy_name(self) -> str:
         return fancy_name(self.name)
@@ -84,7 +88,7 @@ class ImporterModel(BaseImporter):
     def foreign_key_fields(self) -> list:
         """ Returns a list of fields that refer to foreign keys """
 
-        return [field for field in self.fields if field.is_foreign_key()]
+        return [field for field in self.fields if field.is_foreign_key]
     
     @property
     def has_foreign_key(self) -> bool:
@@ -96,7 +100,12 @@ class ImporterModel(BaseImporter):
     @property
     def shown_fields(self) -> list:
         """ Lists all the fields that should be shown in the importer """
-        return [field for field in self.fields if not field.is_foreign_key()]
+        return [field for field in self.fields if not field.is_foreign_key]
+    
+    @property
+    def is_key_value(self) -> bool:
+        """ True if the model stores keys and values """
+        return self.settings.get("key_value_model", False)
     
 
 class ImporterField(BaseImporter):
@@ -112,15 +121,35 @@ class ImporterField(BaseImporter):
         parent.fields.append(self)
         parent.fields_by_name[self.name] = self
 
+    @property
     def is_foreign_key(self) -> bool:
-        """ returns True if the field has a foreign key """
+        """ True if the field has a foreign key """
 
         return isinstance(self.field, ForeignKey)
-    
+
+    @property
     def not_nullable(self) -> bool:
-        """ returns True if the field is not nullable """
+        """ True if the field is not nullable """
 
         return not self.field.null
+    
+    @property
+    def is_key_field(self) -> bool:
+        """ True if the field is in a key_value model and the name of this field matches model.settings.key_field """
+
+        if not self.parent.is_key_value or self.parent.settings.get("key_field") != self.name:
+            return False
+
+        return True
+    
+    @property
+    def is_value_field(self) -> bool:
+        """ True if the field is in a key_value model and the name of this field matches model.settings.value_field """
+
+        if not self.parent.is_key_value or self.parent.settings.get("value_field") != self.name:
+            return False
+
+        return True
     
 
 def setup_importers() -> None:

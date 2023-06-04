@@ -113,7 +113,6 @@ class ImportScheme(ImportBaseModel):
 
         return statuses
 
-
     def list_files(self, *, separator: str = ", ") -> str:
         """ Return a string that contains a list of file names for this ImportScheme """
         file_list: list[str] = []
@@ -168,23 +167,42 @@ class ImportScheme(ImportBaseModel):
 
         for app in importer.apps:
             for model in app.models:
-                for field in model.fields:
+                if model.is_key_value:
                     try:
                         import_scheme_item = ImportSchemeItem.objects.get(import_scheme_id = self.id,
-                                                                          app = app.name,
-                                                                          model = model.name,
-                                                                          field = field.name
+                                                                        app = app.name,
+                                                                        model = model.name,
+                                                                        field = "**key_value**"
                         )
                     except ImportSchemeItem.DoesNotExist:
                         continue
 
-                    columns.append({})
-                    columns[column_id]["name"] = field.name
-                    columns[column_id]["import_scheme_item"] = import_scheme_item
-                    columns[column_id]["importer_field"] = field
-                    columns[column_id]["importer_model"] = model
-
+                    columns.append({
+                        "name": f"{model.name} (key-value)",
+                        "import_scheme_item": import_scheme_item,
+                        "importer_model": model,
+                    })
                     column_id += 1
+
+                else:
+                    for field in model.fields:
+                        try:
+                            import_scheme_item = ImportSchemeItem.objects.get(import_scheme_id = self.id,
+                                                                            app = app.name,
+                                                                            model = model.name,
+                                                                            field = field.name
+                            )
+                        except ImportSchemeItem.DoesNotExist:
+                            continue
+
+                        columns.append({
+                            "name": field.name,
+                            "import_scheme_item": import_scheme_item,
+                            "importer_field": field,
+                            "importer_model": model,
+                        })
+                        column_id += 1
+
         return columns
     
     def data_rows(self, *, columns: list = None, limit_count: int = None) -> dict[str: any]:
@@ -235,6 +253,18 @@ class ImportScheme(ImportBaseModel):
                 strategy = column["import_scheme_item"].strategy
                 settings = column["import_scheme_item"].settings
 
+                if column["importer_model"].is_key_value:
+                    if strategy == "No Data":
+                        continue
+
+                    row_dict[column["name"]] = {}
+
+                    for key_value_key, key_value_value in column["import_scheme_item"].settings.items():
+                        if type(key_value_value) is dict and "key" in key_value_value:
+                            row_dict[column["name"]][key_value_key] = self.key_to_file_field(fields, primary_file, child_files, row, key_value_value["key"])
+                    
+                    continue
+
                 if strategy == "Raw Text":
                     row_dict[column["name"]] = settings["raw_text"]
 
@@ -249,31 +279,7 @@ class ImportScheme(ImportBaseModel):
                 elif strategy == "File Field":
                     key = settings["key"]
 
-                    if key not in fields:
-                        import_scheme_file_field = ImportSchemeFileField.objects.get(pk=key)
-                        fields[import_scheme_file_field.id] = {
-                            "name": import_scheme_file_field.name,
-                            "file": import_scheme_file_field.import_scheme_file_id,
-                        }
-
-                    file = fields[key]["file"]
-                    
-                    if file == primary_file.id:
-                        if type(row) is dict:
-                            row_dict[column["name"]] = row.get(fields[key]["name"])
-                        else:
-                            row_dict[column["name"]] = row[fields[key]["name"]]
-                    else:
-                        child_row = child_files[file]["object"].find_row_by_key(
-                            field=child_files[file]["child_linked_field"],
-                            key=row.get(child_files[file]["primary_linked_field"]),
-                            connection=child_files[file]["connection"],
-                        )
-                        if child_row:
-                            if type(child_row) is dict:
-                                row_dict[column["name"]] = child_row.get(fields[key]["name"])
-                            else:
-                                row_dict[column["name"]] = child_row[fields[key]["name"]]
+                    row_dict[column["name"]] = self.key_to_file_field(fields, primary_file, child_files, row, key)
                 
                 elif strategy == "Select First":
                     value: str = None
@@ -361,6 +367,40 @@ class ImportScheme(ImportBaseModel):
 
             yield row_dict
 
+    def key_to_file_field(self, fields, primary_file, child_files, row, key):
+        """ Result of automatic extraction.  Need to get rid of the side effect of storing things in the fields variable """
+
+        field: str = ""
+
+        if key not in fields:
+            import_scheme_file_field = ImportSchemeFileField.objects.get(pk=key)
+
+            fields[import_scheme_file_field.id] = {
+                            "name": import_scheme_file_field.name,
+                            "file": import_scheme_file_field.import_scheme_file_id,
+                        }
+
+        file = fields[key]["file"]
+                    
+        if file == primary_file.id:
+            if type(row) is dict:
+                field = row.get(fields[key]["name"])
+            else:
+                field = row[fields[key]["name"]]
+        else:
+            child_row = child_files[file]["object"].find_row_by_key(
+                            field=child_files[file]["child_linked_field"],
+                            key=row.get(child_files[file]["primary_linked_field"]),
+                            connection=child_files[file]["connection"],
+                        )
+            if child_row:
+                if type(child_row) is dict:
+                    field = child_row.get(fields[key]["name"])
+                else:
+                    field = child_row[fields[key]["name"]]
+
+        return field
+
     @timeit
     def execute(self, *, ignore_status: bool = False, limit_count: int=None) -> None:
         """ Execute the actual import and store the data """
@@ -391,6 +431,33 @@ class ImportScheme(ImportBaseModel):
                         working_objects: dict[str: dict[str: any]] = {}
 
                         for model in app.models_by_import_order:
+
+                            if model.is_key_value:
+
+                                for key, value in [(key, value) for key, value in row.get(f"{model.name} (key-value)", {}).items() if value and value != "NULL"]:
+                                    working_attributes = {}
+
+                                    for field in model.fields:
+                                        
+                                        if field.is_foreign_key:
+                                            if field.field.related_model.__name__ in working_objects:
+                                                working_attributes[field.name] = working_objects[field.field.related_model.__name__]
+                                            else:
+                                                working_attributes[field.name] = None
+
+                                        elif field.is_key_field:
+                                            working_attributes[field.name] = key
+                                        
+                                        elif field.is_value_field:
+                                            working_attributes[field.name] = value
+                                    
+                                    try:
+                                        model.model.objects.get(**working_attributes)
+                                    except:
+                                        model.model(**working_attributes).save()
+
+                                continue
+                            
                             working_attributes = {}
                             
                             superbreak: bool = False    # Needed to break out of both for loops
@@ -398,7 +465,7 @@ class ImportScheme(ImportBaseModel):
 
                             # Step through fields and fill working_attributes
                             for field in model.fields:
-                                if field.is_foreign_key():
+                                if field.is_foreign_key:
                                     if field.field.related_model.__name__ in working_objects:
                                         working_attributes[field.name] = working_objects[field.field.related_model.__name__]
                                     else:
@@ -410,7 +477,7 @@ class ImportScheme(ImportBaseModel):
 
                             # Load instances per their unique fields until we run out of unique fields or an object is returned.
                             unique_sets: list[tuple] = list(model.model._meta.__dict__.get("unique_together"))
-                            unique_sets = unique_sets + [(field.name,) for field in model.fields if field.field.unique and not field.is_foreign_key()]
+                            unique_sets = unique_sets + [(field.name,) for field in model.fields if field.field.unique and not field.is_foreign_key]
 
                             for unique_set in unique_sets:
                                 test_attributes: dict[str, any] = {}
@@ -418,9 +485,6 @@ class ImportScheme(ImportBaseModel):
 
                                 for unique_field in [unique_field for unique_field in unique_set if unique_field in working_attributes]:
                                     test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
-                                    # log.debug(unique_field)
-                                    # log.debug(working_attributes[unique_field])
-                                    # log.debug("Test\n")
                                     test_attributes_string += f"|{unique_field}:{working_attributes[unique_field]}|"
 
                                 temp_object: any = cache_thing.find(key=(model.name, test_attributes_string), report=False)
@@ -441,10 +505,8 @@ class ImportScheme(ImportBaseModel):
                             # Ensure that if the data for a field is None that the field is nullable
                             if model.name not in working_objects:
                                 for field in model.fields:
-                                    if working_attributes[field.name] is None and field.not_nullable():
+                                    if working_attributes[field.name] is None and field.not_nullable:
                                         working_objects[model.name] = None
-
-                                        # log.debug(f"Got null in unnullable field.  Model: {model.name}, Field: {field.name}")
 
                                         if model.settings.get("critical"):
                                             raise IntegrityError(f"Critical model is invalid: Model: {model.name}, Field: {field.name} is null")

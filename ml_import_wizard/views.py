@@ -14,7 +14,7 @@ log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from ml_import_wizard.forms import UploadFileForImportForm, NewImportSchemeForm
 from ml_import_wizard.models import ImportScheme, ImportSchemeFile, ImportSchemeItem, ImportSchemeFileField
-from ml_import_wizard.utils.simple import sound_user_name, resolve_true
+from ml_import_wizard.utils.simple import sound_user_name, resolve_true, table_resolve_key_values_to_string
 from ml_import_wizard.utils.importer import importers
 
 class ManageImports(LoginRequiredMixin, View):
@@ -488,7 +488,7 @@ class DoImporterModel(LoginRequiredMixin, View):
                         continue
                     
                     if "**field**" in value:
-                        value = {"key": value.replace("**field**", "")}
+                        value = {"key": int(value.replace("**field**", ""))}
                     settings[key] = value
 
                 log.debug(settings)
@@ -565,8 +565,9 @@ class PreviewImportScheme(LoginRequiredMixin, View):
             # Return the user to the /import page if they don't have a valid import_scheme to work on
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
-        table = import_scheme.preview_data_table()
+        table = import_scheme.preview_data_table(limit_count=2)
+        
         columns = json.dumps([{'field': column["name"], 'title': column["name"]} for column in table["columns"]])
-        rows = json.dumps(table["rows"])
+        rows = json.dumps(table_resolve_key_values_to_string(table=table["rows"]))
 
         return render(request, "ml_import_wizard/scheme_preview.html", context={"columns": columns, "rows": rows})

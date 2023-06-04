@@ -91,7 +91,7 @@ def resolve_true(value: any) -> bool|None:
     
     return bool(value)
 
-def deep_exists(dictionary: dict = None, keys: list = None) -> bool:
+def deep_exists(dictionary: dict=None, keys: list=None) -> bool:
     """ Returns true if the keys exist in the dictionary """
     
     if not dictionary or type(dictionary) is not dict or not keys or type(keys) is not list:
@@ -104,3 +104,14 @@ def deep_exists(dictionary: dict = None, keys: list = None) -> bool:
         return deep_exists(dictionary=dictionary[keys[0]], keys=keys[1:])
 
     return True
+
+def table_resolve_key_values_to_string(table: dict=None) -> dict:
+    """ Goes through rows/columns of an """
+
+    for row in table:
+        log.debug(row)
+        for field, value in row.items():
+            if type(value) is dict:
+                row[field] = ", ".join([f"{key}: {value}" for key, value in value.items() if value and value != "NULL"])
+
+    return table

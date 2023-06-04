@@ -29,14 +29,14 @@ class BaseExporter(object):
         
         for setting, value in settings.items():
             self.settings[setting] = value
-            
-    @property
-    def fancy_name(self) -> str:
-        return fancy_name(self.name)
     
     def __str__(self):
         """ Return the name attribute as __str__ """
         return f"{self.__class__}: {self.name}"
+            
+    @property
+    def fancy_name(self) -> str:
+        return fancy_name(self.name)
     
 
 class Exporter(BaseExporter):
@@ -607,7 +607,8 @@ class ExporterField(BaseExporter):
             return True
     
         return False
-
+    
+    @property
     def is_foreign_key(self) -> bool:
         """ returns True if the field has a foreign key """
 

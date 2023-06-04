@@ -14,7 +14,7 @@ ML_EXPORT_WIZARD = {
                 {
                     "name": "core",
                     #"include_models": [],
-                    #"exclude_models": [],
+                    "exclude_models": ["PublicationData", "SubjectData", "SampleData"],
                     "primary_model": "IntegrationLocation",
                     "models": {
                         "Integration": {
