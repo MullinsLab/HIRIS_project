@@ -386,19 +386,19 @@ class ImportSchemeItem{
         key_fields += "<optgroup label='Keys already in " + caller.name + "...'>";
         for (let key_index in caller.key_value_model_keys){
             let key = caller.key_value_model_keys[key_index];
-            if (key == initial_key) {selected = " selected"} else {selected = ""};
+            if (initial_key && key == initial_key) {selected = " selected"} else {selected = ""};
 
             key_fields += "<option value='" + key + "'" + selected + ">" + key + "</option>";
         }
         key_fields += "</optgroup>";
 
         key_fields += "<optgroup label='Raw text...'>";
-        if (field_name != initial_key && ! caller.key_value_model_keys.includes(initial_key)) {selected = " selected"} else {selected = ""};
+        if (initial_key && field_name != initial_key && ! caller.key_value_model_keys.includes(initial_key)) {selected = " selected"} else {selected = ""};
         key_fields += "<option value='**raw_text**'" + selected + ">Enter Text</option>";
         key_fields += "</optgroup>";
 
         key_fields += "<optgroup label='File field name...'>";
-        if (field_name == initial_key) {selected = " selected"} else {selected = ""};
+        if (initial_key && field_name == initial_key) {selected = " selected"} else {selected = ""};
         key_fields += "<option value='" + field_name + "'" + selected + ">" + field_name + "</option>"
         key_fields += "</optgroup>";
 
@@ -408,7 +408,7 @@ class ImportSchemeItem{
         let text_value = "";
         let visibility = " not-visible";
 
-        if (field_name != initial_key && ! caller.key_value_model_keys.includes(initial_key)) {text_value = ' value="' + initial_key + '"'; visibility=""};
+        if (initial_key && field_name != initial_key && ! caller.key_value_model_keys.includes(initial_key)) {text_value = ' value="' + initial_key + '"'; visibility=""};
         key_fields += "<input type='text' placeholder='Specify key name ...' ";
         key_fields += "id='key_value_model_table_key_" + caller.model + "_" + row_number + "_raw_text' class='form-control" + visibility + "'";
         key_fields += "oninput=\"manage_key_value_model_table('" + caller.model + "', '" + row_number + "')\"" + text_value + ">";

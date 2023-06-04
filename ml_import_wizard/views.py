@@ -287,7 +287,6 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
                 
                 # Dictionary for linked attributes, file: field
                 linked_files: dict = {}
-                log.debug(request.POST)
 
                 for attribute, value in request.POST.items():
                     if attribute in ("csrfmiddlewaretoken", "---file_saved---"): continue
@@ -305,17 +304,12 @@ class DoImportSchemeItem(LoginRequiredMixin, View):
 
                     if "linked-" in attribute:
                         file_id = int(attribute.split("-")[-1])
-                        log.debug(f"Primary Value: {request.POST.get('primary-'+str(file_id), None)}")
                         linked_files[file_id] = {
                             "child": int(value.replace("**field**", "")), 
                             "primary": int(request.POST.get(f"primary-{file_id}", "").replace("**field**", ""))
                         }
-                        # linked_files[int(attribute.split("-")[-1])] = int(value.replace("**field**", ""))
-
-                log.debug(linked_files)
 
                 if linked_files:
-                    log.debug(linked_files)
                     import_scheme.settings["file_links"] = linked_files
                     import_scheme.save(update_fields=["settings"])
                 
@@ -473,7 +467,6 @@ class DoImporterModel(LoginRequiredMixin, View):
         fields: dict[str, dict[str, any]] = {}
             
         if request.POST.get("**is_key_value_model**"):
-            log.debug("Got key_value model")
             field = "**key_value**"
             settings = {}
 
@@ -491,8 +484,6 @@ class DoImporterModel(LoginRequiredMixin, View):
                         value = {"key": int(value.replace("**field**", ""))}
                     settings[key] = value
 
-                log.debug(settings)
-
                 import_scheme.create_or_update_item(app=app, 
                                                     model= model, 
                                                     field=field, 
@@ -500,7 +491,6 @@ class DoImporterModel(LoginRequiredMixin, View):
                                                     settings=settings)
 
         else:
-            log.debug("Got standard model")
             for attribute, value in request.POST.items():
                 if attribute == 'csrfmiddlewaretoken': continue
 
@@ -537,7 +527,6 @@ class DoImporterModel(LoginRequiredMixin, View):
                     settings["splitter_position"] = int(values["file_field_split_position"])
 
                 elif "**field**" in values["file_field"]:
-                    log.debug(f"Got file field: {values['file_field']}")
                     strategy = "File Field"
                     settings["key"] = int(values['file_field'].split("**field**")[1])
 
