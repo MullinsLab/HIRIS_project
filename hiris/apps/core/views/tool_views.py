@@ -4,12 +4,13 @@ log = logging.getLogger('app')
 from django.views.generic.base import View
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from hiris.apps.core.utils.db import get_environments_count, get_genes_count, get_data_sources, get_summary_by_gene
 from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
 
 
-class Home(View):
+class Home(LoginRequiredMixin, View):
     ''' The default view for HIRIS Home.  Currently shows the About page '''
     
     def get(self, request, *args, **kwargs):
@@ -30,7 +31,7 @@ class Home(View):
         return render(request, "about.html")
     
 
-class DataSources(View):
+class DataSources(LoginRequiredMixin, View):
     """ View to show the data sources in the database """
 
     def get(self, request, *args, **kwargs):
@@ -43,7 +44,7 @@ class DataSources(View):
         return render(request, "data_sources.html", context={"counts": counts, "gene_count": gene_count, "data_sources": data_sources})
     
 
-class SummaryByGeneJS(View):
+class SummaryByGeneJS(LoginRequiredMixin, View):
     """ The JS file that holds the data for gene summaries """
 
     def get(self, request, *args, **kwargs):

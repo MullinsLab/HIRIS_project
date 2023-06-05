@@ -84,7 +84,7 @@ class NewImportScheme(LoginRequiredMixin, View):
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
 
-class DoImportScheme(View):
+class DoImportScheme(LoginRequiredMixin, View):
     """ Do the actual import stuff """
 
     def get(self, request, *args, **kwargs):
