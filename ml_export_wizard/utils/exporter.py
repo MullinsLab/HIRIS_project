@@ -54,7 +54,7 @@ class Exporter(BaseExporter):
         self.rollups = []
         self.rollups_by_name = {}
 
-    def base_sql(self, *, sql_only: bool=False, where_before_join: dict=None, where_after_join: dict=None, query_layer: str=None) -> tuple|str:
+    def base_sql(self, *, sql_only: bool=False, where_before_join: dict=None, where: dict=None, query_layer: str=None) -> tuple|str:
         """ Returns a raw SQL query that would be used to generate the exporter data"""
         
         sql: str = ""
@@ -85,7 +85,7 @@ class Exporter(BaseExporter):
 
         return (sql, sql_dict["parameters"])
     
-    def query_count(self, *, count: any=None, group_by: dict|list|str=None, where_before_join: dict=None, where_after_join: dict=None) -> int:
+    def query_count(self, *, count: any=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None) -> int:
         """ Build and execute a query to do a count, and return that count """
 
         sql_dict: dict = {}
@@ -109,14 +109,14 @@ class Exporter(BaseExporter):
                 "source_field": count
             }
 
-        return self.execute_query(sql_dict=sql_dict, group_by=group_by, returns=returns, where_before_join=where_before_join, where_after_join=where_after_join, extra_field=extra_field)
+        return self.execute_query(sql_dict=sql_dict, group_by=group_by, returns=returns, where_before_join=where_before_join, where=where, extra_field=extra_field)
 
-    def query_rows(self, *, count: any=None, group_by: dict|list|str=None, where_before_join: dict=None, where_after_join: dict=None, extra_field: dict|list=None, order_by: str|list=None) -> list:
+    def query_rows(self, *, count: any=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None) -> list:
         """ Build and execute a query to do a count, and return that count """
 
         returns: str = "list"
 
-        return self.execute_query(group_by=group_by, returns=returns, where_before_join=where_before_join, where_after_join=where_after_join, extra_field=extra_field, order_by=order_by)
+        return self.execute_query(group_by=group_by, returns=returns, where_before_join=where_before_join, where=where, extra_field=extra_field, order_by=order_by, limit=limit)
 
     def get_field(self, app: str=None, model: str=None, field: str=None):
         """ Return a field object defined by app, model, field """
@@ -180,7 +180,7 @@ class Exporter(BaseExporter):
 
             return data
 
-    def final_sql(self, *, sql_dict: dict=None, where_before_join: dict=None, where_after_join: dict=None, group_by: dict|list|str=None, order_by: str|list=None, limit: int=None, extra_field: dict|list=None, query_layer: str=None) -> tuple[str, dict]:
+    def final_sql(self, *, sql_dict: dict=None, where_before_join: dict=None, where: dict=None, group_by: dict|list|str=None, order_by: str|list=None, limit: int=None, extra_field: dict|list=None, query_layer: str=None) -> tuple[str, dict]:
         """ Build the final query """
 
         parameters: dict = {}
@@ -226,28 +226,64 @@ class Exporter(BaseExporter):
             if type(order_by) is not list:
                 order_by = [order_by]
 
-            for order in order_by:
-                if type(order) is str:
-                    field = self.get_field(field=order)
-                else:
-                    field = self.get_field(app=order.get("app"), model=order.get("model"), field=order.get("field"))
-                
-                if field.is_text:
-                    #order_bit = f"lower({field.column(query_layer=field_query_layer)})"
-                    order_bit = f"{field.column(query_layer=field_query_layer)}"
-                else:
-                    order_bit = field.column(query_layer=field_query_layer)
+            for order_set in order_by:
+                order: str = "ASC"
+                order_field: str = None
+                field: ExporterField = None
 
-                # sql_dict["order_by"] = ", ".join(filter(None, (sql_dict.get("order_by"), field.column())))
+                if type(order_set) is str:
+                    order_field = order_set
+                    
+                else:
+                    if field in order_set:
+                        order_field = order_set["field"]
+                    else:
+                        order_field = order_set
+
+                    if "order" in order_set:
+                        order = order_set["order"]
+
+                if type(order_field) is str:
+                    field = self.get_field(field=order_field);
+                else:
+                    field = self.get_field(app=order_field.get("app"), model=order_field.get("model"), field=order_field.get("field"))
+
+                order_bit = f"{field.column(query_layer=field_query_layer)} {order}"
+
                 sql_dict["order_by"] = ", ".join(filter(None, (sql_dict.get("order_by"), order_bit)))
 
-        # Set up Limit
         if limit:
             sql_dict["limit"] = limit
 
+        if where:
+            if type(where) is not list:
+                where = [where]
+
+            for where_item in where:
+                added_parameters: dict = {}
+
+                if type(where_item["field"]) is str:
+                    field = self.get_field(field=where_item["field"])
+                else:
+                    field = self.get_field(app=where_item["field"].get("app"), model=where_item["field"].get("model"), field=where_item["field"].get("field"))
+
+                if "value" in where_item:
+                    if "operator" in where_item:
+                        operator = where_item["operator"]
+                    else:
+                        operator = "="
+
+                    where_bit = f"{field.column(query_layer=field_query_layer)} {operator} %({field.column(query_layer=field_query_layer)})s"
+                    added_parameters[field.column(query_layer=field_query_layer)] = where_item["value"]
+
+                elif "not_null" in where_item:
+                    where_bit = f"{field.column(query_layer=field_query_layer)} IS NOT NULL"
+
+                sql_dict["where"] = " AND ".join(filter(None, (sql_dict.get("where"), where_bit)))                        
+                parameters = parameters | added_parameters
 
         # Build the SQL
-        sql, added_parameters = self.base_sql(where_before_join=where_before_join, where_after_join=where_after_join, query_layer=query_layer)
+        sql, added_parameters = self.base_sql(where_before_join=where_before_join, where=where, query_layer=query_layer)
         parameters = parameters | added_parameters
 
         if sql_dict.get("select"):
@@ -257,6 +293,9 @@ class Exporter(BaseExporter):
 
         if sql_dict.get("group_by"):
             sql = f"{sql} GROUP BY {sql_dict['group_by']}"
+
+        if sql_dict.get("where"):
+            sql = f"{sql} WHERE {sql_dict['where']}"
 
         if sql_dict.get("order_by"):
             sql = f"{sql} ORDER BY {sql_dict['order_by']}"
@@ -390,7 +429,7 @@ class ExporterApp(BaseExporter):
         parent.apps.append(self)
         parent.apps_by_name[self.name] = self
 
-    def _sql_dict(self, *, where_before_join: dict=None, where_after_join: dict=None, query_layer: str=None) -> dict[str: str]:
+    def _sql_dict(self, *, where_before_join: dict=None, where: dict=None, query_layer: str=None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this app"""
 
         sql_dict: dict[str: str] = {}
@@ -437,7 +476,7 @@ class ExporterModel(BaseExporter):
 
         return self.model.objects.model._meta.db_table
 
-    def _sql_dict(self, *, table_name: str=None, left_join: bool=False, join_model: object=None, join_using: str=None, where_before_join: dict=None, where_after_join: dict=None, query_layer: str=None) -> dict[str: str]:
+    def _sql_dict(self, *, table_name: str=None, left_join: bool=False, join_model: object=None, join_using: str=None, where_before_join: dict=None, where: dict=None, query_layer: str=None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this model"""
 
         sql_dict: dict[str: str] = {}
@@ -537,7 +576,7 @@ class ExporterRollup(BaseExporter):
 
         return self.name
     
-    def _sql_dict(self, *, where_before_join: dict=None, where_after_join: dict=None, query_layer: str=None) -> tuple|str:
+    def _sql_dict(self, *, where_before_join: dict=None, where: dict=None, query_layer: str=None) -> tuple|str:
         """ Returns a raw SQL query that would be used to generate the exporter data"""
 
         sql_dict: dict = {}
@@ -545,7 +584,10 @@ class ExporterRollup(BaseExporter):
         if not where_before_join and "where_before_join" in self.settings:
             where_before_join = self.settings["where_before_join"]
 
-        from_bit, sql_dict["parameters"] = self.exporter.final_sql(where_before_join=where_before_join, where_after_join=where_after_join, group_by=self.settings.get("group_by"), extra_field=self.settings.get("extra_field"), query_layer="inner")
+        elif where_before_join and "where_before_join" in self.settings:
+            where_before_join = where_before_join | self.settings["where_before_join"]
+
+        from_bit, sql_dict["parameters"] = self.exporter.final_sql(where_before_join=where_before_join, where=where, group_by=self.settings.get("group_by"), extra_field=self.settings.get("extra_field"), query_layer="inner")
         
         sql_dict["from"] = f"({from_bit}) AS {self.name}"
 
@@ -648,13 +690,6 @@ class ExporterPseudofield(BaseExporter):
         """ returns the name of the DB column for the pseudofield """
 
         column: str = self.name
-        
-        # if query_layer == "inner":
-        #     column = f"{column} AS {self.parent.table}_{column}"
-        # elif query_layer=="middle":
-        #     column = f"{self.parent.table}_{column}"
-        # elif query_layer == "outer":
-        #     column = f"{self.parent.table}_{column} as {column}"
 
         return column
 
@@ -662,16 +697,6 @@ class ExporterPseudofield(BaseExporter):
         """ Reuturns a blank sql_dict """
         
         sql_dict: dict[str: str] = {}
-        # field_name = self.column(query_layer=query_layer)
-
-        # log.debug(f"Table name: {table_name}, Field name: {field_name}")
-
-        # if table_name:
-        #     sql_dict["select"] = f"{table_name}.{field_name}"
-        # else:
-        #     sql_dict["select"] = f"{self.parent.table}.{field_name}"
-
-        # sql_dict["select_no_table"] = field_name
 
         return sql_dict
 
