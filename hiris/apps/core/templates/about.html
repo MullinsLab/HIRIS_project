@@ -41,18 +41,41 @@
         <h4>
             Top 12 <i>in vivo</i> genes
             <small>by # of Subjects and Unique IS</small>
-          </h4>
-    
-          <div id="top-genes-viz-mini"></div>
-    
-          <script src="{% static 'js/graphing/spec-mini.js' %}"></script>
-          <script src="{% static 'js/graphing/controller-mini.js' %}"></script>
-          
-          <p class="notice bg-info">
+        </h4>
+
+        <div id="top-genes-viz-mini"></div>
+
+            <script src="{% static 'js/graphing/spec-mini.js' %}"></script>
+            <script src="{% static 'js/graphing/controller-mini.js' %}"></script>
+            
+            <p class="notice bg-info">
             See an expanded version of this plot on the
             <a href="top-genes.html">Top Genes</a> page.
-          </p>
-        <p>table to be added</p>
+            </p>
+            <table class="table table-condensed">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Gene</th>
+                    <th class="text-right"># of Subjects</th>
+                    <th class="text-right">Unique IS</th>
+                    <th class="text-right">Total IS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                    
+                    {% for gene in summary_by_gene_top_12%}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td><a href="https://www.ncbi.nlm.nih.gov/gene/6777" data-gene="{{ gene.feature_name }}">{{ gene.feature_name }}</a></td>
+                            <td class="text-right">{{ gene.subjects }}</td>
+                            <td class="text-right">{{ gene.unique_sites }}</td>
+                            <td class="text-right">{{ gene.total_in_gene }}</td>
+                        </tr>
+                    {% endfor %}
+                
+                </tbody>
+            </table>
       </div>
     </div>
 {% endblock %}

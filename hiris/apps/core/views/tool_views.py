@@ -16,7 +16,9 @@ class Home(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         ''' Returns the default template on a get '''
 
-        return render(request, "about.html")
+        summary_by_gene_top_12: list = get_summary_by_gene(limit=12, order_output=True)
+
+        return render(request, "about.html", context={"summary_by_gene_top_12": summary_by_gene_top_12})
 
     def post(self, request, *args, **kwargs):
         ''' Recieves the username and password for login '''
@@ -50,6 +52,6 @@ class SummaryByGeneJS(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         """ return the file """
 
-        summary_by_gene: list = get_summary_by_gene()
+        summary_by_gene: list = get_summary_by_gene(limit=12, order_output=True)
 
         return render(request, "summary-by-gene.js", context={"summary": summary_by_gene}, content_type="text/javascript")

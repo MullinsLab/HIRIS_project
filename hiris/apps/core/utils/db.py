@@ -71,10 +71,26 @@ def get_data_sources() -> list:
     return sources
 
 
-def get_summary_by_gene() -> list:
+def get_summary_by_gene(*, limit: int=None, order_output: bool=None) -> list:
     """ Get a list of genes with associated data """
 
-    return exporters["SummaryByGene"].query_rows()
+    where: dict = [
+        {
+            "field": "subjects",
+            "not_null": True,
+        },
+        {
+            "field": "feature_name",
+            "not_null": True,
+        }
+    ]
+
+    if order_output:
+        order_by: list = [{"field": "subjects", "order": "DESC"}, {"field": "unique_sites", "order": "DESC"}, {"field": "total_in_gene", "order": "DESC"}]
+    else:
+        order_by: None
+        
+    return exporters["SummaryByGene"].query_rows(limit=limit, where=where, order_by=order_by)
 
 
 def process_integration_feature_links() -> None:
