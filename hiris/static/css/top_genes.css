@@ -28,9 +28,11 @@ input[type=range] {
   vertical-align: top;
 }
 
-#top-genes-figure .vega-actions a[download$=".svg"]::before {
+
+/* It's not clear that this font is licensed. */
+/* #top-genes-figure .vega-actions a[download$=".svg"]::before { */
 	/* Styling to match .glphyicon .glphyicon-picture */
-	position: relative;
+	/* position: relative;
 	top: 1px;
 	display: inline-block;
 	font-family: 'Glyphicons Halflings';
@@ -42,4 +44,4 @@ input[type=range] {
 
 	/* Space it out a bit */
 	padding-right: 4px;
-}
+} */
