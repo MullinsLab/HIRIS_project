@@ -5,6 +5,7 @@ from django.views.generic.base import View
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponse
 
 from hiris.apps.core.utils.db import get_environments_count, get_genes_count, get_data_sources, get_summary_by_gene
 from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
@@ -13,14 +14,14 @@ from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
 class Home(LoginRequiredMixin, View):
     ''' The default view for HIRIS Home.  Currently shows the About page '''
     
-    def get(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs) -> HttpResponse:
         ''' Returns the default template on a get '''
 
         summary_by_gene_top_12: list = get_summary_by_gene(limit=12, order_output=True)
 
         return render(request, "about.html", context={"summary_by_gene_top_12": summary_by_gene_top_12})
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs) -> HttpResponse:
         ''' Recieves the username and password for login '''
         username = request.POST['username']
         password = request.POST['password']
@@ -36,7 +37,7 @@ class Home(LoginRequiredMixin, View):
 class DataSources(LoginRequiredMixin, View):
     """ View to show the data sources in the database """
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs) -> HttpResponse:
         """ Show the page """
 
         counts: dict = underscore_keys(get_environments_count())
@@ -49,9 +50,29 @@ class DataSources(LoginRequiredMixin, View):
 class SummaryByGeneJS(LoginRequiredMixin, View):
     """ The JS file that holds the data for gene summaries """
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs) -> HttpResponse:
         """ return the file """
 
         summary_by_gene: list = get_summary_by_gene(limit=12, order_output=True)
 
         return render(request, "summary-by-gene.js", context={"summary": summary_by_gene}, content_type="text/javascript")
+    
+
+class FullSummaryByGeneJS(LoginRequiredMixin, View):
+    """ The JS file that holds the data for full gene summaries """
+
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        """ return the file """
+
+        summary_by_gene: list = get_summary_by_gene(order_output=True)
+
+        return render(request, "summary-by-gene.js", context={"summary": summary_by_gene}, content_type="text/javascript")
+    
+
+class TopGenes(LoginRequiredMixin, View):
+    """ Stuff for the top_genes page """
+
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        """ The basic page """
+
+        return render(request, "top_genes.html")

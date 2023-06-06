@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block header_content %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/top_genes.css' %}">
+
+    <script src="summary-by-gene.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" integrity="sha512-oJp0DdQuQQrRsKVly+Ww6fAN1GwJN7d1bi8UubpEbzDUh84WrJ2CFPBnT4LqBCcfqTcHR5OGXFFhaPe3g1/bzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vega/2.6.5/vega.min.js" integrity="sha512-9aXQ2k3Tp7E4mW815fYRhGm6gqLbf+ma0YdpR4VrOoZiu/aIecRufvQtSv+UeZoIrKvlW3vvDffcp5f9t8Xxiw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    {% comment %} <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-embed/2.26.1/vega-embed.min.js" integrity="sha512-Y5MajMQJ+9R44z4y/rnSHoXNNGbfVnuHHrsJ2N5lbxOjoAy7VahfI6HhhMrWTxdi1EMSftMjfhz59/OjaNDSgA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> {% endcomment %}
+    <script src="{% static 'js/graphing/vega-embed.min.js' %}"></script>
+{% endblock %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col col-sm-12">
+      <h2>Top genes containing <i>in vivo</i> integration sites</h2>
+      <figure id="top-genes-figure">
+        <figcaption>
+          <p>
+            Data from the <a href="doc/Manual.html#summary-by-gene">Summary by
+            Gene</a> dataset, as downloadable from the <a href="data.html">data
+            page</a>, filtered to just <i>in vivo</i> integrations.
+          </p>
+          <p>
+            Genes are ranked in descending order by <b>number of proliferating
+            sites</b>, then <b>number of unique sites</b>, then
+            <b>number of subjects</b>, and finally <b>number of integrations</b>.
+            Genes with no proliferating sites are not shown on the bottom two
+            panels.
+          </p>
+          <p>
+            Click on a plotted point or gene name to visit the relevant
+            <a href="https://www.ncbi.nlm.nih.gov/gene/">NCBI Gene</a> page.
+            Move the slider to increase or decrease the number of genes shown.
+          </p>
+        </figcaption>
+        <div id="top-genes-viz"></div>
+        <script src="full-summary-by-gene.js" type="text/javascript"></script>
+        <script src="{% static 'js/graphing/spec.js' %}"></script>
+        <script src="{% static 'js/graphing/controller.js' %}"></script>
+      </figure>
+    </div>
+  </div>
+{% endblock %}
