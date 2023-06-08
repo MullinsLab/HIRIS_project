@@ -12,6 +12,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunSQL("""
+            ALTER SYSTEM SET work_mem = '100MB';
+            ALTER SYSTEM SET maintenance_work_mem = '100MB';
+            ALTER SYSTEM SET shared_buffers = '400MB';
+        """),
         migrations.CreateModel(
             name='DataSet',
             fields=[
