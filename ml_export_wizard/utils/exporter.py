@@ -1,4 +1,4 @@
-import copy
+import csv
 from weakref import proxy
 from collections import namedtuple
 
@@ -53,6 +53,20 @@ class Exporter(BaseExporter):
         self.apps_by_name = {}
         self.rollups = []
         self.rollups_by_name = {}
+
+    def csv(self, *, file_name: str=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None) -> str|None:
+        """ Returns a csv as a string or saves it to a file """
+
+        if not file_name:
+            csv
+            return csv
+        
+
+
+    def columns(self, *, thing) -> list:
+        """ Returns a list of columns that the exporter produces"""
+
+        pass
 
     def base_sql(self, *, sql_only: bool=False, where_before_join: dict=None, where: dict=None, query_layer: str=None) -> tuple|str:
         """ Returns a raw SQL query that would be used to generate the exporter data"""
@@ -111,7 +125,7 @@ class Exporter(BaseExporter):
 
         return self.execute_query(sql_dict=sql_dict, group_by=group_by, returns=returns, where_before_join=where_before_join, where=where, extra_field=extra_field)
 
-    def query_rows(self, *, count: any=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None) -> list:
+    def query_rows(self, *, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None) -> list:
         """ Build and execute a query to do a count, and return that count """
 
         returns: str = "list"
