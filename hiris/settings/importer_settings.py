@@ -1,5 +1,6 @@
 import os
 from .base_settings import env
+# from hiris.apps.core.utils.resolve_importer import accession_id_to_chromosome
 
 ML_IMPORT_WIZARD = {
     'Working_Files_Dir': os.path.join('/', env('WORKING_FILES_DIR'), ''),
@@ -87,6 +88,13 @@ ML_IMPORT_WIZARD = {
                             "restrict_on_key": True,
                             "restrict_on_value": False,
                             "initial_values": []
+                        },
+                        "IntegrationLocation": {
+                            "fields": {
+                                "landmark": {
+                                    "resolver_function_name": "hiris.apps.core.utils.resolve_importer.accession_id_to_chromosome",
+                                },
+                            },
                         },
                     },
                 },

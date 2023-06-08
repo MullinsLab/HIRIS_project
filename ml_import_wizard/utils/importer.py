@@ -1,6 +1,9 @@
+import importlib
+
 from django.conf import settings
 from django.apps import apps
 from django.db.models import ForeignKey
+from django.utils.module_loading import import_string
 
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
@@ -121,6 +124,24 @@ class ImporterField(BaseImporter):
         parent.fields.append(self)
         parent.fields_by_name[self.name] = self
 
+        # Set up the resolver, which is a function that is used to translate user input into a value for the importer
+        self.resolver: dict[str: str|function] = None
+        if self.settings.get("resolver_function_name"):
+            function = import_string(self.settings["resolver_function_name"])
+
+            self.resolver = {
+                "function": function,
+                "user_input_arguments": [],
+                "field_lookup_arguments": [],
+            }
+
+            for argument in function.__code__.co_varnames[0:function.__code__.co_kwonlyargcount]:
+                if argument.startswith("user_input_"):
+                    self.resolver["user_input_arguments"].append(argument.replace("user_input_", ""))
+
+                elif argument.startswith("field_lookup_"):
+                    self.resolver["field_lookup_arguments"].append(argument.replace("user_input_", ""))
+
     @property
     def is_foreign_key(self) -> bool:
         """ True if the field has a foreign key """
@@ -199,14 +220,17 @@ def setup_importers() -> None:
                 working_model: ImporterModel = ImporterModel(parent=working_app, name=model_object.__name__, model=model_object, **model_settings)
 
                 for field in filter(lambda field: field.editable and (field.name not in model.get("exclude_fields", [])), model_object._meta.get_fields()):
-                    working_field: ImporterField = ImporterField(parent=working_model, name=field.name, field=field)
+                    exclude_keys: tuple = ()
+                    field_settings: dict = {setting: value for setting, value in model.get("fields", {}).get(field.name, {}).items() if setting not in exclude_keys}
+                    
+                    working_field: ImporterField = ImporterField(parent=working_model, name=field.name, field=field, **field_settings)
 
                     # Get settings for the field and save them in the object, except keys in exclude_keys
-                    field_settings: dict = model.get("fields", {}).get(field.name, {})
+                    # field_settings: dict = model.get("fields", {}).get(field.name, {})
 
-                    exclude_keys: tuple = ()
-                    for key in filter(lambda key: key not in exclude_keys, field_settings.keys()):
-                        working_field.settings[key] = field_settings[key]
+                    
+                    # for key in filter(lambda key: key not in exclude_keys, field_settings.keys()):
+                    #     working_field.settings[key] = field_settings[key]
 
             # Step back through the models to put them into the correct order for actual data import
             # do until we have as many models in the models_by_import_order list as in the models list
@@ -234,6 +258,7 @@ def setup_importers() -> None:
                         working_app.models_by_import_order.append(model_object)
                 
                 # Raise an exception if we make a loop and haven't increased the number of models in models_by_import_order
+                # This means we've stalled out and are not making any progress
                 if model_by_import_count >= len(working_app.models_by_import_order):
                     log.debug([object.name for object in working_app.models_by_import_order])
                     raise UnresolvedInspectionOrder("Order of importing models can't be resolved.  Potential circular ForeignKeys?")
