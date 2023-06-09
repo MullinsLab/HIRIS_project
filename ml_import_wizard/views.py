@@ -567,3 +567,20 @@ class PreviewImportScheme(LoginRequiredMixin, View):
         rows = json.dumps(table_resolve_key_values_to_string(table=table["rows"]))
 
         return render(request, "ml_import_wizard/scheme_preview.html", context={"columns": columns, "rows": rows})
+    
+class DescribeImportScheme(LoginRequiredMixin, View):
+    """ Describe the import in an easy to digest and copy out format """
+
+    def get(self, request, *args, **kwargs):
+        """ Show the description """
+
+        import_scheme_id: int = kwargs.get('import_scheme_id', request.session.get('current_import_scheme_id'))
+        try:
+            import_scheme: ImportScheme = ImportScheme.objects.get(pk=import_scheme_id)
+        except ImportScheme.DoesNotExist:
+            # Return the user to the /import page if they don't have a valid import_scheme to work on
+            return HttpResponseRedirect(reverse('ml_import_wizard:import'))
+        
+        description = import_scheme.description_object()
+
+        return render(request, "ml_import_wizard/scheme_description.html", context={"description": description})

@@ -17,7 +17,7 @@ else: NO_GFFUTILS=True
 
 from ml_import_wizard.utils.simple import dict_hash, stringalize, fancy_name, deep_exists
 from ml_import_wizard.exceptions import GFFUtilsNotInstalledError, FileNotReadyError, ImportSchemeNotReady, StatusNotFound
-from ml_import_wizard.utils.importer import importers
+from ml_import_wizard.utils.importer import importers, Importer
 from ml_import_wizard.decorators import timeit
 from ml_import_wizard.utils.cache import LRUCacheThing
 
@@ -88,6 +88,12 @@ class ImportScheme(ImportBaseModel):
             return False
         
         return True
+
+    @property
+    def importer_object(self) -> Importer:
+        """ Return the import object that this importer uses """
+
+        return importers[self.importer]
 
     def set_status_by_name(self, status):
         """ Looks up the status name and """
@@ -551,6 +557,53 @@ class ImportScheme(ImportBaseModel):
             print(f"{row_count:,}")
             row_count += 1
 
+    def description_object(self) -> str:
+        """ Returns a dict that describes the import in human readable terms """
+
+        description: dict = {
+            "files": {"secondary": {}},
+            "color_keys": {},
+            "models": []
+        }
+
+        files = description["files"]
+        models = description["models"]
+
+        primary_file = self.files.get(pk=self.settings["primary_file_id"])
+        files["primary"] = primary_file.name
+        
+        color_key = 1
+        for file_id, link in self.settings.get("file_links", {}).items():
+            description["color_keys"][file_id] = color_key
+            file = self.files.get(pk=file_id) 
+
+            file_object = files["secondary"][file.name] = {}
+            file_object["color_key"] = color_key
+            file_object["secondary_field"] = file.fields.get(pk=link['child']).name
+            file_object["primary_field"] = primary_file.fields.get(pk=link['primary']).name
+
+            color_key += 1
+
+        for app in self.importer_object.apps:
+            for model in app.models:
+                model_object = {
+                    "name": model.fancy_name,
+                    "items": []
+                }
+
+                log.debug(f"App: {app}, Model: {model}")
+                for item in self.items.filter(app=app.name, model=model.name):
+                    log.debug(f"Hit item: {item.field}")
+                    item_object = {
+                        "field": item.field
+                    }
+
+                    model_object["items"].append(item_object)
+
+                models.append(model_object)
+
+        return description
+
 
 class ImportSchemeFileStatus(ImportBaseModel):
     """ Holds statuses for ImportSchemeFiles """
@@ -974,6 +1027,7 @@ class ImportSchemeFile(ImportBaseModel):
         connection.row_factory = sqlite3.Row
 
         return connection
+    
 
 class ImportSchemeFileField(ImportBaseModel):
     ''' Describes a field for an ImportFile '''

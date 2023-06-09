@@ -93,3 +93,56 @@
 .pointer{
     cursor: pointer;
 }
+
+.primary_file{
+    color: green;
+    font-weight: bold;
+}
+
+.secondary_file_1{
+    color: #0088;
+    font-weight: bold;
+}
+
+.secondary_file_2{
+    color: #0000ff;
+    font-weight: bold;
+}
+
+.secondary_file_3{
+    color: #0000bb;
+    font-weight: bold;
+}
+
+.secondary_file_4{
+    color: #000044;
+    font-weight: bold;
+}
+
+.secondary_file_5{
+    color: #008888;
+    font-weight: bold;
+}
+
+.secondary_file_6{
+    color: #008800;
+    font-weight: bold;
+}
+
+.secondary_file_7{
+    color: #00ffff;
+    font-weight: bold;
+}
+
+.secondary_file_8{
+    color: #00ff88;
+    font-weight: bold;
+}
+
+.model_name{
+    font-weight: bold;
+}
+
+.field_name{
+    font-weight: bold;
+}
