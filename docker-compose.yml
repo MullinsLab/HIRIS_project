@@ -8,10 +8,11 @@ services:
     # Set shared memory size
     shm_size: 1g
     
-    #ports:
-    #- "${POSTGRES_PORT}:5432"
+    ports:
+    - "${POSTGRES_PORT}:5432"
      
     volumes:
+      - ./postgresql.conf:/config/postgresql.conf
       - hiris-db-data:/var/lib/postgresql/data
 
     healthcheck:
@@ -22,6 +23,8 @@ services:
 
     env_file:
       - .env
+
+    command: postgres -c config_file='/config/postgresql.conf'
 
   hiris:
     container_name: HIRIS
