@@ -33,7 +33,7 @@ ML_IMPORT_WIZARD = {
                             },
                         },
                         "Feature": {
-                            "exclude_fields": ["external_gene_id"],
+                            # "exclude_fields": ["external_gene_id"],
                         },
                         'FeatureLocation': {
                             "critical": True,
@@ -92,7 +92,7 @@ ML_IMPORT_WIZARD = {
                         "IntegrationLocation": {
                             "fields": {
                                 "landmark": {
-                                    "resolver_function_name": "hiris.apps.core.utils.resolve_importer.accession_id_to_chromosome",
+                                    "resolvers": ["hiris.apps.core.utils.resolve_importer.translate_chromosome_to_accession_id"],
                                 },
                             },
                         },

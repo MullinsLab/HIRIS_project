@@ -484,11 +484,11 @@ class DoImporterModel(LoginRequiredMixin, View):
                         value = {"key": int(value.replace("**field**", ""))}
                     settings[key] = value
 
-                import_scheme.create_or_update_item(app=app, 
-                                                    model= model, 
-                                                    field=field, 
-                                                    strategy=strategy, 
-                                                    settings=settings)
+            import_scheme.create_or_update_item(app=app, 
+                                                model= model, 
+                                                field=field, 
+                                                strategy=strategy, 
+                                                settings=settings)
 
         else:
             for attribute, value in request.POST.items():
@@ -499,19 +499,20 @@ class DoImporterModel(LoginRequiredMixin, View):
                     value = request.POST.getlist(attribute)
                     attribute = attribute[0:-2]
                     
-                field, attribute = attribute.split(":")
+                field, attribute = attribute.split(":", 1)
                 if field in fields: fields[field][attribute] = value 
                 else: fields[field] = {attribute: value}
 
             for field, values in fields.items():
                 strategy: str = ''
                 settings: dict = {}
+                value: str = values["file_field"]
 
-                if values["file_field"] == "**raw_text**":
+                if value == "**raw_text**":
                     strategy = "Raw Text"
                     settings["raw_text"] = values["file_field_raw_text"]
 
-                elif values["file_field"] == "**select_first**":
+                elif value == "**select_first**":
                     strategy = "Select First"
                     settings["first_keys"] = []
 
@@ -519,20 +520,35 @@ class DoImporterModel(LoginRequiredMixin, View):
                         if values[file_field]:
                             settings["first_keys"].append(int(values[file_field].split("**field**")[1]))
 
-                elif values["file_field"] == "**split_field**":
+                elif value == "**split_field**":
                     strategy = "Split Field"
                     
                     settings["split_key"] = int(values['file_field_split'].split("**field**")[1])
                     settings["splitter"] = values["file_field_split_splitter"]
                     settings["splitter_position"] = int(values["file_field_split_position"])
 
-                elif "**field**" in values["file_field"]:
+                elif "**field**" in value:
                     strategy = "File Field"
                     settings["key"] = int(values['file_field'].split("**field**")[1])
 
-                elif values["file_field"] == "**no_data**":
+                elif value == "**no_data**":
                     strategy = "No Data"
-                    
+                
+                elif value.startswith("resolver:"):
+                    resolver: str = value.split(":")[-1]
+
+                    strategy = "Resolver"
+
+                    settings["resolver"] = resolver
+                    settings["arguments"]: list = {}
+
+                    for argument, argument_value in [(argument.split(":")[-1], argument_value) for argument, argument_value in values.items() if argument.startswith(value)]:
+                        argument_object: dict = {
+                            "key": int(argument_value.split("**field**")[1]),
+                        }
+
+                        settings["arguments"][argument.split("-")[-1]] = argument_object
+
                 else:
                     strategy = "Table Row"
                     settings["row"] = values['file_field']
@@ -561,7 +577,7 @@ class PreviewImportScheme(LoginRequiredMixin, View):
             # Return the user to the /import page if they don't have a valid import_scheme to work on
             return HttpResponseRedirect(reverse('ml_import_wizard:import'))
 
-        table = import_scheme.preview_data_table(limit_count=2)
+        table = import_scheme.preview_data_table(limit_count=5)
         
         columns = json.dumps([{'field': column["name"], 'title': column["name"]} for column in table["columns"]])
         rows = json.dumps(table_resolve_key_values_to_string(table=table["rows"]))

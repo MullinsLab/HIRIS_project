@@ -15,6 +15,7 @@ class Command(BaseCommand):
         ''' Set the arguments for execute_import '''
         parser.add_argument('import_scheme_id', nargs='+', type=int, help='The ID(s) of the ImportFile(s) to inspect')
         parser.add_argument('--limit_count', nargs='?', default=None, type=int, help='Number of rows to import from the file.')
+        parser.add_argument('--offset_count', nargs='?', default=None, type=int, help='Number of rows to skip at the beginning of the file.')
         parser.add_argument('--ignore_status', action='store_true', help="Inspect the file even if it has already been inspected.")
 
     def handle(self, *args, **options):
@@ -33,11 +34,11 @@ class Command(BaseCommand):
                 self.stdout.write(f'Starting to import {import_scheme} (import_scheme.importer)')
 
             # try:
-            #     import_scheme.execute(ignore_status=options['ignore_status'], limit_count=options['limit_count'])
+            #     import_scheme.execute(ignore_status=options['ignore_status'], limit_count=options['limit_count'], offset_count=options["offset_count"])
             # except Exception as err:
             #     raise CommandError(err)
             
-            import_scheme.execute(ignore_status=options['ignore_status'], limit_count=options['limit_count'])
+            import_scheme.execute(ignore_status=options['ignore_status'], limit_count=options['limit_count'], offset_count=options["offset_count"])
 
             # print(f"Limit Count: {options['limit_count']}")
 

@@ -11,7 +11,7 @@ register = template.Library()
 
 @register.filter()
 def get_item(dictionary: dict, key: str) -> any:
-    """ Custom filter to return the value of a key from a dict """
+    """ Custom filter to return the value of a key from a dict.  Form of: {{ dict|get_item:key }} """
 
     # log.debug(f"Getting value from dict: {dict} with key: {key}, resulting in {dictionary.get(key)}")
     return dictionary.get(key)

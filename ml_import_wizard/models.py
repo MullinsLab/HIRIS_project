@@ -211,7 +211,7 @@ class ImportScheme(ImportBaseModel):
 
         return columns
     
-    def data_rows(self, *, columns: list = None, limit_count: int = None) -> dict[str: any]:
+    def data_rows(self, *, columns: list=None, limit_count: int=None, offset_count: int=None) -> dict[str: any]:
         """ Yields a row for each set of models in the target importer """
 
         # Fields holds a list of ImportSchemeItem.ids and the associated ImportSchemeFile.id and ImportSchemeFileField names
@@ -222,6 +222,7 @@ class ImportScheme(ImportBaseModel):
 
         primary_file: ImportSchemeFile = None
         child_files: dict[int: dict] = {}
+        deferred_strategies: tuple = ("Resolver")
 
         # Set up information about the files that are not primary (child files)
         if self.files.count() > 1:
@@ -252,13 +253,16 @@ class ImportScheme(ImportBaseModel):
         else:
             primary_file = self.files.all()[0]
 
-        for row in primary_file.rows(limit_count=limit_count):
+        for row in primary_file.rows(limit_count=limit_count, offset_count=offset_count):
             row_dict: dict = {"***row***setting***": {}}
 
-            for column in columns:
+            #for column in columns:
+            # Go through columns that do not need to be deferred until after other columns are resolved
+            for column in [column for column in columns if column["import_scheme_item"].strategy not in (deferred_strategies)]:
                 strategy = column["import_scheme_item"].strategy
                 settings = column["import_scheme_item"].settings
 
+                # Model is a key/value model, meaning that the data goes in as multiple rows instead of columns
                 if column["importer_model"].is_key_value:
                     if strategy == "No Data":
                         continue
@@ -270,6 +274,10 @@ class ImportScheme(ImportBaseModel):
                             row_dict[column["name"]][key_value_key] = self.key_to_file_field(fields, primary_file, child_files, row, key_value_value["key"])
                     
                     continue
+
+                # Strategy should be deferred until the rest of the row is built
+                # if strategy in ("Resolver"):
+                #     continue
 
                 if strategy == "Raw Text":
                     row_dict[column["name"]] = settings["raw_text"]
@@ -307,7 +315,7 @@ class ImportScheme(ImportBaseModel):
                                 field=child_files[file]["child_linked_field"],
                                 key=row[child_files[file]["primary_linked_field"]],
                                 connection=child_files[file]["connection"],
-                                #cache=child_files[file]["cache"],
+                                cache=child_files[file]["cache"],
                             )
                             if child_row:
                                 value = child_row[fields[key]["name"]]
@@ -318,7 +326,7 @@ class ImportScheme(ImportBaseModel):
                     row_dict[column["name"]] = value
 
                 elif strategy == "Split Field":
-                    key = settings["split_key"]
+                    key: str = settings["split_key"]
 
                     if key not in fields:
                         import_scheme_file_field = ImportSchemeFileField.objects.get(pk=key)
@@ -327,22 +335,23 @@ class ImportScheme(ImportBaseModel):
                             "file": import_scheme_file_field.import_scheme_file_id,
                         }
                     
-                    value: str
+                    value: str = None
                     file = fields[key]["file"]
 
                     if file == primary_file.id:
                         value = row.get(fields[key]["name"], None)
+
                     else:
                         child_row = child_files[file]["object"].find_row_by_key(
                             field=child_files[file]["child_linked_field"],
-                            key=row[child_files[file]["primary_linked_field"]],
+                            key=row.get(child_files[file]["primary_linked_field"]),
                             connection=child_files[file]["connection"],
                             #cache=child_files[file]["cache"],
                         )
                         if child_row:
                             value = child_row[fields[key]["name"]]
-                    
-                    if settings["splitter"] in value:
+
+                    if value and settings["splitter"] in value:
                         row_dict[column["name"]] = value.split(settings["splitter"])[settings["splitter_position"]-1]
                     else:
                         row_dict[column["name"]] = value
@@ -370,6 +379,30 @@ class ImportScheme(ImportBaseModel):
                                 row_dict["***row***setting***"]["reject_row"] = []
                             
                             row_dict["***row***setting***"]["reject_row"].append({column['name']: row_dict[column['name']]})
+
+            # Deal with columns that have been deferred
+            deferred_cache = LRUCacheThing(items=1000)
+            for column in [column for column in columns if column["import_scheme_item"].strategy in (deferred_strategies)]:
+                strategy = column["import_scheme_item"].strategy
+                settings = column["import_scheme_item"].settings
+
+                # Identify the function to use
+                if strategy == "Resolver":
+                    arguments: dict = {}
+                    resolver = column["importer_field"].resolvers[settings["resolver"]]
+  
+                    for argument in resolver["field_lookup_arguments"]:
+                        arguments[f"field_lookup_{argument}"] = row_dict[argument]
+
+                    for argument in resolver["user_input_arguments"]:
+                        key: str = settings["arguments"][argument["name"]]["key"]
+                        arguments[f"user_input_{argument['name']}"] = self.key_to_file_field(fields, primary_file, child_files, row, key)
+
+                    if not (field_value := deferred_cache.find(key=dict_hash(arguments))):
+                        field_value = resolver["function"](**arguments)
+                        deferred_cache.store(key=dict_hash(arguments), value=field_value)
+
+                    row_dict[column["name"]] = field_value
 
             yield row_dict
 
@@ -408,7 +441,7 @@ class ImportScheme(ImportBaseModel):
         return field
 
     @timeit
-    def execute(self, *, ignore_status: bool = False, limit_count: int=None) -> None:
+    def execute(self, *, ignore_status: bool=False, limit_count: int=None, offset_count: int=None) -> None:
         """ Execute the actual import and store the data """
 
         if not ignore_status and self.status.import_defined == False:
@@ -417,11 +450,11 @@ class ImportScheme(ImportBaseModel):
         if not ignore_status and self.status.import_completed == True:
             raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has already been imported.")
         
-        cache_thing = LRUCacheThing(items=1000)
+        cache_thing = LRUCacheThing(items=100000)
         columns = self.data_columns()
         
         row_count = 1
-        for row in self.data_rows(columns=columns, limit_count=limit_count):
+        for row in self.data_rows(columns=columns, limit_count=limit_count, offset_count=offset_count):
 
             # skip the row and store it in an ImportSchemeRejectedRow if it's rejected
             if deep_exists(dictionary=row, keys=["***row***setting***", "reject_row"]):
@@ -554,7 +587,7 @@ class ImportScheme(ImportBaseModel):
                 cache_thing.rollback()
                 ImportSchemeRowRejected(import_scheme=self, errors=str(err), row=row).save()
         
-            print(f"{row_count:,}")
+            print(f"{row_count+offset_count:,}")
             row_count += 1
 
     def description_object(self) -> str:
@@ -591,9 +624,7 @@ class ImportScheme(ImportBaseModel):
                     "items": []
                 }
 
-                log.debug(f"App: {app}, Model: {model}")
                 for item in self.items.filter(app=app.name, model=model.name):
-                    log.debug(f"Hit item: {item.field}")
                     item_object = {
                         "field": item.field
                     }
@@ -707,23 +738,23 @@ class ImportSchemeFile(ImportBaseModel):
         elif self.base_type == "text":
             self._inspect_text_file(ignore_status=ignore_status)
 
-    def rows(self, *, limit_count: int = 0, specific_rows: list[int] = None, header_row: bool = False, connection = None) -> dict[str: any]:
+    def rows(self, *, limit_count: int=None, offset_count: int=None, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> dict[str: any]:
         """ Iterates through the rows of the file, returning a dict for each row """
 
         if self.base_type == "gff":
-            for row in self._rows_from_gff_file(limit_count=limit_count, specific_rows=specific_rows):
+            for row in self._rows_from_gff_file(limit_count=limit_count, offset_count=offset_count, specific_rows=specific_rows):
                 yield row
 
         elif self.base_type == "text":
             if self.settings.get("has_db", False):
-                for row in self._rows_from_db(limit_count=limit_count, connection=connection):
+                for row in self._rows_from_db(limit_count=limit_count, offset_count=offset_count, connection=connection):
                     yield row
             else:
                 columns: list[str] = []
                 if self.settings.get("first_row_header", False):
                     columns = self.header_fields()
 
-                for row in self._rows_from_text_file(limit_count=limit_count, specific_rows=specific_rows, header_row=header_row):
+                for row in self._rows_from_text_file(limit_count=limit_count, offset_count=offset_count, specific_rows=specific_rows, header_row=header_row):
                     if not len(columns):
                         for index, field in enumerate(row):
                             columns.append(f"Field {index+1}")
@@ -750,13 +781,13 @@ class ImportSchemeFile(ImportBaseModel):
                 for fields in self._rows_from_text_file(header_row=True):
                     return fields
 
-    def find_row_by_key(self, *, field: str = None, key: str = None, cache: LRUCacheThing = None, connection = None) -> list|None:
+    def find_row_by_key(self, *, field: str=None, key: str=None, cache: LRUCacheThing=None, connection=None) -> list|None:
         """ Find the first row that has a field that equals key.  Uses a cache object if it's given one """
 
         if not field or not key: 
             return None
 
-        if self.settings.get("has_db", False) and not connection: connection = self._get_db_connection()
+        if self.settings.get("has_db") and not connection: connection = self._get_db_connection()
 
         # If the data is a list step through the list and check each value
         if type(key) is list:
@@ -770,7 +801,7 @@ class ImportSchemeFile(ImportBaseModel):
             return row
 
         if cache:
-            row = cache.find(key=key, report=True, output="log")
+            row = cache.find(key=f"{self.name}{key}", report=True, output="log")
             if row:
                 return row
             
@@ -786,27 +817,29 @@ class ImportSchemeFile(ImportBaseModel):
         
         # If it's not found after going through the file store that it's not in the file
         if cache:
-            cache.store(key=key, value=None)
+            cache.store(key=f"{self.name}{key}", value=None)
 
         return None
 
-    def _rows_from_db(self, *, limit_count: int = 0, specific_rows: list[int] = None, header_row: bool = False, connection = None) -> list:
+    def _rows_from_db(self, *, limit_count: int=None, offset_count: int=None, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> list:
         """ Iterates through the rows of select from an SQLite3 db, returning a list for each row """
 
         if not connection: connection = self._get_db_connection()
 
         where_bit: str = ""
         limit_bit: str = ""
+        offset_bit: str = ""
 
         if limit_count: limit_bit = f" LIMIT {limit_count} "
         if specific_rows: where_bit = f" WHERE rowid in ({','.join([str(row) for row in specific_rows])}) "
+        if offset_count: offset_bit = f" OFFSET {offset_count}"
 
-        sql = f"SELECT * FROM data{where_bit}{limit_bit}"
+        sql = f"SELECT * FROM data{where_bit}{limit_bit}{offset_bit}"
 
         for row in connection.execute(sql):
             yield row
 
-    def _rows_from_text_file(self, *, limit_count: int = 0, specific_rows: list[int] = None, header_row: bool = False) -> list:
+    def _rows_from_text_file(self, *, limit_count: int=None, offset_count: int=None, specific_rows: list[int]=None, header_row: bool=False) -> list:
         """ Iterates through the rows of a text (csv or tsv) file, returning a list for each row """
     
         delimiter: str = "\t" if self.type.lower()=="tsv" else ","
@@ -832,6 +865,9 @@ class ImportSchemeFile(ImportBaseModel):
                 if not header_row and specific_rows is not None and read_count not in specific_rows:
                     continue
                 
+                if offset_count and read_count <= offset_count:
+                    continue
+
                 yield row
                 returned_count += 1
 
@@ -841,7 +877,7 @@ class ImportSchemeFile(ImportBaseModel):
                 if limit_count and returned_count >= limit_count or header_row:
                     break
 
-    def _rows_from_gff_file(self, *, limit_count: int = 0, specific_rows: list[int] = None) -> dict[str: any]:
+    def _rows_from_gff_file(self, *, limit_count: int=None, offset_count: int=None, specific_rows: list[int]=None) -> dict[str: any]:
         """ Iterates through the rows of the GFF file, returning a dict for each row """
 
         self._confirm_file_is_ready(inspected=True)
@@ -849,7 +885,7 @@ class ImportSchemeFile(ImportBaseModel):
         db = gffutils.FeatureDB(f'{settings.ML_IMPORT_WIZARD["Working_Files_Dir"]}{self.file_name}.db')
 
         base_fields = ('seqid', 'source', 'featuretype', 'start', 'end', 'score', 'strand', 'frame')
-        counter: int = 1
+        counter: int = 0
 
         for feature in db.all_features():
             row: dict[str, any] = {}
@@ -861,12 +897,16 @@ class ImportSchemeFile(ImportBaseModel):
                 row[key] = value
                 if len(row[key]) == 1: row[key] = row[key][0]
 
+            counter += 1
+
+            if offset_count and counter <= offset_count:
+                    print(f"Skipping row: {counter:,}")
+                    continue
+
             yield row
 
-            if limit_count:
-                counter += 1
-                if counter > limit_count:
-                    break
+            if limit_count and counter >= limit_count:
+                break
 
     def _inspect_text_file(self, *, ignore_status: bool = False) -> None:
         """ Inspect a text file (tsv, csv) by importing to the db """

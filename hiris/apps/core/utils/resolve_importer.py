@@ -1,15 +1,31 @@
 import logging
 log = logging.getLogger('app')
 
-from hiris.apps.core.models import GenomeVersion
+from django.db.models import Q
+
+from hiris.apps.core.models import FeatureLocation
 
 
-def accession_id_to_chromosome(*, user_input_accession_id: str=None, field_lookup_genome_version_name: str=None) -> str:
-    """ Function used to lookup chromosome from accession id for use in importers """
+def translate_chromosome_to_accession_id(*, user_input_chromosome: str=None, field_lookup_genome_version_name: str=None) -> str:
+    """ Look up accession id from chromosome name (chr1 ... chrY) for landmarks """
 
-    accession_id: str = user_input_accession_id
+    chromosome: str = str(user_input_chromosome)
     genome_version_name: str = field_lookup_genome_version_name
 
+    if chromosome.startswith("chr"):
+        chromosome = chromosome.replace("chr", "")
+    elif len(chromosome) > 1:
+        return chromosome
     
+    try:
+        feature_location: FeatureLocation = FeatureLocation.objects.get(
+            ~Q(chromosome=''),
+            chromosome__isnull=False,
+            feature__feature_name=chromosome, 
+            feature__feature_type__feature_type_name="region", 
+            feature__genome_version__genome_version_name=genome_version_name,
+        )
+    except:
+        return None
 
-    return "I is a test..."
+    return feature_location.landmark

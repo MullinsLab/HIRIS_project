@@ -29,6 +29,9 @@
         {% if not field.not_nullable %}<option value='**no_data**' data-content="No Data"{% if strategy.strategy == "No Data" %} selected{% endif %}></option>{% endif %}
     </optgroup>
     <optgroup label="File Fields...">
+        {% for resolver, settings in field.resolvers.items %}
+            {% include "ml_import_wizard/fragments/resolver_option.html" with file=file key=strategy.key %}
+        {% endfor %}
         {% for file in scheme.files.all %}
             {% include "ml_import_wizard/fragments/field_file_fields_option.html" with file=file key=strategy.key %}
         {% endfor %}
@@ -115,4 +118,7 @@
         {% endfor %}
     </select>
 </span>
+{% for resolver, settings in field.resolvers.items %}
+    {% include "ml_import_wizard/fragments/resolver_fields.html" %}
+{% endfor %}
 {% endwith %}

@@ -125,11 +125,14 @@ class ImporterField(BaseImporter):
         parent.fields_by_name[self.name] = self
 
         # Set up the resolver, which is a function that is used to translate user input into a value for the importer
-        self.resolver: dict[str: str|function] = None
-        if self.settings.get("resolver_function_name"):
-            function = import_string(self.settings["resolver_function_name"])
+        self.resolvers: dict = {}
+        for resolver in self.settings.get("resolvers", []):
+            function = import_string(resolver)
 
-            self.resolver = {
+            resolver_object: dict = {
+                "full_name": resolver.replace(".", "-"),
+                "fancy_name": fancy_name(resolver.split(".")[-1]),
+                "description": function.__doc__,
                 "function": function,
                 "user_input_arguments": [],
                 "field_lookup_arguments": [],
@@ -137,10 +140,17 @@ class ImporterField(BaseImporter):
 
             for argument in function.__code__.co_varnames[0:function.__code__.co_kwonlyargcount]:
                 if argument.startswith("user_input_"):
-                    self.resolver["user_input_arguments"].append(argument.replace("user_input_", ""))
+                    arg_name: str = argument.replace("user_input_", "", 1)
+                    arg_object: dict = {
+                        "name": arg_name,
+                        "fancy_name": fancy_name(arg_name)
+                    }
+                    resolver_object["user_input_arguments"].append(arg_object)
 
                 elif argument.startswith("field_lookup_"):
-                    self.resolver["field_lookup_arguments"].append(argument.replace("user_input_", ""))
+                    resolver_object["field_lookup_arguments"].append(argument.replace("field_lookup_", "", 1))
+
+            self.resolvers[resolver_object["full_name"]] = resolver_object
 
     @property
     def is_foreign_key(self) -> bool:

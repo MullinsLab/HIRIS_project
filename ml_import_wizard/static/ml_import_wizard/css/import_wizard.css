@@ -17,9 +17,14 @@
     background-color: rgb(255, 240, 240);
 }
 
+.resolver{
+    color: blue;
+    font-size: 80%;
+}
+
 .file-fields-sample{
     color: orange;
-    font-size: 30%;
+    font-size: 80%;
     /* font-weight: bold; */
 }
 
@@ -31,7 +36,7 @@
 
 .file-fields-file-name{
     color: olive;
-    font-size: 30%;
+    font-size: 80%;
     /* font-weight: bold; */
 }
 
@@ -48,7 +53,7 @@
 
 .field-annotation{
     color: orange;
-    font-size: 30%;
+    font-size: 80%;
     font-weight: bold;
 }
 

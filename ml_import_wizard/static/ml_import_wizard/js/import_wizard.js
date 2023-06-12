@@ -231,7 +231,7 @@ class ImportSchemeItem{
                             form_data[field] = $("#file_field_" + field).find(":selected").val()
                         }
                         else{
-                            let field_name = field.split("__-__")[1];
+                            let field_name = field.split("__-__").pop();
                         
                             form_data[field_name + ":file_field"] = $("#file_field_"+field).find(":selected").val();
 
@@ -244,9 +244,24 @@ class ImportSchemeItem{
                             form_data[field_name + ":file_field_split"] = $("#file_field_" + field + "_split").val();
                             form_data[field_name + ":file_field_split_splitter"] = $("#file_field_" + field + "_split_splitter").val();
                             form_data[field_name + ":file_field_split_position"] = $("#file_field_" + field + "_split_position").val();
-                        }
-                    }
-                }
+
+                            // Get resolver attributes seperately because we don't know how many there will be at start
+                            if(form_data[field_name + ":file_field"].startsWith("resolver:")){
+            
+                                let resolver = form_data[field_name + ":file_field"].split(":").pop();
+                                let resolver_argument_base = `resolver_${field}__-__${resolver}__-__`;
+                                let arg_list = $(`[id^=${resolver_argument_base}]`).map(function(){return this.id}).get();
+                                
+                                for(let argument_index in arg_list){
+                                    let argument = arg_list[argument_index]
+                                    let argument_name = argument.split("__-__").pop();
+
+                                    form_data[`${field_name}:resolver:${resolver}:${argument_name}`] = $(`#${argument}`).find(":selected").val()
+                                };
+                            };
+                        };
+                    };
+                };
 
                 console.log(form_data);
 
@@ -281,7 +296,7 @@ class ImportSchemeItem{
                     return false;
                 }
 
-                // I will never understand why JS gives you keys instead of values with a for .. in
+                // I will never understand why JS gives you indexes instead of values with a for .. in for a list
                 let stupid_list = $("[id^='key_value_model_table_key_" + this.model + "_']").map(function(){return $(this).find(":selected").val()}).get();
                 for (let key in stupid_list){
                     if (! stupid_list[key]){
@@ -297,40 +312,43 @@ class ImportSchemeItem{
         }
         else {
             for (let field_id in this.fields){
-                let field = this.fields[field_id];
+                let field_name = this.fields[field_id];
+                let field_tag = "#file_field_" + field_name;
+                let field = $(field_tag);
+                let field_select_value = field.find(":selected").val();
 
                 // Reject if field is blank
-                if($("#file_field_" + field).attr("data-is_radio")){
-                    if($("#file_field_" + field + " input:radio:checked").val() == undefined){
+                if(field.attr("data-is_radio")){
+                    if($(field_tag + " input:radio:checked").val() == undefined){
                         return false;
                     }
                 }
 
-                if($("#file_field_" + field).attr("data-is_dropdown")){
-                    if($("#file_field_" + field).find(":selected").val() == ""){
+                if(field.attr("data-is_dropdown")){
+                    if(field_select_value == ""){
                         return false;
                     }
                 }
 
-                if($("#file_field_" + field).find(":selected").val() == ""){
+                if(field_select_value == ""){
                     return false;
                 };
 
                 // Reject if field is "**raw_text**" and "raw_text" input is blank
-                if($("#file_field_" + field).find(":selected").val() == "**raw_text**"){
-                    if ($("#file_field_" + field + "_raw_text").val() == ""){
+                if(field_select_value == "**raw_text**"){
+                    if ($(field_tag + "_raw_text").val() == ""){
                         return false;
                     };
                 }; 
 
                 // Reject if field is "**select_first**" and 'select_first' input is blank
-                if($("#file_field_" + field).find(":selected").val() == "**select_first**"){
+                if(field_select_value == "**select_first**"){
                     let first_count = 0;
                     let first_values = [];
 
                     for (let count=1; count < 4; count++)
                     {
-                        let value = $("#file_field_" + field + "_first_" + count).val();
+                        let value = $(field_tag + "_first_" + count).val();
                         if (value){
                             if (first_values.includes(value)){
                                 return false;
@@ -346,14 +364,26 @@ class ImportSchemeItem{
                 }; 
 
                 // Reject if field is "**split_field**" and '_split_field', '_split_splitter', or '_split_position' input is blank
-                if($("#file_field_" + field).find(":selected").val() == "**split_field**"){
-                    if (! $("#file_field_" + field + "_split").val() ||
-                        ! $("#file_field_" + field + "_split_splitter").val() ||
-                        ! $("#file_field_" + field + "_split_position").val()
+                if(field_select_value == "**split_field**"){
+                    if (! $(field_tag + "_split").val() ||
+                        ! $(field_tag + "_split_splitter").val() ||
+                        ! $(field_tag + "_split_position").val()
                     ){
                         return false;
                     };
                 }; 
+
+                // Reject if field is a Resolver field and not all arguments are filled
+                if(field_select_value.startsWith("resolver:")){
+
+                    let resolver = field_select_value.split(":")[1];
+                    let resolver_argument_base = `resolver_${field_name}__-__${resolver}__-__`;
+
+                    // Build a list of values of resolver arguments and see if any of them are ""
+                    if ($(`[id^=${resolver_argument_base}]`).map(function(){return this.value}).get().includes("")){
+                        return false;
+                    };
+                };
             };
         };
 
@@ -499,26 +529,39 @@ function manage_key_value_model_table(model, row){
 
 function manage_file_field_input(field, model){
     /// Run when selects are updated to show or hide cascading fields
+    /// Field contains model and field "model__-__field"
 
-    if($("#file_field_" + field).find(":selected").val() == "**raw_text**"){
-        $("#file_field_" + field + "_raw_text").removeClass('not-visible');
+    let field_name = "#file_field_" + field;
+    let field_raw_name = "file_field_" + field;
+    let field_value = $(field_name).find(":selected").val();
+
+    if(field_value == "**raw_text**"){
+        $(field_name + "_raw_text").removeClass('not-visible');
     }
     else {
-        $("#file_field_" + field + "_raw_text").addClass('not-visible');
+        $(field_name + "_raw_text").addClass('not-visible');
     };
 
-    if($("#file_field_" + field).find(":selected").val() == "**select_first**"){
-        $("#file_field_" + field + "_first_hider").removeClass('not-visible');
+    if(field_value == "**select_first**"){
+        $(field_name + "_first_hider").removeClass('not-visible');
     }
     else {
-        $("#file_field_" + field + "_first_hider").addClass('not-visible');
+        $(field_name + "_first_hider").addClass('not-visible');
     };
 
-    if($("#file_field_" + field).find(":selected").val() == "**split_field**"){
-        $("#file_field_" + field + "_split_hider").removeClass('not-visible');
+    if(field_value == "**split_field**"){
+        $(field_name + "_split_hider").removeClass('not-visible');
     }
     else {
-        $("#file_field_" + field + "_split_hider").addClass('not-visible');
+        $(field_name + "_split_hider").addClass('not-visible');
+    };
+
+    // Set all resolver: _hiders to not-visible to start with to limit duplication of code
+    $("[id ^='resolver_" + field + "__-__'][id $='_hider']").addClass("not-visible")
+
+    if(field_value.startsWith("resolver:")){
+        let resolver = field_value.split(":")[1];
+        $("#resolver_" + field + "__-__" + resolver + "_hider").removeClass("not-visible")
     };
 
     check_submittable(model);
