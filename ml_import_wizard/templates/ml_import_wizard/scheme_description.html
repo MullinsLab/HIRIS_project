@@ -29,6 +29,12 @@
                         <tr>
                             <td>
                                 Field: <span class="field_name">{{ item.field }}</span>
+                                Strategy: <span class="{{ item.strategy_class|default:"strategy" }}">{{ item.strategy }}</span>
+                                {% if item.value %}Value: <span class="{{ item.value_class }}">{{ item.value|safe }}</span>{% endif %}
+                                
+                                {% for key, value in item.key_values.items %}
+                                    <br>{{ key }}: <span class="{{ value.value_class }}">{{ value.value }}</span>
+                                {% endfor %}
                             </td>
                         </tr>
                     {% endfor %}
