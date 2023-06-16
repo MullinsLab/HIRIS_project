@@ -661,11 +661,58 @@ class ImportScheme(ImportBaseModel):
                 }
 
                 for item in self.items.filter(app=app.name, model=model.name):
-                    item_object = {
-                        "field": item.field
-                    }
+                    value: str = ""
+                    value_class: str = ""
+                    strategy_class: str = ""
+                    key_values: dict = {}
 
-                    model_object["items"].append(item_object)
+                    if item.strategy == "No Data":
+                        strategy_class = "no_data"
+
+                    elif item.strategy == "Raw Text":
+                        value = item.settings["raw_text"]
+                        value_class = "value"
+
+                    elif item.strategy == "Table Row":
+                        value = item.settings["row"]
+                        value_class = "value"
+
+                    elif item.strategy == "File Field":
+                        file_field: ImportSchemeFileField = ImportSchemeFileField.objects.get(pk=item.settings["key"])
+                        #value = f"{file_field.import_scheme_file.name}: {file_field.name}"
+                        value = file_field.name
+                        
+                        if file_field.import_scheme_file.name == files["primary"]:
+                            value_class = "primary_file"
+                        else:
+                            value_class = f"secondary_file_{files['secondary'][file_field.import_scheme_file.name]['color_key']}"
+
+                    elif item.strategy == "Key Value":
+                        for field_key, field_value in item.settings.items():
+                            file_field: ImportSchemeFileField = ImportSchemeFileField.objects.get(pk=field_value["key"])
+
+                            value_class: str = ""
+
+                            if file_field.import_scheme_file.name == files["primary"]:
+                                value_class = "primary_file"
+                            else:
+                                value_class = f"secondary_file_{files['secondary'][file_field.import_scheme_file.name]['color_key']}"
+
+                            key_values[field_key] = {
+                                "value": file_field.name,
+                                "value_class": value_class,
+                            }
+                        
+                        log.debug(key_values)
+
+                    model_object["items"].append({
+                        "field": item.field,
+                        "strategy": item.strategy,
+                        "strategy_class": strategy_class,
+                        "value": value,
+                        "value_class": value_class,
+                        "key_values": key_values
+                    })
 
                 models.append(model_object)
 

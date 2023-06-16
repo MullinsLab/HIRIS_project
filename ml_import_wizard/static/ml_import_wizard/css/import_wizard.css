@@ -151,3 +151,16 @@
 .field_name{
     font-weight: bold;
 }
+
+.strategy{
+    font-weight: bold;
+}
+
+.value{
+    font-weight: bold;
+}
+
+.no_data{
+    color: red;
+    font-weight: bold;
+}
