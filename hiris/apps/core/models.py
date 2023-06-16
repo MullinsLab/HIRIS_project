@@ -15,8 +15,8 @@ class CoreBaseModel(models.Model):
     
     @property
     def name(self) -> str:
-        ''' Returns the specific class name field as name 
-        uses explicit name_field if it exists, otherwise defaults to the class name + "_name" '''
+        """ Returns the specific class name field as name 
+        uses explicit name_field if it exists, otherwise defaults to the class name + "_name" """
         if hasattr(self, 'name_field') and self.name_field:         # type: ignore
             return str(getattr(self, self.name_field))              # type: ignore   # pragma: no cover
         else:
@@ -156,6 +156,12 @@ class DataSetSource(CoreBaseModel):
     document_citation_journal = models.TextField(null=True, blank=True)
     document_citation_citekey = models.TextField(null=True, blank=True)
 
+    @property
+    def name(self) -> str:
+        """ cannonical name for DataSetSourcesince it doesn't have a good name """
+
+        return f"Data Set: {self.pk}"
+
     class Meta:
         db_table = "data_set_sources"
         unique_together = ("data_set", "document_pubmed_id", "document_uri", "document_citation_url", "document_citation_doi", "document_citation_issn", "document_citation_year", "document_citation_type", "document_citation_pages", "document_citation_title", "document_citation_author", "document_citation_issue_number", "document_citation_volume", "document_citation_journal", "document_citation_citekey")
@@ -186,6 +192,8 @@ class PublicationData(CoreBaseModel):
         unique_together = ("publication", "key")
         
         indexes = [
+            models.Index(fields=["publication", "key", "value"]),
+            models.Index(fields=["key", "value"]),
             models.Index(fields=["key"]),
             models.Index(fields=["publication"]),
         ]
@@ -224,6 +232,8 @@ class SubjectData(CoreBaseModel):
         unique_together = ('subject', 'key')
 
         indexes = [
+            models.Index(fields=["subject", "key", "value"]),
+            models.Index(fields=["key", "value"]),
             models.Index(fields=["key"]),
             models.Index(fields=["subject"]),
         ]
@@ -255,7 +265,7 @@ class Sample(CoreBaseModel):
 
     class Meta:
         db_table = "samples"
-        unique_together = ("subject", "culture", "culture_day", "date", "disease", "genbank", "original_id", "provirus_activity", "replicates", "tissue", "tissue_url", "type", "visit", "years_on_art")
+        # unique_together = ("subject", "culture", "culture_day", "date", "disease", "genbank", "original_id", "provirus_activity", "replicates", "tissue", "tissue_url", "type", "visit", "years_on_art")
 
 
 class SampleData(CoreBaseModel):
@@ -270,6 +280,8 @@ class SampleData(CoreBaseModel):
         unique_together = ("sample", "key")
 
         indexes = [
+            models.Index(fields=["sample", "key", "value"]),
+            models.Index(fields=["key", "value"]),
             models.Index(fields=["key"]),
             models.Index(fields=["sample"]),
         ]
@@ -327,6 +339,9 @@ class Integration(CoreBaseModel):
     junction_3p = models.IntegerField(null=True, blank=True)
     sequence_name = models.TextField(null=True, blank=True)
     sequence_uri = models.TextField(null=True, blank=True)
+    ltr_sequence = models.TextField(null=True, blank=True)
+    breakpoint_sequence = models.TextField(null=True, blank=True)
+    umi_sequence = models.TextField(null=True, blank=True)
     ltr_sequence_5p = models.TextField(null=True, blank=True)
     breakpoint_sequence_5p = models.TextField(null=True, blank=True)
     umi_sequence_5p = models.TextField(null=True, blank=True)
