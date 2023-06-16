@@ -23,6 +23,7 @@ ML_IMPORT_WIZARD = {
                         "GenomeVersion": {
                             "exclude_fields": ['external_gene_id_source'],
                             "default_option": "raw_text",
+                            "load_value_fields": ["genome_version_name"],
                         },
                         'FeatureType': {
                             'restriction': 'rejected',
@@ -60,9 +61,14 @@ ML_IMPORT_WIZARD = {
                         },
                         "Integration": {
                             "critical": True,
+                            "minimum_objects": False,
+                        },
+                        "IntegrationEnvironment": {
+                            "load_value_fields": ["integration_environment_name"],
                         },
                         "IntegrationLocation": {
                             "critical": True,
+                            "minimum_objects": False,
                         },
                         "BlastInfo": {
                             "suppress_on_empty": True,
@@ -77,7 +83,8 @@ ML_IMPORT_WIZARD = {
                             # "value_field": "value",
                             "restrict_on_key": True,
                             "restrict_on_value": False,
-                            "initial_values": []
+                            "initial_values": [], # List of initial keys to show in the keys dropdown
+                            "minimum_objects": True, # Defaults to True.  Treats all fields (including child key/value models) as unique so it doesn't create duplicate objects
                         },
                         "Sample": {
                             "exclude_fields": ["culture", "culture_day", "date", "disease", "genbank", "original_id", "provirus_activity", "replicates", "tissue", "tissue_url", "type", "visit", "years_on_art"]
@@ -87,7 +94,7 @@ ML_IMPORT_WIZARD = {
                             "restriction": "deferred",
                             "restrict_on_key": True,
                             "restrict_on_value": False,
-                            "initial_values": []
+                            "initial_values": [],
                         },
                         "IntegrationLocation": {
                             "fields": {

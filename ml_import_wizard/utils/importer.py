@@ -2,7 +2,7 @@ import importlib
 
 from django.conf import settings
 from django.apps import apps
-from django.db.models import ForeignKey
+from django.db.models import fields, ForeignKey
 from django.utils.module_loading import import_string
 
 import logging
@@ -49,6 +49,18 @@ class Importer(BaseImporter):
         self.apps = []
         self.apps_by_name = {}
 
+    def get_model_by_name(self, model_name: str=None) -> object|None:
+        """ Search all apps for a model by name """
+        
+        if not model_name:
+            return None
+        
+        for app in self.apps:
+            if model := app.models_by_name.get(model_name):
+                return model
+
+        return None
+
 
 class ImporterApp(BaseImporter):
     """ Class to hold apps to import into """
@@ -76,6 +88,7 @@ class ImporterModel(BaseImporter):
         self.model = model      # Get the Django model so we can do queries against it
         self.fields = []
         self.fields_by_name = {}
+        self.unused_fields = []
 
         parent.models.append(self)
         parent.models_by_name[self.name] = self
@@ -103,13 +116,26 @@ class ImporterModel(BaseImporter):
     @property
     def shown_fields(self) -> list:
         """ Lists all the fields that should be shown in the importer """
+
         return [field for field in self.fields if not field.is_foreign_key]
     
     @property
     def is_key_value(self) -> bool:
         """ True if the model stores keys and values """
+
         return self.settings.get("key_value_model", False)
     
+    @property
+    def key_value_children(self) -> bool:
+        """ List of key/value models that are pointing to this model """
+        
+        return [field.key_value_linked_model for field in self.fields+self.unused_fields if field.is_key_value_link]
+    
+    @property
+    def table(self) -> str:
+        """ returns the db table name to query against """
+
+        return self.model.objects.model._meta.db_table
 
 class ImporterField(BaseImporter):
     """ Holds information about a field that should be imported from files """
@@ -121,8 +147,11 @@ class ImporterField(BaseImporter):
         
         self.field = field      # Get the Django field so we can do queries against it
         
-        parent.fields.append(self)
-        parent.fields_by_name[self.name] = self
+        if field.editable:
+            parent.fields.append(self)
+            parent.fields_by_name[self.name] = self
+        else:
+            parent.unused_fields.append(self)
 
         # Set up the resolver, which is a function that is used to translate user input into a value for the importer
         self.resolvers: dict = {}
@@ -157,6 +186,32 @@ class ImporterField(BaseImporter):
         """ True if the field has a foreign key """
 
         return isinstance(self.field, ForeignKey)
+    
+    @property 
+    def is_key_value_link(self) -> bool:
+        """ True if this is a relationship field and it points to a key/value model """
+
+        if self.field.related_model:
+            app: str = self.field.related_model._meta.app_label
+            model: str = self.field.related_model.__name__
+
+            if model_object := self.parent.parent.parent.apps_by_name.get(app, {}).models_by_name.get(model, {}):
+                return model_object.is_key_value
+        
+        return False
+
+    @property
+    def key_value_linked_model(self) -> object|None:
+        """ Returns the model that the field is linked to or None"""
+
+        if self.field.related_model:
+            app: str = self.field.related_model._meta.app_label
+            model: str = self.field.related_model.__name__
+
+            if model_object := self.parent.parent.parent.apps_by_name.get(app, {}).models_by_name.get(model, {}):
+                return model_object
+        
+        return None
 
     @property
     def not_nullable(self) -> bool:
@@ -229,18 +284,12 @@ def setup_importers() -> None:
                 
                 working_model: ImporterModel = ImporterModel(parent=working_app, name=model_object.__name__, model=model_object, **model_settings)
 
-                for field in filter(lambda field: field.editable and (field.name not in model.get("exclude_fields", [])), model_object._meta.get_fields()):
+                for field in [field for field in model_object._meta.get_fields() if field.name not in model.get("exclude_fields", [])]:
+                #for field in filter(lambda field: field.editable and (field.name not in model.get("exclude_fields", [])), model_object._meta.get_fields()):
                     exclude_keys: tuple = ()
                     field_settings: dict = {setting: value for setting, value in model.get("fields", {}).get(field.name, {}).items() if setting not in exclude_keys}
                     
                     working_field: ImporterField = ImporterField(parent=working_model, name=field.name, field=field, **field_settings)
-
-                    # Get settings for the field and save them in the object, except keys in exclude_keys
-                    # field_settings: dict = model.get("fields", {}).get(field.name, {})
-
-                    
-                    # for key in filter(lambda key: key not in exclude_keys, field_settings.keys()):
-                    #     working_field.settings[key] = field_settings[key]
 
             # Step back through the models to put them into the correct order for actual data import
             # do until we have as many models in the models_by_import_order list as in the models list

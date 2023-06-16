@@ -8,12 +8,15 @@ from collections import namedtuple
 from ml_export_wizard.utils.exporter import exporters
 from hiris.apps.core.models import Publication
 
-def generic_query(sql: str = None) -> list[dict]:
+def generic_query(sql: str = None, no_return: bool=False) -> list[dict]|None:
     """ Reuturns a list of namedtuples with the data """
 
     with connection.cursor() as cursor:
         cursor.execute(sql)
 
+        if no_return:
+            return None
+        
         columns = [col[0] for col in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
@@ -116,4 +119,4 @@ from integration_locations
 	join feature_types using (feature_type_id)
 WHERE integration_location_id NOT IN (SELECT integration_location_id FROM integration_features);"""
 
-    return generic_query(sql=sql)
+    return generic_query(sql=sql, no_return=True)

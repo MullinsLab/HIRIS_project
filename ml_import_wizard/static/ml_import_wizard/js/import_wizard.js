@@ -374,7 +374,7 @@ class ImportSchemeItem{
                 }; 
 
                 // Reject if field is a Resolver field and not all arguments are filled
-                if(field_select_value.startsWith("resolver:")){
+                if(field_select_value && field_select_value.startsWith("resolver:")){
 
                     let resolver = field_select_value.split(":")[1];
                     let resolver_argument_base = `resolver_${field_name}__-__${resolver}__-__`;

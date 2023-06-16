@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models, IntegrityError, transaction
 from django.db.models.functions import Lower
+from django.db.models import Count
 
 import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
@@ -211,7 +212,7 @@ class ImportScheme(ImportBaseModel):
 
         return columns
     
-    def data_rows(self, *, columns: list=None, limit_count: int=None, offset_count: int=None) -> dict[str: any]:
+    def data_rows(self, *, columns: list=None, limit_count: int=None, offset_count: int=0) -> dict[str: any]:
         """ Yields a row for each set of models in the target importer """
 
         # Fields holds a list of ImportSchemeItem.ids and the associated ImportSchemeFile.id and ImportSchemeFileField names
@@ -230,7 +231,7 @@ class ImportScheme(ImportBaseModel):
             for file, value in self.settings["file_links"].items():
                 child = child_files[int(file)] = {}
                 
-                child["cache"] = LRUCacheThing(items=100000)
+                child["cache"] = LRUCacheThing(items=1000000)
                 child["object"] = self.files.get(pk=int(file))
 
                 # Create a db connection to use for loading data if the file has a db
@@ -381,7 +382,7 @@ class ImportScheme(ImportBaseModel):
                             row_dict["***row***setting***"]["reject_row"].append({column['name']: row_dict[column['name']]})
 
             # Deal with columns that have been deferred
-            deferred_cache = LRUCacheThing(items=1000)
+            deferred_cache = LRUCacheThing(items=1000000)
             for column in [column for column in columns if column["import_scheme_item"].strategy in (deferred_strategies)]:
                 strategy = column["import_scheme_item"].strategy
                 settings = column["import_scheme_item"].settings
@@ -441,7 +442,7 @@ class ImportScheme(ImportBaseModel):
         return field
 
     @timeit
-    def execute(self, *, ignore_status: bool=False, limit_count: int=None, offset_count: int=None) -> None:
+    def execute(self, *, ignore_status: bool=False, limit_count: int=None, offset_count: int=0) -> None:
         """ Execute the actual import and store the data """
 
         if not ignore_status and self.status.import_defined == False:
@@ -450,15 +451,19 @@ class ImportScheme(ImportBaseModel):
         if not ignore_status and self.status.import_completed == True:
             raise ImportSchemeNotReady(f"Import scheme {self.name} ({self.id}) has already been imported.")
         
-        cache_thing = LRUCacheThing(items=100000)
+        cache_thing = LRUCacheThing(items=1000000)
         columns = self.data_columns()
         
         row_count = 1
         for row in self.data_rows(columns=columns, limit_count=limit_count, offset_count=offset_count):
 
+            # log.debug(row)
+            if not offset_count: offset_count = 0
+
             # skip the row and store it in an ImportSchemeRejectedRow if it's rejected
             if deep_exists(dictionary=row, keys=["***row***setting***", "reject_row"]):
                 ImportSchemeRowRejected(import_scheme=self, errors=row["***row***setting***"]["reject_row"], row=row).save()
+                continue
 
             # Use a transaction so each source row gets saved or not
             try:
@@ -467,6 +472,7 @@ class ImportScheme(ImportBaseModel):
                     transaction.on_commit(cache_thing.commit)
 
                     for app in importers[self.importer].apps:
+                        # working_objects holds the objects (model instances) for this particular row
                         working_objects: dict[str: dict[str: any]] = {}
 
                         for model in app.models_by_import_order:
@@ -474,7 +480,8 @@ class ImportScheme(ImportBaseModel):
                             if model.is_key_value:
 
                                 for key, value in [(key, value) for key, value in row.get(f"{model.name} (key-value)", {}).items() if value and value != "NULL"]:
-                                    working_attributes = {}
+                                    # working_attributes holds the attributes (field/value pairs) needed to save the current key/value model
+                                    working_attributes: dict = {}
 
                                     for field in model.fields:
                                         
@@ -497,7 +504,8 @@ class ImportScheme(ImportBaseModel):
 
                                 continue
                             
-                            working_attributes = {}
+                            # working_attributes holds the attributes (field/value pairs) needed to build the current model
+                            working_attributes: dict = {}
                             
                             superbreak: bool = False    # Needed to break out of both for loops
                             is_empty: bool = True       # Keeps track of whether the model has data other than foreign keys in it
@@ -517,10 +525,23 @@ class ImportScheme(ImportBaseModel):
                             # Load instances per their unique fields until we run out of unique fields or an object is returned.
                             unique_sets: list[tuple] = list(model.model._meta.__dict__.get("unique_together"))
                             unique_sets = unique_sets + [(field.name,) for field in model.fields if field.field.unique and not field.is_foreign_key]
+                            
+                            # minimum_objects models treat all fields together as unique so we don't end up with duplicates
+                            if "minimum_objects" not in model.settings or model.settings["minimum_objects"]:
+                                full_unique_set: list = [field.name for field in model.fields] # if not field.is_foreign_key
+                                full_unique_set.append("***Key_Value_Models***")
+
+                                unique_sets.append(tuple(full_unique_set))
 
                             for unique_set in unique_sets:
                                 test_attributes: dict[str, any] = {}
                                 test_attributes_string: str = ""
+                                key_value_attributes: dict[str, dict[str, any]] = {}
+
+                                if "***Key_Value_Models***" in unique_set:
+                                    for key_value_model in model.key_value_children:
+                                        key_value_attributes[key_value_model.name] = {key: value for key, value in row.get(f"{key_value_model.name} (key-value)", {}).items() if value and value != "NULL"}
+                                        test_attributes_string += f"|{key_value_model.name}:{dict_hash(key_value_attributes[key_value_model.name])}|"
 
                                 for unique_field in [unique_field for unique_field in unique_set if unique_field in working_attributes]:
                                     test_attributes[getattr(unique_field, "name", unique_field)] = working_attributes[unique_field]
@@ -532,12 +553,27 @@ class ImportScheme(ImportBaseModel):
                                     working_objects[model.name] = temp_object
 
                                 if model.name not in working_objects or not working_objects[model.name]:
-                                    temp_object = model.model.objects.filter(**test_attributes).first()
+                                    temp_object = model.model.objects.filter(**test_attributes)
+
+                                    # For key/value models we need to annotate the queryset with the key/values
+                                    if key_value_attributes:
+                                        for key_value_model in model.key_value_children:
+                                            temp_object = temp_object.annotate(key_value_count=Count(key_value_model.table)).filter(key_value_count=len(key_value_attributes[key_value_model.name]))
+                                            
+                                            for key, value in key_value_attributes[key_value_model.name].items():
+                                                attributes: dict = {
+                                                    f"{key_value_model.table}__{key_value_model.settings['key_field']}": key,
+                                                    f"{key_value_model.table}__{key_value_model.settings['value_field']}": value,
+                                                }
+                                            
+                                                temp_object = temp_object.filter(**attributes)
+
+                                    temp_object = temp_object.first()
 
                                     if temp_object:
                                         working_objects[model.name] = temp_object
                                         cache_thing.store(key=(model.name, test_attributes_string), value=working_objects[model.name], transaction=True)
-
+                                    
                                 if model.name in working_objects:
                                     continue
                         
@@ -559,11 +595,11 @@ class ImportScheme(ImportBaseModel):
                             if "suppress_on_empty" in model.settings and is_empty:
                                 working_objects[model.name] = None
 
-                            # If the model is not in working_objects, save it to the database and add it to working_objects
+                            # If the model is not in working_objects save it to the database, add it to working_objects, and cache it
                             if model.name not in working_objects:
                                 working_objects[model.name] = model.model(**working_attributes)
                                 working_objects[model.name].save()
-
+                                
                                 # If this is a deferred model save an ImportSchemeDeferredRows
                                 if model.settings.get("restriction") == "deferred":
 
@@ -738,7 +774,7 @@ class ImportSchemeFile(ImportBaseModel):
         elif self.base_type == "text":
             self._inspect_text_file(ignore_status=ignore_status)
 
-    def rows(self, *, limit_count: int=None, offset_count: int=None, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> dict[str: any]:
+    def rows(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> dict[str: any]:
         """ Iterates through the rows of the file, returning a dict for each row """
 
         if self.base_type == "gff":
@@ -821,7 +857,7 @@ class ImportSchemeFile(ImportBaseModel):
 
         return None
 
-    def _rows_from_db(self, *, limit_count: int=None, offset_count: int=None, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> list:
+    def _rows_from_db(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False, connection=None) -> list:
         """ Iterates through the rows of select from an SQLite3 db, returning a list for each row """
 
         if not connection: connection = self._get_db_connection()
@@ -839,7 +875,7 @@ class ImportSchemeFile(ImportBaseModel):
         for row in connection.execute(sql):
             yield row
 
-    def _rows_from_text_file(self, *, limit_count: int=None, offset_count: int=None, specific_rows: list[int]=None, header_row: bool=False) -> list:
+    def _rows_from_text_file(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None, header_row: bool=False) -> list:
         """ Iterates through the rows of a text (csv or tsv) file, returning a list for each row """
     
         delimiter: str = "\t" if self.type.lower()=="tsv" else ","
@@ -877,7 +913,7 @@ class ImportSchemeFile(ImportBaseModel):
                 if limit_count and returned_count >= limit_count or header_row:
                     break
 
-    def _rows_from_gff_file(self, *, limit_count: int=None, offset_count: int=None, specific_rows: list[int]=None) -> dict[str: any]:
+    def _rows_from_gff_file(self, *, limit_count: int=None, offset_count: int=0, specific_rows: list[int]=None) -> dict[str: any]:
         """ Iterates through the rows of the GFF file, returning a dict for each row """
 
         self._confirm_file_is_ready(inspected=True)
