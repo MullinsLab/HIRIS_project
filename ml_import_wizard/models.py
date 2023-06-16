@@ -428,11 +428,17 @@ class ImportScheme(ImportBaseModel):
             else:
                 field = row[fields[key]["name"]]
         else:
+            if type(row) is sqlite3.Row:
+                field_key = row[child_files[file]["primary_linked_field"]]
+            else:
+                field_key=row.get(child_files[file]["primary_linked_field"])
+
             child_row = child_files[file]["object"].find_row_by_key(
                             field=child_files[file]["child_linked_field"],
-                            key=row.get(child_files[file]["primary_linked_field"]),
+                            key=field_key,
                             connection=child_files[file]["connection"],
                         )
+            
             if child_row:
                 if type(child_row) is dict:
                     field = child_row.get(fields[key]["name"])
