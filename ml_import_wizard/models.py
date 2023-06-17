@@ -362,14 +362,14 @@ class ImportScheme(ImportBaseModel):
                     if type(row_dict[column["name"]]) is str and row_dict[column["name"]].lower() == "null":
                         row_dict[column["name"]] = None
 
-                    if "translate_values" in column["importer_model"].settings:
-                        if row_dict[column["name"]] in column["importer_model"].settings["translate_values"]:
-                            row_dict[column["name"]] = column["importer_model"].settings["translate_values"][row_dict[column["name"]]]
+                    if "translate_values" in column["importer_field"].settings:
+                        if row_dict[column["name"]] in column["importer_field"].settings["translate_values"]:
+                            row_dict[column["name"]] = column["importer_field"].settings["translate_values"][row_dict[column["name"]]]
 
-                    if column["importer_field"].settings.get("force_case") == "upper":
+                    if column["importer_field"].settings.get("force_case") == "upper" and row_dict[column["name"]]:
                         row_dict[column["name"]] = row_dict[column["name"]].upper()
 
-                    if column["importer_field"].settings.get("force_case") == "lower":
+                    if column["importer_field"].settings.get("force_case") == "lower" and row_dict[column["name"]]:
                         row_dict[column["name"]] = row_dict[column["name"]].lower()
 
                 # Check the data for rejections and store that in row_dict[***row***setting***][reject_row]
@@ -708,8 +708,6 @@ class ImportScheme(ImportBaseModel):
                                 "value": file_field.name,
                                 "value_class": value_class,
                             }
-                        
-                        log.debug(key_values)
 
                     model_object["items"].append({
                         "field": item.field,

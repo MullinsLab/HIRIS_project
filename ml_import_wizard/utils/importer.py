@@ -309,7 +309,6 @@ def setup_importers() -> None:
                     dependancy_satisfied = True
                     for field in foreign_keys:
                         if field.field.related_model.__name__ in [model.name for model in working_app.models] and field.field.related_model.__name__ not in [model.name for model in working_app.models_by_import_order]:
-                            log.debug(f"Field: {field.name}")
                             dependancy_satisfied = False
                             continue
                     

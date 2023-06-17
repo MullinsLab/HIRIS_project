@@ -37,9 +37,13 @@ ML_IMPORT_WIZARD = {
                             # "exclude_fields": ["external_gene_id"],
                         },
                         'FeatureLocation': {
-                            "critical": True,
-                            "translate_values": {"+": "F", "-": "R"},
-                            "force_case": "upper",
+                            "fields": {
+                                "feature_orientation": {
+                                    "critical": True,
+                                    "translate_values": {"+": "F", "-": "R"},
+                                    "force_case": "upper",  
+                                },
+                            },
                         },
                     },
                 },
@@ -69,6 +73,16 @@ ML_IMPORT_WIZARD = {
                         "IntegrationLocation": {
                             "critical": True,
                             "minimum_objects": False,
+                            "fields": {
+                                "orientation_in_landmark": {
+                                    "critical": True,
+                                    "translate_values": {"+": "F", "-": "R"},
+                                    "force_case": "upper",  
+                                },
+                                "landmark": {
+                                    "resolvers": ["hiris.apps.core.utils.resolve_importer.translate_chromosome_to_accession_id"],
+                                }, 
+                            },
                         },
                         "BlastInfo": {
                             "suppress_on_empty": True,
@@ -95,13 +109,6 @@ ML_IMPORT_WIZARD = {
                             "restrict_on_key": True,
                             "restrict_on_value": False,
                             "initial_values": [],
-                        },
-                        "IntegrationLocation": {
-                            "fields": {
-                                "landmark": {
-                                    "resolvers": ["hiris.apps.core.utils.resolve_importer.translate_chromosome_to_accession_id"],
-                                },
-                            },
                         },
                     },
                 },
