@@ -1,6 +1,7 @@
-import csv
+import csv, io, json
 from weakref import proxy
-from collections import namedtuple
+from openpyxl import Workbook
+from tempfile import NamedTemporaryFile
 
 from django.conf import settings
 from django.apps import apps
@@ -54,14 +55,56 @@ class Exporter(BaseExporter):
         self.rollups = []
         self.rollups_by_name = {}
 
-    def csv(self, *, file_name: str=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None) -> str|None:
+    def query(self, *args, **kwargs) -> "ExporterQuery":
+        """ Returns a ExporterQuery object """
+
+        return ExporterQuery(exporter=self, *args, **kwargs)
+    
+    def csv(self, *, query: "ExporterQuery"=None, file_name: str=None) -> str|None:
         """ Returns a csv as a string or saves it to a file """
 
-        if not file_name:
-            csv
-            return csv
-        
+        initialized: bool = False
 
+        with open(file_name, "w") if file_name else io.StringIO() as csv_handel:
+            for row in  self.query_rows(group_by=query.group_by, where_before_join=query.where_before_join, where=query.where, extra_field=query.extra_field, order_by=query.order_by, limit=query.limit):
+                if not initialized:
+                    csv_writer = csv.DictWriter(csv_handel, fieldnames=row.keys())
+                    csv_writer.writeheader()
+
+                    initialized = True
+
+                csv_writer.writerow(row)
+
+            if not file_name:
+                return csv_handel.getvalue()
+
+    def xlsx(self, *, query: "ExporterQuery"=None, file_name: str=None, title: str=None) -> str|None:
+        """ Returns a xlsx as a string or saves it to a file """
+        
+        initialized: bool = False
+
+        workbook = Workbook()
+        worksheet = workbook.active
+
+        for row in  self.query_rows(group_by=query.group_by, where_before_join=query.where_before_join, where=query.where, extra_field=query.extra_field, order_by=query.order_by, limit=query.limit):
+            if not initialized:
+                worksheet.append(list(row))
+
+                initialized = True
+            
+            worksheet.append(list(row.values()))
+
+        if file_name:
+            workbook.save(file_name)
+        else:
+            with NamedTemporaryFile() as temp_file:
+                workbook.save(temp_file.name)
+                return temp_file.read()
+            
+    def json(self, *, query: "ExporterQuery"=None) -> str:
+        """ Returns a json string """
+
+        return json.dumps(self.query_rows(group_by=query.group_by, where_before_join=query.where_before_join, where=query.where, extra_field=query.extra_field, order_by=query.order_by, limit=query.limit))
 
     def columns(self, *, thing) -> list:
         """ Returns a list of columns that the exporter produces"""
@@ -424,6 +467,36 @@ class Exporter(BaseExporter):
             select_bit = f"{select_bit} AS {column['column_name']}"
 
         return (select_bit, parameters)
+
+
+class ExporterQuery(object):
+    """ Class used to describe queries to be run"""
+
+    def __init__(self, *, exporter: Exporter=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None):
+        """ Initialize the object """
+
+        self.exporter = exporter
+        self.group_by = group_by
+        self.where_before_join = where_before_join
+        self.where = where
+        self.extra_field = extra_field
+        self.order_by = order_by
+        self.limit = limit
+
+    def csv(self, *, file_name: str=None) -> str|None:
+        """ Pass through to the exporters csv method """
+
+        return self.exporter.csv(query=self, file_name=file_name)
+    
+    def xlsx(self, *, file_name: str=None) -> str|None:
+        """ Pass through to the exporters xlsx method """
+
+        return self.exporter.xlsx(query=self, file_name=file_name)
+    
+    def json(self) -> str:
+        """ Pass through to the exporters json method """
+    
+        return self.exporter.json(query=self)
 
 
 class ExporterApp(BaseExporter):

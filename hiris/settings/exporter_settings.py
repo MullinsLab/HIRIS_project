@@ -34,7 +34,7 @@ ML_EXPORT_WIZARD = {
                 {
                     "name": "IntegrationFeaturesSummary",
                     "exporter": "IntegrationFeatures",
-                    "group_by": ["integration_environment_name", "subject_identifier", "core.IntegrationFeature.feature_type_name", "core.IntegrationLocation.landmark", "location", "orientation_in_landmark", "feature_orientation", "gene_type_name", "feature_name", "feature_id"],
+                    "group_by": ["integration_environment_name", "subject_identifier", "core.IntegrationFeature.feature_type_name", "core.IntegrationLocation.landmark", "location", "orientation_in_landmark", "feature_orientation", "gene_type_name", "feature_name"], #, "feature_id"
                     "extra_field": [{"column_name": "multiplicity", "function": "count"}],
                 },
             ],
