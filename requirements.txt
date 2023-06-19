@@ -30,3 +30,6 @@ django-filter
 
 # Bioinformatics stuff
 gffutils
+
+# File stuff
+openpyxl
