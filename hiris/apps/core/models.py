@@ -243,19 +243,6 @@ class Sample(CoreBaseModel):
     sample_id = models.BigAutoField(primary_key=True, editable=False)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="samples")
     sample_name = models.CharField(max_length=255, null=True, blank=True)
-    culture = models.CharField(max_length=255, null=True, blank=True)
-    culture_day = models.IntegerField(null=True, blank=True)
-    date = models.DateField(null=True, blank=True)
-    disease = models.CharField(max_length=255, null=True, blank=True)
-    genbank = models.CharField(max_length=255, null=True, blank=True)
-    original_id = models.CharField(max_length=255, null=True, blank=True)
-    provirus_activity = models.CharField(max_length=255, null=True, blank=True)
-    replicates = models.IntegerField(null=True, blank=True)
-    tissue = models.CharField(max_length=255, null=True, blank=True)
-    tissue_url = models.TextField(null=True, blank=True)
-    type = models.CharField(max_length=255, null=True, blank=True)
-    visit = models.IntegerField(null=True, blank=True)
-    years_on_art = models.FloatField(null=True, blank=True)
 
     @property
     def name(self) -> str:
@@ -265,8 +252,7 @@ class Sample(CoreBaseModel):
 
     class Meta:
         db_table = "samples"
-        # unique_together = ("subject", "culture", "culture_day", "date", "disease", "genbank", "original_id", "provirus_activity", "replicates", "tissue", "tissue_url", "type", "visit", "years_on_art")
-
+    
 
 class SampleData(CoreBaseModel):
     """ Holds random data about the sample """

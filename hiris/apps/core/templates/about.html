@@ -65,7 +65,7 @@
                     {% for gene in summary_by_gene_top_12%}
                         <tr>
                             <td>{{ forloop.counter }}</td>
-                            <td><a href="https://www.ncbi.nlm.nih.gov/gene/6777" data-gene="{{ gene.feature_name }}">{{ gene.feature_name }}</a></td>
+                            <td><a href="https://www.ncbi.nlm.nih.gov/gene/{{gene.external_gene_id}}" data-gene="{{ gene.feature_name }}">{{ gene.feature_name }}</a></td>
                             <td class="text-right">{{ gene.subjects }}</td>
                             <td class="text-right">{{ gene.unique_sites }}</td>
                             <td class="text-right">{{ gene.total_in_gene }}</td>
