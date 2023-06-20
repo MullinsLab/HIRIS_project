@@ -10,6 +10,18 @@ import jsonpickle
 import re
 
 
+def listify(object: any) -> list:
+    """ Returns a list of the object if it is not already a list, or an empty list if None """
+
+    if object is None:
+        return []
+    
+    if type(object) is list:
+        return object
+
+    return [object]
+
+
 def dict_hash(dictionary: Dict[str, Any]) -> str:
     """ MD5 hash of a dictionary """
     dhash = hashlib.md5()

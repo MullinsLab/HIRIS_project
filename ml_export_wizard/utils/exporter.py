@@ -1,4 +1,4 @@
-import csv, io, json
+import csv, io, json, copy
 from weakref import proxy
 from openpyxl import Workbook
 from tempfile import NamedTemporaryFile
@@ -11,7 +11,7 @@ from django.core.exceptions import ImproperlyConfigured
 import logging
 log = logging.getLogger(settings.ML_EXPORT_WIZARD['Logger'])
 
-from ml_export_wizard.utils.simple import fancy_name, deep_exists
+from ml_export_wizard.utils.simple import fancy_name, deep_exists, listify
 from ml_export_wizard.exceptions import MLExportWizardNoFieldFound
 
 
@@ -60,13 +60,13 @@ class Exporter(BaseExporter):
 
         return ExporterQuery(exporter=self, *args, **kwargs)
     
-    def csv(self, *, query: "ExporterQuery"=None, file_name: str=None) -> str|None:
+    def csv(self, *, query: "ExporterQuery", file_name: str=None) -> str|None:
         """ Returns a csv as a string or saves it to a file """
 
         initialized: bool = False
 
         with open(file_name, "w") if file_name else io.StringIO() as csv_handel:
-            for row in  self.query_rows(group_by=query.group_by, where_before_join=query.where_before_join, where=query.where, extra_field=query.extra_field, order_by=query.order_by, limit=query.limit):
+            for row in  self.query_rows(query=query):
                 if not initialized:
                     csv_writer = csv.DictWriter(csv_handel, fieldnames=row.keys())
                     csv_writer.writeheader()
@@ -78,7 +78,7 @@ class Exporter(BaseExporter):
             if not file_name:
                 return csv_handel.getvalue()
 
-    def xlsx(self, *, query: "ExporterQuery"=None, file_name: str=None, title: str=None) -> str|None:
+    def xlsx(self, *, query: "ExporterQuery", file_name: str=None, title: str=None) -> str|None:
         """ Returns a xlsx as a string or saves it to a file """
         
         initialized: bool = False
@@ -86,7 +86,7 @@ class Exporter(BaseExporter):
         workbook = Workbook()
         worksheet = workbook.active
 
-        for row in  self.query_rows(group_by=query.group_by, where_before_join=query.where_before_join, where=query.where, extra_field=query.extra_field, order_by=query.order_by, limit=query.limit):
+        for row in  self.query_rows(query=query):
             if not initialized:
                 worksheet.append(list(row))
 
@@ -101,17 +101,12 @@ class Exporter(BaseExporter):
                 workbook.save(temp_file.name)
                 return temp_file.read()
             
-    def json(self, *, query: "ExporterQuery"=None) -> str:
+    def json(self, *, query: "ExporterQuery") -> str:
         """ Returns a json string """
 
-        return json.dumps(self.query_rows(group_by=query.group_by, where_before_join=query.where_before_join, where=query.where, extra_field=query.extra_field, order_by=query.order_by, limit=query.limit))
+        return json.dumps(self.query_rows(query=query))
 
-    def columns(self, *, thing) -> list:
-        """ Returns a list of columns that the exporter produces"""
-
-        pass
-
-    def base_sql(self, *, sql_only: bool=False, where_before_join: dict=None, where: dict=None, query_layer: str=None) -> tuple|str:
+    def base_sql(self, *, sql_only: bool=False, query: "ExporterQuery", query_layer: str=None) -> tuple|str:
         """ Returns a raw SQL query that would be used to generate the exporter data"""
         
         sql: str = ""
@@ -123,10 +118,10 @@ class Exporter(BaseExporter):
             rollup_query_layer = "outer"
 
         for app in self.apps:
-            sql_dict = merge_sql_dicts(sql_dict, app._sql_dict(where_before_join=where_before_join, query_layer=query_layer))
+            sql_dict = merge_sql_dicts(sql_dict, app._sql_dict(query=query, query_layer=query_layer))
 
         for rollup in self.rollups:
-            sql_dict = merge_sql_dicts(sql_dict, rollup._sql_dict(where_before_join=where_before_join, query_layer=rollup_query_layer))
+            sql_dict = merge_sql_dicts(sql_dict, rollup._sql_dict(query=query, query_layer=rollup_query_layer))
 
         if sql_dict.get("select"):
             sql += f"SELECT {sql_dict['select']} "
@@ -142,38 +137,35 @@ class Exporter(BaseExporter):
 
         return (sql, sql_dict["parameters"])
     
-    def query_count(self, *, count: any=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None) -> int:
+    def query_count(self, *, query: "ExporterQuery") -> int:
         """ Build and execute a query to do a count, and return that count """
 
-        sql_dict: dict = {}
-        select_bit: str = ""
-        returns: str = ""
+        if not query.returns:
+            if query.group_by:
+                query.returns = "value_dict"
+            else:
+                query.returns = "single_value"
 
-        if group_by:
-            returns = "value_dict"
-        else:
-            returns = "single_value"
-
-        if count and count.startswith("DISTINCT:"):
-            extra_field: dict = {
+        if query.count and query.count.startswith("DISTINCT:"):
+            query.extra_field.append({
                 "function": "count",
-                "source_field": count.replace('DISTINCT:', ''),
+                "source_field": query.count.replace('DISTINCT:', ''),
                 "distinct": True,
-            }
+            })
         else:
-            extra_field: dict = {
+            query.extra_field.append({
                 "function": "count",
-                "source_field": count
-            }
+                "source_field": query.count
+            })
+            
+        return self.execute_query(query=query)
 
-        return self.execute_query(sql_dict=sql_dict, group_by=group_by, returns=returns, where_before_join=where_before_join, where=where, extra_field=extra_field)
-
-    def query_rows(self, *, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None) -> list:
-        """ Build and execute a query to do a count, and return that count """
+    def query_rows(self, *, query: "ExporterQuery") -> list:
+        """ Build and execute a query and return the rows """
 
         returns: str = "list"
 
-        return self.execute_query(group_by=group_by, returns=returns, where_before_join=where_before_join, where=where, extra_field=extra_field, order_by=order_by, limit=limit)
+        return self.execute_query(query=query)
 
     def get_field(self, app: str=None, model: str=None, field: str=None):
         """ Return a field object defined by app, model, field """
@@ -211,35 +203,38 @@ class Exporter(BaseExporter):
 
         return field_object
     
-    def execute_query(self, *args, returns: str=None, **kwargs) -> any:
+    def execute_query(self, returns: str=None, query: "ExporterQuery"=None) -> any:
         """ execute the final query
             valid returns are: 
                 single_value = value of the first column 
                 value_dict = dict where the first column is the key, second column is the value
-                list = list of rows containg key/value dict of the fields """
-
-        sql, parameters = self.final_sql(**kwargs)
+                list = list of rows containg key/value dict of the fields
+                yield = yield each row as a key/value dict of the fields """
+        
+        sql, parameters = self.final_sql(query=query)
 
         with connection.cursor() as cursor:
             cursor.execute(sql, parameters)
 
             columns = [col[0] for col in cursor.description]
-            if returns == "single_value":
+            if query.returns == "single_value":
                 return cursor.fetchone()[0]
             
-            if returns == "value_dict":
+            if query.returns == "value_dict":
                 return {row[0]: row[1] for row in cursor.fetchall()}
 
-            if returns == "list":
+            if not query.returns or query.returns == "list":
                 return [dict(zip(columns, row)) for row in cursor.fetchall()]
             
-            data = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            # if query.returns == "yield":
+            #     while row := cursor.fetchone():
+            #         yield dict(zip(columns, row))
 
-            return data
-
-    def final_sql(self, *, sql_dict: dict=None, where_before_join: dict=None, where: dict=None, group_by: dict|list|str=None, order_by: str|list=None, limit: int=None, extra_field: dict|list=None, query_layer: str=None) -> tuple[str, dict]:
+    def final_sql(self, *, query: "ExporterQuery"=None, sql_dict: dict=None, query_layer: str=None) -> tuple[str, dict]:
         """ Build the final query """
-
+        
+        # log.debug(f"Exporter: {self.name}, {query.where_before_join}")
+        # log.debug(f"Exporter setting: {self.name}, {self.settings}")
         parameters: dict = {}
 
         if query_layer == "inner":
@@ -253,23 +248,15 @@ class Exporter(BaseExporter):
             sql_dict = {}
 
         # Set up Select
-        if extra_field:
-            # If it's not a list stick it into a list so it can be processed the same
-            if type(extra_field) is not list:
-                extra_field = [extra_field]
-
-            for column in extra_field:
-                (added_select_bit, added_parameters) = self._resolve_extra_field(column=column, query_layer=query_layer, field_query_layer=field_query_layer)
+        if query.extra_field:
+            for column in query.extra_field:
+                added_select_bit, added_parameters = self._resolve_extra_field(column=column, query_layer=query_layer, field_query_layer=field_query_layer)
                 sql_dict["select"] = ", ".join(filter(None, (sql_dict.get("select"), added_select_bit)))
                 parameters = parameters | added_parameters
 
         # Set up Group By 
-        if group_by:
-            # If it's not a list stick it into a list so it can be processed the same
-            if type(group_by) is not list:
-                group_by = [group_by]
-            
-            for group in group_by:
+        if query.group_by: 
+            for group in query.group_by:
                 if type(group) is str:
                     field = self.get_field(field=group)
                 else:
@@ -279,11 +266,8 @@ class Exporter(BaseExporter):
                 sql_dict["select"] = ", ".join(filter(None, (field.column(query_layer=field_query_layer), sql_dict.get("select"))))
 
         # Set up Order By
-        if order_by:
-            if type(order_by) is not list:
-                order_by = [order_by]
-
-            for order_set in order_by:
+        if query.order_by: 
+            for order_set in query.order_by:
                 order: str = "ASC"
                 order_field: str = None
                 field: ExporterField = None
@@ -309,14 +293,11 @@ class Exporter(BaseExporter):
 
                 sql_dict["order_by"] = ", ".join(filter(None, (sql_dict.get("order_by"), order_bit)))
 
-        if limit:
-            sql_dict["limit"] = limit
+        if query.limit:
+            sql_dict["limit"] = query.limit
 
-        if where:
-            if type(where) is not list:
-                where = [where]
-
-            for where_item in where:
+        if query.where:
+            for where_item in query.where:
                 added_parameters: dict = {}
 
                 if type(where_item["field"]) is str:
@@ -340,7 +321,7 @@ class Exporter(BaseExporter):
                 parameters = parameters | added_parameters
 
         # Build the SQL
-        sql, added_parameters = self.base_sql(where_before_join=where_before_join, where=where, query_layer=query_layer)
+        sql, added_parameters = self.base_sql(query=query, query_layer=query_layer)
         parameters = parameters | added_parameters
 
         if sql_dict.get("select"):
@@ -460,10 +441,6 @@ class Exporter(BaseExporter):
                 parameters = parameters | added_parameters
 
         if column.get("column_name"):
-            # if field_query_layer != 'outer':
-            #     select_bit = f"{select_bit} AS {self.name}_{column['column_name']}"
-            # else:
-            #     select_bit = f"{select_bit} AS {column['column_name']}"
             select_bit = f"{select_bit} AS {column['column_name']}"
 
         return (select_bit, parameters)
@@ -472,16 +449,20 @@ class Exporter(BaseExporter):
 class ExporterQuery(object):
     """ Class used to describe queries to be run"""
 
-    def __init__(self, *, exporter: Exporter=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None):
+    def __init__(self, *, exporter: Exporter=None, count: str=None, returns: str=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None):
         """ Initialize the object """
 
         self.exporter = exporter
-        self.group_by = group_by
         self.where_before_join = where_before_join
-        self.where = where
-        self.extra_field = extra_field
-        self.order_by = order_by
         self.limit = limit
+        self.returns = returns
+        self.count = count
+
+        # Some attributes should be lists, but we accept other objects and convert them
+        self.group_by = listify(group_by) 
+        self.where = listify(where)
+        self.extra_field = listify(extra_field)
+        self.order_by = listify(order_by)
 
     def csv(self, *, file_name: str=None) -> str|None:
         """ Pass through to the exporters csv method """
@@ -498,6 +479,15 @@ class ExporterQuery(object):
     
         return self.exporter.json(query=self)
 
+    def query_count(self) -> int:
+        """ Pass through to the exporters query_count method """
+
+        return self.exporter.query_count(query=self)
+    
+    def query_rows(self) -> list[dict]:
+        """ Pass through to the exporters query_rows method """
+
+        return self.exporter.query_rows(query=self)
 
 class ExporterApp(BaseExporter):
     """ Class to hold apps to export  """
@@ -516,7 +506,7 @@ class ExporterApp(BaseExporter):
         parent.apps.append(self)
         parent.apps_by_name[self.name] = self
 
-    def _sql_dict(self, *, where_before_join: dict=None, where: dict=None, query_layer: str=None) -> dict[str: str]:
+    def _sql_dict(self, *, query: "ExporterQuery", query_layer: str=None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this app"""
 
         sql_dict: dict[str: str] = {}
@@ -526,7 +516,7 @@ class ExporterApp(BaseExporter):
         if "primary_model" not in self.settings or not self.settings["primary_model"]:
             raise ImproperlyConfigured(f"No valid primary_model in Exporter: {self.parent.name}, App: {self.name}")
         
-        sql_dict = self.models_by_name[self.settings["primary_model"]]._sql_dict(where_before_join=where_before_join, query_layer=query_layer)
+        sql_dict = self.models_by_name[self.settings["primary_model"]]._sql_dict(query=query, query_layer=query_layer)
 
         return sql_dict
     
@@ -563,17 +553,19 @@ class ExporterModel(BaseExporter):
 
         return self.model.objects.model._meta.db_table
 
-    def _sql_dict(self, *, table_name: str=None, left_join: bool=False, join_model: object=None, join_using: str=None, where_before_join: dict=None, where: dict=None, query_layer: str=None) -> dict[str: str]:
+    def _sql_dict(self, *, table_name: str=None, left_join: bool=False, join_model: object=None, join_using: str=None, query: ExporterQuery, query_layer: str=None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this model"""
 
         sql_dict: dict[str: str] = {}
         table: str = self.table
 
+        log.debug(f"{self.name}, {query.where_before_join}")
         # Enact limits that are supposed to happen before the tables are joined
-        if where_before_join and self.name in where_before_join:
+        if query.where_before_join and self.name in query.where_before_join:
+            log.debug(f"{self.name} hit where_before_join\n")
             where_bit: str = ""
 
-            for field_name, value, operator in [(limit.get("field"), limit.get("value"), limit.get("operator", "=")) for limit in where_before_join[self.name]]:
+            for field_name, value, operator in [(limit.get("field"), limit.get("value"), limit.get("operator", "=")) for limit in query.where_before_join[self.name]]:
                 field = self.fields_by_name[field_name]
                 
                 where_bit, parameters = _resolve_where(field=field, operator=operator, value=value)
@@ -598,7 +590,7 @@ class ExporterModel(BaseExporter):
             sql_dict["from"] = table
 
         for field in self.fields:
-            sql_dict = merge_sql_dicts(sql_dict, field._sql_dict(table_name=table_name, query_layer=query_layer))
+            sql_dict = merge_sql_dicts(sql_dict, field._sql_dict(query=query, table_name=table_name, query_layer=query_layer))
 
         # Note that the model has been prepped
         self.parent.prepped_models.add(self)
@@ -618,7 +610,7 @@ class ExporterModel(BaseExporter):
                     continue
 
                 # Currently making all joins left joins.  Not sure how to handle this.
-                sql_dict = merge_sql_dicts(sql_dict, join_model._sql_dict(left_join=True, join_model=self, join_using=field.column(), where_before_join=where_before_join, query_layer=query_layer))
+                sql_dict = merge_sql_dicts(sql_dict, join_model._sql_dict(left_join=True, join_model=self, join_using=field.column(), query=query, query_layer=query_layer))
                
         return sql_dict
 
@@ -663,23 +655,40 @@ class ExporterRollup(BaseExporter):
 
         return self.name
     
-    def _sql_dict(self, *, where_before_join: dict=None, where: dict=None, query_layer: str=None) -> tuple|str:
+    def _sql_dict(self, *, query: ExporterQuery, query_layer: str=None) -> tuple|str:
         """ Returns a raw SQL query that would be used to generate the exporter data"""
 
         sql_dict: dict = {}
 
-        if not where_before_join and "where_before_join" in self.settings:
+        rollup_query = copy.deepcopy(query)
+        if "where_before_join" in self.settings:
             where_before_join = self.settings["where_before_join"]
 
-        elif where_before_join and "where_before_join" in self.settings:
-            where_before_join = where_before_join | self.settings["where_before_join"]
+            if not rollup_query.where_before_join:
+                rollup_query.where_before_join = where_before_join
 
-        from_bit, sql_dict["parameters"] = self.exporter.final_sql(where_before_join=where_before_join, where=where, group_by=self.settings.get("group_by"), extra_field=self.settings.get("extra_field"), query_layer="inner")
+            elif rollup_query.where_before_join:
+                for table_name, where_bits in where_before_join.items():
+                    if table_name in rollup_query.where_before_join:
+                        rollup_query.where_before_join[table_name].extend(where_bits)
+                    else:
+                        rollup_query.where_before_join[table_name] = where_bits
+                        
+                # rollup_query.where_before_join = rollup_query.where_before_join + where_before_join
+
+        rollup_query.group_by = listify(self.settings.get("group_by"))
+        rollup_query.extra_field = listify(self.settings.get("extra_field"))
+        rollup_query.order_by = []
+        rollup_query.where = None
+        rollup_query.limit = None
+        rollup_query.offset = None
+
+        from_bit, sql_dict["parameters"] = self.exporter.final_sql(query=rollup_query, query_layer="inner")
         
         sql_dict["from"] = f"({from_bit}) AS {self.name}"
 
         for field in self.fields:
-            sql_dict = merge_sql_dicts(sql_dict, field._sql_dict(table_name=self.name, query_layer=query_layer))
+            sql_dict = merge_sql_dicts(sql_dict, field._sql_dict(query=rollup_query, table_name=self.name, query_layer=query_layer))
 
         for aggragate in self.settings.get("extra_field", []):
             sql_dict["select"] = ", ".join(filter(None, (sql_dict["select"], aggragate['column_name'])))
@@ -718,7 +727,7 @@ class ExporterField(BaseExporter):
             column = self.field.column
         elif hasattr(self.field, "field_name"):
             column = self.field.field_name
-        
+
         if query_layer == "inner":
             column = f"{column} AS {self.parent.table}_{column}"
         elif query_layer=="middle":
@@ -743,7 +752,7 @@ class ExporterField(BaseExporter):
 
         return isinstance(self.field, models.ForeignKey)
     
-    def _sql_dict(self, *, table_name: str=None, query_layer: str=None) -> dict[str: str]:
+    def _sql_dict(self, *, query: ExporterQuery, table_name: str=None, query_layer: str=None) -> dict[str: str]:
         """ Create an SQL_Dict for the query bits from this field"""
 
         # Don't include this field in the select if it's there just for joining, or if it is a reference to a different table
@@ -780,7 +789,7 @@ class ExporterPseudofield(BaseExporter):
 
         return column
 
-    def _sql_dict(self, *, table_name: str=None, query_layer: str=None) -> dict[str: str]:
+    def _sql_dict(self, *, query: ExporterQuery, table_name: str=None, query_layer: str=None) -> dict[str: str]:
         """ Reuturns a blank sql_dict """
         
         sql_dict: dict[str: str] = {}

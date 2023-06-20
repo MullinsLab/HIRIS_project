@@ -35,35 +35,42 @@ def generic_query_flat(sql: str = None) -> namedtuple:
 def get_environments_count() -> dict:
     """ Returns a count of in-vivo and in-virto observations """
 
-    return exporters["Integrations"].query_count(group_by="integration_environment_name")
+    query = exporters["Integrations"].query(group_by="integration_environment_name")
+
+    return query.query_count()
 
 
 def get_genes_count() -> int:
     """ Returns a count of unique genes """
 
-    where_before_join: dict = {
-        "IntegrationFeature": [
-            {
-                "field": "feature_type_name",
-                "value": "gene",
-            }
-        ]
-    }
+    query = exporters["IntegrationFeatures"].query(
+        where_before_join={
+            "IntegrationFeature": [
+                {
+                    "field": "feature_type_name",
+                    "value": "gene",
+                }
+            ]
+        },
+        count="DISTINCT:feature_name"
+    )
 
-    return exporters["IntegrationFeatures"].query_count(where_before_join=where_before_join, count="DISTINCT:feature_name")
+    return query.query_count()
 
 
 def get_data_sources() -> list:
     """ Get a list of the sources grouped by in vitro or in vivo """
 
-    extra_field: dict = {
-        "column_name": "count_of_integrations",
-        "function": "count",
-    }
+    query = exporters["Integrations"].query(
+        extra_field = {
+            "column_name": "count_of_integrations",
+            "function": "count",
+        },
+        group_by = ["data_set_name", "integration_environment_name", "publication_pubmed_id", "publication_id"],
+        order_by = "data_set_name",
+    )
 
-    group_by: list = ["data_set_name", "integration_environment_name", "publication_pubmed_id", "publication_id"]
-
-    sources = exporters["Integrations"].query_rows(group_by=group_by, extra_field=extra_field, order_by="data_set_name")
+    sources =query.query_rows()
 
     for source in [source for source in sources if source["publication_pubmed_id"]]:
         publication = Publication.objects.get(publication_id=source["publication_id"])
@@ -77,23 +84,27 @@ def get_data_sources() -> list:
 def get_summary_by_gene(*, limit: int=None, order_output: bool=None) -> list:
     """ Get a list of genes with associated data """
 
-    where: dict = [
-        {
-            "field": "subjects",
-            "not_null": True,
-        },
-        {
-            "field": "feature_name",
-            "not_null": True,
-        }
-    ]
-
     if order_output:
         order_by: list = [{"field": "subjects", "order": "DESC"}, {"field": "unique_sites", "order": "DESC"}, {"field": "total_in_gene", "order": "DESC"}]
     else:
         order_by: None
+
+    query = exporters["SummaryByGene"].query(
+        where  = [
+            {
+                "field": "subjects",
+                "not_null": True,
+            },
+            {
+                "field": "feature_name",
+                "not_null": True,
+            }
+        ],
+        order_by = order_by,
+        limit = limit,
+    )
         
-    return exporters["SummaryByGene"].query_rows(limit=limit, where=where, order_by=order_by)
+    return query.query_rows()
 
 
 def process_integration_feature_links() -> None:

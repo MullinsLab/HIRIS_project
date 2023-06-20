@@ -5,6 +5,7 @@ import logging
 log = logging.getLogger('test')
 
 from ml_export_wizard.utils.exporter import merge_sql_dicts
+from ml_export_wizard.utils.simple import listify
 
 class InclusionTest(TestCase):
     """ A test to make sure the Import Wizard app is being included """
@@ -18,7 +19,18 @@ class InclusionTest(TestCase):
         self.assertIs(type(settings.ML_EXPORT_WIZARD), dict)
 
 
-class UtilsTest(TestCase):
+class SimpleTests(TestCase):
+    """ A test of individual functions in Simple """
+
+    def test_listify_should_return_a_list(self):
+        """ listify should return a list """
+        self.assertIs(type(listify("a")), list)
+
+    def test_listify_should_return_an_empty_list_given_none(self):
+        """ listify should return an empty list given None """
+        self.assertEqual(listify(None), [])
+
+class UtilsTests(TestCase):
     """ A test of individual functions in Utils """
 
     @classmethod
