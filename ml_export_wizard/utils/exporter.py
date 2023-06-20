@@ -66,7 +66,7 @@ class Exporter(BaseExporter):
         initialized: bool = False
 
         with open(file_name, "w") if file_name else io.StringIO() as csv_handel:
-            for row in  self.query_rows(query=query):
+            for row in  self.get_dict_list_generator(query=query):
                 if not initialized:
                     csv_writer = csv.DictWriter(csv_handel, fieldnames=row.keys())
                     csv_writer.writeheader()
@@ -86,7 +86,7 @@ class Exporter(BaseExporter):
         workbook = Workbook()
         worksheet = workbook.active
 
-        for row in  self.query_rows(query=query):
+        for row in  self.get_dict_list_generator(query=query):
             if not initialized:
                 worksheet.append(list(row))
 
@@ -104,7 +104,7 @@ class Exporter(BaseExporter):
     def json(self, *, query: "ExporterQuery") -> str:
         """ Returns a json string """
 
-        return json.dumps(self.query_rows(query=query))
+        return json.dumps(self.get_dict_list(query=query))
 
     def base_sql(self, *, sql_only: bool=False, query: "ExporterQuery", query_layer: str=None) -> tuple|str:
         """ Returns a raw SQL query that would be used to generate the exporter data"""
@@ -140,12 +140,6 @@ class Exporter(BaseExporter):
     def query_count(self, *, query: "ExporterQuery") -> int:
         """ Build and execute a query to do a count, and return that count """
 
-        if not query.returns:
-            if query.group_by:
-                query.returns = "value_dict"
-            else:
-                query.returns = "single_value"
-
         if query.count and query.count.startswith("DISTINCT:"):
             query.extra_field.append({
                 "function": "count",
@@ -157,15 +151,52 @@ class Exporter(BaseExporter):
                 "function": "count",
                 "source_field": query.count
             })
+        
+        if query.group_by:
+            return self.get_value_dict(query=query)
+        else:
+            return self.get_single_value(query=query)
+    
+    def get_single_value(self, query: "ExporterQuery"=None) -> str|int|float|None:
+        """ execute the final query and returns a single value """
+        
+        sql, parameters = self.final_sql(query=query)
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, parameters)
+            return cursor.fetchone()[0]
+
+    def get_value_dict(self, query: "ExporterQuery"=None) -> dict:
+        """ execute the final query and returns a dictionary of values """
+        
+        sql, parameters = self.final_sql(query=query)
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, parameters)
+            return {row[0]: row[1] for row in cursor.fetchall()}
+        
+    def get_dict_list(self, query: "ExporterQuery"=None) -> list:
+        """ execute the final query and returns a list of dictionaries of values """
+        
+        sql, parameters = self.final_sql(query=query)
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, parameters)
+            columns = [col[0] for col in cursor.description]
             
-        return self.execute_query(query=query)
+            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+    def get_dict_list_generator(self, query: "ExporterQuery"=None) -> list:
+        """ execute the final query and returns generator for a list of dictionaries of values """
+        
+        sql, parameters = self.final_sql(query=query)
 
-    def query_rows(self, *, query: "ExporterQuery") -> list:
-        """ Build and execute a query and return the rows """
-
-        returns: str = "list"
-
-        return self.execute_query(query=query)
+        with connection.cursor() as cursor:
+            cursor.execute(sql, parameters)
+            columns = [col[0] for col in cursor.description]
+            
+            while row := cursor.fetchone():
+                yield dict(zip(columns, row))
 
     def get_field(self, app: str=None, model: str=None, field: str=None):
         """ Return a field object defined by app, model, field """
@@ -202,33 +233,6 @@ class Exporter(BaseExporter):
             raise MLExportWizardNoFieldFound(f"Lookup for undefined field failed (exporter: {self.name})")
 
         return field_object
-    
-    def execute_query(self, returns: str=None, query: "ExporterQuery"=None) -> any:
-        """ execute the final query
-            valid returns are: 
-                single_value = value of the first column 
-                value_dict = dict where the first column is the key, second column is the value
-                list = list of rows containg key/value dict of the fields
-                yield = yield each row as a key/value dict of the fields """
-        
-        sql, parameters = self.final_sql(query=query)
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql, parameters)
-
-            columns = [col[0] for col in cursor.description]
-            if query.returns == "single_value":
-                return cursor.fetchone()[0]
-            
-            if query.returns == "value_dict":
-                return {row[0]: row[1] for row in cursor.fetchall()}
-
-            if not query.returns or query.returns == "list":
-                return [dict(zip(columns, row)) for row in cursor.fetchall()]
-            
-            # if query.returns == "yield":
-            #     while row := cursor.fetchone():
-            #         yield dict(zip(columns, row))
 
     def final_sql(self, *, query: "ExporterQuery"=None, sql_dict: dict=None, query_layer: str=None) -> tuple[str, dict]:
         """ Build the final query """
@@ -484,10 +488,10 @@ class ExporterQuery(object):
 
         return self.exporter.query_count(query=self)
     
-    def query_rows(self) -> list[dict]:
-        """ Pass through to the exporters query_rows method """
+    def get_dict_list(self) -> list[dict]:
+        """ Pass through to the exporters get_dict_list method """
 
-        return self.exporter.query_rows(query=self)
+        return self.exporter.get_dict_list(query=self)
 
 class ExporterApp(BaseExporter):
     """ Class to hold apps to export  """
@@ -673,7 +677,7 @@ class ExporterRollup(BaseExporter):
                         rollup_query.where_before_join[table_name].extend(where_bits)
                     else:
                         rollup_query.where_before_join[table_name] = where_bits
-                        
+
                 # rollup_query.where_before_join = rollup_query.where_before_join + where_before_join
 
         rollup_query.group_by = listify(self.settings.get("group_by"))

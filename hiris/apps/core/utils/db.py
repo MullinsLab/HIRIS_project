@@ -70,7 +70,7 @@ def get_data_sources() -> list:
         order_by = "data_set_name",
     )
 
-    sources =query.query_rows()
+    sources =query.get_dict_list()
 
     for source in [source for source in sources if source["publication_pubmed_id"]]:
         publication = Publication.objects.get(publication_id=source["publication_id"])
@@ -104,7 +104,7 @@ def get_summary_by_gene(*, limit: int=None, order_output: bool=None) -> list:
         limit = limit,
     )
         
-    return query.query_rows()
+    return query.get_dict_list()
 
 
 def process_integration_feature_links() -> None:
