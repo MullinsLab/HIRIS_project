@@ -4,6 +4,7 @@ from .base_settings import env
 ML_EXPORT_WIZARD = {
     'Working_Files_Dir': os.path.join('/', env('WORKING_FILES_DIR'), ''),
     'Logger': 'app',
+    'Log_Exceptions': True,
     "Setup_On_Start": True,
     'Exporters': [
         {

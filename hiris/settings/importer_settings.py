@@ -3,8 +3,9 @@ from .base_settings import env
 # from hiris.apps.core.utils.resolve_importer import accession_id_to_chromosome
 
 ML_IMPORT_WIZARD = {
-    'Working_Files_Dir': os.path.join('/', env('WORKING_FILES_DIR'), ''),
-    'Logger': 'app',
+    "Working_Files_Dir": os.path.join("/", env("WORKING_FILES_DIR"), ""),
+    "Logger": "app",
+    "Log_Exceptions": True,
     "Setup_On_Start": True,
     'Importers': {
         'Genome': {

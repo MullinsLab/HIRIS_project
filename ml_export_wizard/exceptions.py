@@ -9,7 +9,10 @@ class LoggingException(Exception):
     """ Class to inherit if we want exceptions logged """
     def __init__(self, message: str=''):
         message = f"{inspect.stack()[1].filename}:{inspect.stack()[1].lineno} ({inspect.stack()[1].function}) {message}"
-        log.warn(message)
+        
+        if settings.ML_EXPORT_WIZARD['Log_Exceptions']:
+            log.warn(message)
+        
         self.message = message
 
     def __str__(self) -> str:
