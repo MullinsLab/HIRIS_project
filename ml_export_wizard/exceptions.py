@@ -21,3 +21,10 @@ class LoggingException(Exception):
 
 class MLExportWizardNoFieldFound(LoggingException):
     """ A field (or app or model) was requested that doesn't exist """
+
+
+class MLExportWizardQueryExecuting(LoggingException):
+    """ The query is executing which is preventing its structure from changing """
+
+class MLExportWizardQueryNotExecuted(LoggingException):
+    """ The query has not been executed yet """

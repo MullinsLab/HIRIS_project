@@ -2,6 +2,8 @@ import csv, io, json, copy
 from weakref import proxy
 from openpyxl import Workbook
 from tempfile import NamedTemporaryFile
+from collections.abc import Generator
+from psycopg2.extensions import cursor
 
 from django.conf import settings
 from django.apps import apps
@@ -12,7 +14,7 @@ import logging
 log = logging.getLogger(settings.ML_EXPORT_WIZARD['Logger'])
 
 from ml_export_wizard.utils.simple import fancy_name, deep_exists, listify
-from ml_export_wizard.exceptions import MLExportWizardNoFieldFound
+from ml_export_wizard.exceptions import MLExportWizardNoFieldFound, MLExportWizardQueryExecuting, MLExportWizardQueryNotExecuted
 
 
 exporters: dict = {}
@@ -66,7 +68,7 @@ class Exporter(BaseExporter):
         initialized: bool = False
 
         with open(file_name, "w") if file_name else io.StringIO() as csv_handel:
-            for row in  self.get_dict_list_generator(query=query):
+            for row in self.get_dict_list_generator(query=query):
                 if not initialized:
                     csv_writer = csv.DictWriter(csv_handel, fieldnames=row.keys())
                     csv_writer.writeheader()
@@ -160,45 +162,32 @@ class Exporter(BaseExporter):
     def get_single_value(self, query: "ExporterQuery"=None) -> str|int|float|None:
         """ execute the final query and returns a single value """
         
-        sql, parameters = self.final_sql(query=query)
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql, parameters)
+        with query.cursor() as cursor:
             return cursor.fetchone()[0]
 
     def get_value_dict(self, query: "ExporterQuery"=None) -> dict:
         """ execute the final query and returns a dictionary of values """
         
-        sql, parameters = self.final_sql(query=query)
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql, parameters)
+        with query.cursor() as cursor:
             return {row[0]: row[1] for row in cursor.fetchall()}
         
     def get_dict_list(self, query: "ExporterQuery"=None) -> list:
         """ execute the final query and returns a list of dictionaries of values """
         
-        sql, parameters = self.final_sql(query=query)
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql, parameters)
-            columns = [col[0] for col in cursor.description]
-            
+        with query.cursor() as cursor:
+            columns = query.columns
             return [dict(zip(columns, row)) for row in cursor.fetchall()]
         
-    def get_dict_list_generator(self, query: "ExporterQuery"=None) -> list:
+    def get_dict_list_generator(self, query: "ExporterQuery"=None) -> Generator[list, None, None]:
         """ execute the final query and returns generator for a list of dictionaries of values """
         
-        sql, parameters = self.final_sql(query=query)
-
-        with connection.cursor() as cursor:
-            cursor.execute(sql, parameters)
+        with query.cursor() as cursor:
             columns = [col[0] for col in cursor.description]
             
             while row := cursor.fetchone():
                 yield dict(zip(columns, row))
 
-    def get_field(self, app: str=None, model: str=None, field: str=None):
+    def find_field(self, app: str=None, model: str=None, field: str=None):
         """ Return a field object defined by app, model, field """
 
         # See if the field is in app.model.field format
@@ -237,8 +226,6 @@ class Exporter(BaseExporter):
     def final_sql(self, *, query: "ExporterQuery"=None, sql_dict: dict=None, query_layer: str=None) -> tuple[str, dict]:
         """ Build the final query """
         
-        # log.debug(f"Exporter: {self.name}, {query.where_before_join}")
-        # log.debug(f"Exporter setting: {self.name}, {self.settings}")
         parameters: dict = {}
 
         if query_layer == "inner":
@@ -262,9 +249,9 @@ class Exporter(BaseExporter):
         if query.group_by: 
             for group in query.group_by:
                 if type(group) is str:
-                    field = self.get_field(field=group)
+                    field = self.find_field(field=group)
                 else:
-                    field = self.get_field(app=group.get("app"), model=group.get("model"), field=group.get("field"))
+                    field = self.find_field(app=group.get("app"), model=group.get("model"), field=group.get("field"))
 
                 sql_dict["group_by"] = ", ".join(filter(None, (sql_dict.get("group_by"), field.column(query_layer=field_query_layer))))
                 sql_dict["select"] = ", ".join(filter(None, (field.column(query_layer=field_query_layer), sql_dict.get("select"))))
@@ -289,9 +276,9 @@ class Exporter(BaseExporter):
                         order = order_set["order"]
 
                 if type(order_field) is str:
-                    field = self.get_field(field=order_field);
+                    field = self.find_field(field=order_field);
                 else:
-                    field = self.get_field(app=order_field.get("app"), model=order_field.get("model"), field=order_field.get("field"))
+                    field = self.find_field(app=order_field.get("app"), model=order_field.get("model"), field=order_field.get("field"))
 
                 order_bit = f"{field.column(query_layer=field_query_layer)} {order}"
 
@@ -305,9 +292,9 @@ class Exporter(BaseExporter):
                 added_parameters: dict = {}
 
                 if type(where_item["field"]) is str:
-                    field = self.get_field(field=where_item["field"])
+                    field = self.find_field(field=where_item["field"])
                 else:
-                    field = self.get_field(app=where_item["field"].get("app"), model=where_item["field"].get("model"), field=where_item["field"].get("field"))
+                    field = self.find_field(app=where_item["field"].get("app"), model=where_item["field"].get("model"), field=where_item["field"].get("field"))
 
                 if "value" in where_item:
                     if "operator" in where_item:
@@ -373,13 +360,13 @@ class Exporter(BaseExporter):
                     # If source_field in app.model.field format
                     if source_field.count(".") == 2:
                         app, model, field = source_field.split(".")
-                        fields.append(self.get_field(app=app, model=model, field=field))
+                        fields.append(self.find_field(app=app, model=model, field=field))
 
                     elif source_field and source_field != "*":
-                        fields.append(self.get_field(field=source_field))
+                        fields.append(self.find_field(field=source_field))
 
                 elif type(source_field) is dict:
-                    fields.append(self.get_field(app=column.get("app"), model=column.get("model"), field=column.get("field")))
+                    fields.append(self.find_field(app=column.get("app"), model=column.get("model"), field=column.get("field")))
 
             # Resolve the select bit for the agragate
             if len(fields) == 1:
@@ -437,7 +424,7 @@ class Exporter(BaseExporter):
             where_bit: str = ""
 
             for filter_item in column.get("filter", []):
-                field = self.get_field(field=filter_item["field"])
+                field = self.find_field(field=filter_item["field"])
                 where_bit, added_parameters = _resolve_where(operator=filter_item["operator"], value=filter_item["value"], field=field, query_layer=field_query_layer)
 
             if where_bit:
@@ -453,45 +440,175 @@ class Exporter(BaseExporter):
 class ExporterQuery(object):
     """ Class used to describe queries to be run"""
 
-    def __init__(self, *, exporter: Exporter=None, count: str=None, returns: str=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None):
+    def __init__(self, *, exporter: Exporter=None, count: str=None, group_by: dict|list|str=None, where_before_join: dict=None, where: dict=None, extra_field: dict|list=None, order_by: str|list=None, limit: int=None):
         """ Initialize the object """
 
-        self.exporter = exporter
-        self.where_before_join = where_before_join
-        self.limit = limit
-        self.returns = returns
-        self.count = count
+        self._exporter = exporter
+        self._where_before_join = where_before_join
+        self._limit = limit
+        self._count = count
 
         # Some attributes should be lists, but we accept other objects and convert them
-        self.group_by = listify(group_by) 
-        self.where = listify(where)
-        self.extra_field = listify(extra_field)
-        self.order_by = listify(order_by)
+        self._group_by = listify(group_by) 
+        self._where = listify(where)
+        self._extra_field = listify(extra_field)
+        self._order_by = listify(order_by)
 
+        # Attributes that are entirely internal (no getter or setter)
+        self._cursor: ExporterQuery.Cursor = None
+        self._is_executing: bool = False
+
+    # Alla our getters
+    @property
+    def exporter(self) -> Exporter:
+        return self._exporter
+    
+    @property
+    def where_before_join(self) -> dict:
+        return self._where_before_join
+    
+    @property
+    def limit(self) -> list:
+        return self._limit
+    
+    @property
+    def count(self) -> str:
+        return self._count
+    
+    @property
+    def group_by(self) -> list:
+        return self._group_by
+    
+    @property
+    def where(self) -> list:
+        return self._where
+    
+    @property
+    def extra_field(self) -> list:
+        return self._extra_field
+    
+    @property
+    def order_by(self) -> list:
+        return self._order_by
+    
+    # Alla our setters
+    @exporter.setter
+    def exporter(self, value: Exporter) -> None:
+        self.is_update_safe()
+        self._exporter = value
+
+    @where_before_join.setter
+    def where_before_join(self, value: dict) -> None:
+        self.is_update_safe()
+        self._where_before_join = value
+
+    @limit.setter
+    def limit(self, value: int) -> None:
+        self.is_update_safe()
+        self._limit = value
+
+    @count.setter
+    def count(self, value: str) -> None:
+        self.is_update_safe()
+        self._count = value
+
+    @group_by.setter
+    def group_by(self, value: dict|list|str) -> None:
+        self.is_update_safe()
+        self._group_by = listify(value)
+
+    @where.setter
+    def where(self, value: dict|list|str) -> None:
+        self.is_update_safe()
+        self._where = listify(value)
+
+    @extra_field.setter
+    def extra_field(self, value: dict|list|str) -> None:
+        self.is_update_safe()
+        self._extra_field = listify(value)
+
+    @order_by.setter
+    def order_by(self, value: dict|list|str) -> None:
+        self.is_update_safe()
+        self._order_by = listify(value)
+
+    # Management methods
+    def is_update_safe(self) -> bool:
+        """ Raises exception if the query is currently executing """
+        if self._is_executing:
+            raise MLExportWizardQueryExecuting("Cannot update query while it is executing")
+        
+        return True
+    
+    def cursor(self) -> "ExporterQuery.Cursor":
+        return self.Cursor(query=self)
+    
+    @property
+    def rowcount(self) -> int:
+        """ Returns the number of rows in the query """
+
+        if self._cursor is None:
+            raise MLExportWizardQueryNotExecuted("Cannot get row count before query is executed")
+        
+        return self._cursor._cursor.rowcount
+    
+    @property
+    def columns(self) -> list:
+        """ Returns the columns in the query """
+
+        if self._cursor is None:
+            raise MLExportWizardQueryNotExecuted("Cannot get columns before query is executed")
+        
+        return [col[0] for col in self._cursor._cursor.description]
+
+    # Passthrough methods for the exporter
     def csv(self, *, file_name: str=None) -> str|None:
-        """ Pass through to the exporters csv method """
-
         return self.exporter.csv(query=self, file_name=file_name)
     
     def xlsx(self, *, file_name: str=None) -> str|None:
-        """ Pass through to the exporters xlsx method """
-
         return self.exporter.xlsx(query=self, file_name=file_name)
     
     def json(self) -> str:
-        """ Pass through to the exporters json method """
-    
         return self.exporter.json(query=self)
 
     def query_count(self) -> int:
-        """ Pass through to the exporters query_count method """
-
         return self.exporter.query_count(query=self)
     
     def get_dict_list(self) -> list[dict]:
-        """ Pass through to the exporters get_dict_list method """
-
         return self.exporter.get_dict_list(query=self)
+
+    class Cursor(object):
+        """ Holds the database cursor object for the query.  To be used with 'with'. """
+
+        def __init__(self, *, query: "ExporterQuery"):
+            """ Set up the cursor"""
+
+            self._query = query
+            self._query._cursor = self
+
+            self._cursor = None
+
+        def __enter__(self) -> cursor:
+            """ Run the query """
+
+            sql, parameters = self._query._exporter.final_sql(query=self._query)
+
+            self._query.is_executing = True
+
+            self._cursor = connection.cursor()
+            self._cursor.execute(sql, parameters)
+
+            return self._cursor
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            """ Close the cursor """
+
+            # Clean up to avoid circular references
+            self._query._cursor = None
+            self._query.is_executing = False
+            self._query = None
+
+            self._cursor.close()
 
 class ExporterApp(BaseExporter):
     """ Class to hold apps to export  """
@@ -563,10 +680,8 @@ class ExporterModel(BaseExporter):
         sql_dict: dict[str: str] = {}
         table: str = self.table
 
-        log.debug(f"{self.name}, {query.where_before_join}")
         # Enact limits that are supposed to happen before the tables are joined
         if query.where_before_join and self.name in query.where_before_join:
-            log.debug(f"{self.name} hit where_before_join\n")
             where_bit: str = ""
 
             for field_name, value, operator in [(limit.get("field"), limit.get("value"), limit.get("operator", "=")) for limit in query.where_before_join[self.name]]:
@@ -639,9 +754,9 @@ class ExporterRollup(BaseExporter):
         for field in self.settings.get("group_by", []):
             if "." in field:
                 app, model, field = field.split(".")
-                field_object = self.exporter.get_field(app=app, model=model, field=field)
+                field_object = self.exporter.find_field(app=app, model=model, field=field)
             else:
-                field_object = self.exporter.get_field(field=field)
+                field_object = self.exporter.find_field(field=field)
 
             self.fields.append(field_object)
             self.fields_by_name[field_object.name] = field_object
