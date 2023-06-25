@@ -11,6 +11,22 @@ ML_EXPORT_WIZARD = {
             # IntegrationFeatures
             "name": "IntegrationFeatures",
             "exclude_fields": ["added", "updated"],
+            "extra_field":[
+                {
+                    "column_name": "orientation_in_feature",
+                    "function": "case",
+                    "case_expression": {
+                        "source_field": ["orientation_in_landmark", "feature_orientation"],
+                        "operator": "join",
+                    },
+                    "when": [
+                        {"condition": "FF", "value": "F"},
+                        {"condition": "RR", "value": "F"},
+                        {"condition": "FR", "value": "R"},
+                        {"condition": "RF", "value": "R"},
+                    ],
+                },
+            ],
             "apps" : [
                 {
                     "name": "core",
@@ -35,7 +51,7 @@ ML_EXPORT_WIZARD = {
                 {
                     "name": "IntegrationFeaturesSummary",
                     "exporter": "IntegrationFeatures",
-                    "group_by": ["integration_environment_name", "subject_identifier", "core.IntegrationFeature.feature_type_name", "core.IntegrationLocation.landmark", "location", "orientation_in_landmark", "feature_orientation", "gene_type_name", "feature_name", "external_gene_id"], #, "feature_id"
+                    "group_by": ["integration_environment_name", "subject_identifier", "core.IntegrationFeature.feature_type_name", "core.IntegrationLocation.landmark", "location", "orientation_in_landmark", "feature_orientation", "orientation_in_feature", "gene_type_name", "feature_name", "external_gene_id"],
                     "extra_field": [{"column_name": "multiplicity", "function": "count"}],
                 },
             ],
@@ -60,14 +76,16 @@ ML_EXPORT_WIZARD = {
                             "column_name": "subjects",
                             "function": "case",
                             "source_field": "integration_environment_name",
-                            "when": {
-                                "condition": "in vivo",
-                                "extra_field": {
-                                    "function": "count",
-                                    "source_field": "subject_identifier",
-                                    "distinct": True,
-                                },
-                            }
+                            "when": [
+                                {
+                                    "condition": "in vivo",
+                                    "extra_field": {
+                                        "function": "count",
+                                        "source_field": "subject_identifier",
+                                        "distinct": True,
+                                    },
+                                }
+                            ],
                         },
                         {
                             "column_name": "unique_sites",
@@ -100,7 +118,7 @@ ML_EXPORT_WIZARD = {
         {
             #Integrations
             "name": "Integrations",
-            "apps" : [
+            "apps": [
                 {
                     "name": "core",
                     "include_models": ["IntegrationLocation", "Integration", "BlastInfo", "IntegrationEnvironment", "SequencingMethod", "Preparation", "Sample", "Subject", "DataSet", "Publication", "DataSetSource", "GenomeVersion", "GenomeSpecies"],
@@ -113,6 +131,39 @@ ML_EXPORT_WIZARD = {
                             "dont_link_to": ["GenomeVersion"]
                         },
                     },
+                },
+            ],
+        },
+        {
+            #IntegrationsSummary
+            "name": "IntegrationsSummary",
+            "rollups": [
+                {
+                    "name": "IntegrationsSummary",
+                    "exporter": "Integrations",
+                    "group_by": ["integration_environment_name", "subject_identifier", "landmark", "location", "orientation_in_landmark"],
+                    "extra_field": [
+                        {
+                            "column_name": "multiplicity", 
+                            "function": "count",
+                        },
+                        {
+                            "column_name": "source_names", 
+                            "function": "aggragate", 
+                            "source_field": "data_set_name", 
+                            "order": "ASC", 
+                            "distinct": True,
+                            "field_type": "text",
+                        },
+                        {
+                            "column_name": "pubmed_ids", 
+                            "function": "aggragate", 
+                            "source_field": "publication_pubmed_id", 
+                            "order": "ASC", 
+                            "distinct": True,
+                            "field_type": "text",
+                        },
+                    ],
                 },
             ],
         },

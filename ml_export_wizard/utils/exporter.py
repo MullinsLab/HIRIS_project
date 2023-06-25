@@ -56,6 +56,14 @@ class Exporter(BaseExporter):
         self.apps_by_name = {}
         self.rollups = []
         self.rollups_by_name = {}
+        self.fields = []
+        self.fields_by_name = {}
+
+        # Create a PseudoField for each extra_field in the settings
+        for column in self.settings.get("extra_field", []):
+            field_object = ExporterPseudofield(parent=self, name=column["column_name"])
+            self.fields.append(field_object)
+            self.fields_by_name[field_object.name] = field_object
 
     def query(self, *args, **kwargs) -> "ExporterQuery":
         """ Returns a ExporterQuery object """
@@ -116,14 +124,23 @@ class Exporter(BaseExporter):
 
         if query_layer == "inner":
             rollup_query_layer="middle"
+            field_query_layer = None
         else:
             rollup_query_layer = "outer"
+            field_query_layer = "base"
 
         for app in self.apps:
             sql_dict = merge_sql_dicts(sql_dict, app._sql_dict(query=query, query_layer=query_layer))
 
         for rollup in self.rollups:
             sql_dict = merge_sql_dicts(sql_dict, rollup._sql_dict(query=query, query_layer=rollup_query_layer))
+
+        # Add the extra fields
+        for column in self.settings.get("extra_field", []):
+            added_select_bit, added_parameters = self._resolve_extra_field(column=column, query_layer=query_layer, field_query_layer=field_query_layer)
+            
+            sql_dict["select"] = ", ".join(filter(None, (sql_dict.get("select"), added_select_bit)))
+            sql_dict["parameters"] = sql_dict["parameters"] | added_parameters
 
         if sql_dict.get("select"):
             sql += f"SELECT {sql_dict['select']} "
@@ -203,8 +220,11 @@ class Exporter(BaseExporter):
                 raise MLExportWizardNoFieldFound(f"Field not found in exporter (exporter: {self.name}, app: {app}, model: {model}, field: {field})")
         
         elif field:
+            # fields: list[object] = [field for field in self.fields if field.name == field]
             fields: list[object] = []
-
+            if field_object := self.fields_by_name.get(field):
+                fields.append(field_object)
+ 
             for app in self.apps:
                 fields += app._get_field(field=field)
 
@@ -239,6 +259,7 @@ class Exporter(BaseExporter):
             sql_dict = {}
 
         # Set up Select
+        
         if query.extra_field:
             for column in query.extra_field:
                 added_select_bit, added_parameters = self._resolve_extra_field(column=column, query_layer=query_layer, field_query_layer=field_query_layer)
@@ -338,48 +359,29 @@ class Exporter(BaseExporter):
         """ Resolve the aggragates to sql statements.  Returns an SQL string, and a dictionary of parameters """
 
         if "value" in column:
-            if column["value"] is None:
+            value = column["value"]
+
+            if value is None:
                 return ("Null", [])
+            
+            match value:
+                case str():
+                    return ("'{column['value']}'", [])
+                case int():
+                    return (column['value'], [])
 
         field: object = None
         select_bit: str = ""
         parameters: dict = {}
         field_column: str = ""
-        fields: list = []
 
         # Get the field object to work with
-        if column.get("source_field"):
-            if type(column["source_field"]) is not list:
-                source_fields = [column["source_field"]]
-            else:
-                source_fields = column["source_field"]
+        if source_field := column.get("source_field"):
+            field_column = self._resolve_source_field(source_field=source_field, field_query_layer=field_query_layer)
 
-            for source_field in source_fields:
-                if type(source_field) is str:
-
-                    # If source_field in app.model.field format
-                    if source_field.count(".") == 2:
-                        app, model, field = source_field.split(".")
-                        fields.append(self.find_field(app=app, model=model, field=field))
-
-                    elif source_field and source_field != "*":
-                        fields.append(self.find_field(field=source_field))
-
-                elif type(source_field) is dict:
-                    fields.append(self.find_field(app=column.get("app"), model=column.get("model"), field=column.get("field")))
-
-            # Resolve the select bit for the agragate
-            if len(fields) == 1:
-                field_column = fields[0].column(query_layer=field_query_layer)
-            
-            elif len(fields) > 1:
-                for field in fields:
-                    field_column = ", ".join(filter(None, (field_column, field.column(query_layer=field_query_layer))))
-
-                field_column = f"ROW({field_column})"
-        else:
-            field_column = None
-
+        elif case_expression := column.get("case_expression"):
+            field_column = self._resolve_source_field(source_field=case_expression.get("source_field"), field_query_layer=field_query_layer, operator=case_expression.get("operator"))
+        
         match column.get("function"):
             case "sum":
                 if field_column:
@@ -391,6 +393,27 @@ class Exporter(BaseExporter):
                 else:
                     select_bit = "COUNT(*)"
 
+            case "aggragate":
+                if field_column:
+                    order_bit: str = ""
+                    function_name: str = ""
+                    seperator: str = ""
+                    field_cast: str = ""
+
+                    match column.get("field_type", "string"):
+                        case "string" | "text":
+                            function_name = "STRING_AGG"
+                            seperator = f", '{column.get('seperator', ' ,')}'"
+                            field_cast = "::text"
+
+                        case "list":
+                            function_name = "ARRAY_AGG"
+
+                    if column.get("order"):
+                        order_bit = f" ORDER BY {field_column}{field_cast} {column['order']}"
+
+                    select_bit = f"{function_name}({'DISTINCT ' if column.get('distinct') else ''}{field_column}{field_cast}{seperator}{order_bit})"
+
             case "case":
                 if field_column:
                     select_bit = f"CASE {field_column}"
@@ -400,7 +423,15 @@ class Exporter(BaseExporter):
 
                 for when in column.get("when", []):
                     if when.get("condition"):
-                        (added_select_bit, added_parameters) = self._resolve_extra_field(column=when['extra_field'], field_query_layer=field_query_layer)
+                        added_select_bit: str = ""
+                        added_parameters: dict = {}
+
+                        if when.get("extra_field"):
+                            (added_select_bit, added_parameters) = self._resolve_extra_field(column=when["extra_field"], field_query_layer=field_query_layer)
+                        elif when.get("value"):
+                            added_parameters[f"{column['column_name']}_{column['when'].index(when)}_value"] = when["value"]
+                            added_select_bit = f"%({column['column_name']}_{column['when'].index(when)}_value)s"
+
                         select_bit = f"{select_bit} WHEN %({column['column_name']}_{column['when'].index(when)})s THEN {added_select_bit}"
 
                         parameters[f"{column['column_name']}_{column['when'].index(when)}"] = when["condition"]
@@ -435,6 +466,46 @@ class Exporter(BaseExporter):
             select_bit = f"{select_bit} AS {column['column_name']}"
 
         return (select_bit, parameters)
+    
+    def _resolve_source_field(self, *, source_field: str|dict|list=None, field_query_layer: str=None, operator: str=None) -> str:
+        """ Get the source fields for a column """
+
+        if not source_field:
+            return None
+
+        field_column: str = None
+        fields: list = []
+
+        if type(source_field) is not list:
+            source_fields = [source_field]
+        else:
+            source_fields = source_field
+
+        for source_field in source_fields:
+            if type(source_field) is str:
+
+                # If source_field in app.model.field format
+                if source_field.count(".") == 2:
+                    app, model, field = source_field.split(".")
+                    fields.append(self.find_field(app=app, model=model, field=field))
+
+                elif source_field and source_field != "*":
+                    fields.append(self.find_field(field=source_field))
+
+            elif type(source_field) is dict:
+                fields.append(self.find_field(app=source_field.get("app"), model=source_field.get("model"), field=source_field.get("field")))
+
+        # Resolve the select bit for the aggragate
+        if len(fields) == 1:
+            return fields[0].column(query_layer=field_query_layer)
+        
+        elif len(fields) > 1:
+            if operator == "join":
+                return " || ".join([field.column(query_layer=field_query_layer) for field in fields])
+            
+            else:
+                field_column = ", ".join([field.column(query_layer=field_query_layer) for field in fields])
+                return f"ROW({field_column})"
 
 
 class ExporterQuery(object):
@@ -809,8 +880,8 @@ class ExporterRollup(BaseExporter):
         for field in self.fields:
             sql_dict = merge_sql_dicts(sql_dict, field._sql_dict(query=rollup_query, table_name=self.name, query_layer=query_layer))
 
-        for aggragate in self.settings.get("extra_field", []):
-            sql_dict["select"] = ", ".join(filter(None, (sql_dict["select"], aggragate['column_name'])))
+        for extra_field in self.settings.get("extra_field", []):
+            sql_dict["select"] = ", ".join(filter(None, (sql_dict["select"], extra_field["column_name"])))
 
         return sql_dict
     
@@ -847,7 +918,9 @@ class ExporterField(BaseExporter):
         elif hasattr(self.field, "field_name"):
             column = self.field.field_name
 
-        if query_layer == "inner":
+        if query_layer == "base":
+            column = f"{self.parent.table}.{column}"
+        elif query_layer == "inner":
             column = f"{column} AS {self.parent.table}_{column}"
         elif query_layer=="middle":
             column = f"{self.parent.table}_{column}"
@@ -879,13 +952,14 @@ class ExporterField(BaseExporter):
             return {}
         
         sql_dict: dict[str: str] = {}
+        column_name = self.column(query_layer=query_layer)
 
         if table_name:
-            sql_dict["select"] = f"{table_name}.{self.column(query_layer=query_layer)}"
+            sql_dict["select"] = f"{table_name}.{column_name}"
         else:
-            sql_dict["select"] = f"{self.parent.table}.{self.column(query_layer=query_layer)}"
+            sql_dict["select"] = f"{self.parent.table}.{column_name}"
 
-        sql_dict["select_no_table"] = self.column(query_layer=query_layer)
+        sql_dict["select_no_table"] = column_name
 
         return sql_dict
     
