@@ -1,4 +1,4 @@
-import logging
+import logging, mimetypes
 log = logging.getLogger('app')
 
 from django.views.generic.base import View
@@ -6,6 +6,8 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
+
+from ml_export_wizard.utils.exporter import exporters, ExporterQuery
 
 from hiris.apps.core.utils.db import get_environments_count, get_genes_count, get_data_sources, get_summary_by_gene
 from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
@@ -76,3 +78,39 @@ class TopGenes(LoginRequiredMixin, View):
         """ The basic page """
 
         return render(request, "top_genes.html")
+    
+
+class GetTheData(LoginRequiredMixin, View):
+    """ Stuff for the get_the_data page """
+
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        """ The basic page """
+
+        return render(request, "get_the_data.html")
+    
+
+class Exports(LoginRequiredMixin, View):
+    """ Class that serves files created from queries """
+
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        """ The basic page """
+        file_name: str = kwargs['file_name'].split(".")[0]
+        file_mime_type: str = mimetypes.guess_type(kwargs['file_name'])[0]
+        query: ExporterQuery = None
+
+        match file_name:
+            case "integration-summary":
+                query = exporters["IntegrationsSummary"].query()
+
+            case "integration-gene-summary":
+                query = exporters["IntegrationFeatures"].query(limit=10)
+
+        match file_mime_type:
+            case "text/csv":
+                file_content = query.csv()
+            case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                file_content = query.xlsx()
+            case "application/json":
+                file_content = query.json()
+
+        return HttpResponse(file_content, content_type=file_mime_type)

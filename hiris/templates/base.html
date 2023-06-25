@@ -52,6 +52,11 @@
               <li class="nav-item {% if top_genes_url in request.get_full_path %}active border nav-active{% endif %}">
                 <a class="nav-link" href="{{top_genes_url}}">Top Genes</a>
               </li>
+
+              {% url 'tools:get_the_data' as get_the_data_url %}
+              <li class="nav-item {% if get_the_data_url in request.get_full_path %}active border nav-active{% endif %}">
+                <a class="nav-link" href="{{get_the_data_url}}">Get the Data</a>
+              </li>
               
               {% url 'tools:data_sources' as data_sources_url %}
               <li class="nav-item {% if data_sources_url in request.get_full_path %}active border nav-active{% endif %}">

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_content %}
+<div class="row">
+    <div class="col col-md-7 col-sm-12">
+      <h2>Download latest datasets</h2>
+      <p class="notice bg-info">
+        Please read <a href="doc/Manual.html">the ISDB manual</a> for guidelines on
+        using HIRIS-Private and the data contained within.
+      </p>
+
+      <p>
+        These downloadable datasets are broad summaries of the full data
+        contained within HIRIS-Private.
+        Many questions are best answered by querying the database directly.
+
+        
+          <span class="visible-sm-inline visible-xs-inline">
+            (See below for <a href="#access-the-database">connection details</a>.)
+          </span>
+        
+
+        If you’re unfamiliar with SQL databases, you’re encouraged to
+        collaborate with your local bioinformatics practitioner.
+      </p>
+
+      <p>
+        Note that integration sites <strong>may be covered by multiple
+        genes</strong> (such as those on opposite strands or read-through
+        variants) and if so will be <strong>reported once per gene</strong>,
+        resulting in multiple rows for a single integration site.  If you want
+        to count integration sites, you should use the integration summary
+        <em>without</em> the gene annotations.
+      </p>
+
+      
+        <h3>Integration summary</h3>
+        <p class="text-lg">
+          Download latest version as:
+          
+            <a href="exports/integration-summary.csv" download>CSV</a>, 
+          
+            <a href="exports/integration-summary.xlsx" download>Excel</a>, 
+           or 
+            <a href="exports/integration-summary.json" download>JSON</a>
+          
+        </p>
+        <p>
+          The latest version is from <em>Thu Aug 29 07:00 2019 PDT</em>.
+        </p>
+        <p>This dataset contains the following fields:</p>
+        <ol>
+          
+            <li><code>environment</code></li>
+          
+            <li><code>subject</code></li>
+          
+            <li><code>landmark</code></li>
+          
+            <li><code>location</code></li>
+          
+            <li><code>orientation_in_landmark</code></li>
+          
+            <li><code>multiplicity</code></li>
+          
+            <li><code>source_names</code></li>
+          
+            <li><code>pubmed_ids</code></li>
+          
+        </ol>
+        <p>
+          The manual contains
+          <a href="doc/Manual.html#integration-summary">more information on this downloadable dataset</a>.
+        </p>
+
+        <h3>Integration summary with annotated genes</h3>
+        <p class="text-lg">
+          Download latest version as:
+          
+            <a href="exports/integration-gene-summary.csv">CSV</a>, 
+          
+            <a href="exports/integration-gene-summary.xlsx">Excel</a>, 
+           or 
+            <a href="exports/integration-gene-summary.json">JSON</a>
+          
+        </p>
+        <p>
+          The latest version is from <em>Thu Aug 29 07:00 2019 PDT</em>.
+        </p>
+        <p>This dataset contains the following fields:</p>
+        <ol>
+          
+            <li><code>environment</code></li>
+          
+            <li><code>subject</code></li>
+          
+            <li><code>ncbi_gene_id</code></li>
+          
+            <li><code>gene</code></li>
+          
+            <li><code>gene_type</code></li>
+          
+            <li><code>landmark</code></li>
+          
+            <li><code>location</code></li>
+          
+            <li><code>orientation_in_landmark</code></li>
+          
+            <li><code>orientation_in_gene</code></li>
+          
+            <li><code>multiplicity</code></li>
+          
+            <li><code>source_names</code></li>
+          
+            <li><code>pubmed_ids</code></li>
+          
+        </ol>
+        <p>
+          The manual contains
+          <a href="doc/Manual.html#integration-summary-with-annotated-genes">more information on this downloadable dataset</a>.
+        </p>
+    </div>
+</div>
+{% endblock %}
