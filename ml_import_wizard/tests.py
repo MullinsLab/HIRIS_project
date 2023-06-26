@@ -53,8 +53,6 @@ class ModelTests(TestCase):
 
     def test_import_scheme_can_list_its_files(self):
         ''' Test that ImportScheme.list_files() works correctly '''
-        
-        log.debug(f'File list for {self.import_scheme} is {self.import_scheme.list_files()}')
 
         self.assertEqual('test1.txt', self.import_scheme.list_files())
 
@@ -389,8 +387,6 @@ class TemplateAndViewTests(SimpleTestCase):
         ''' Make sure we're getting a success status code and hitting the correct template, as well as getting a form. '''
 
         response = self.client.get("/import/Genome")
-        
-        log.debug(response)
 
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'ml_import_wizard/new_scheme.html')

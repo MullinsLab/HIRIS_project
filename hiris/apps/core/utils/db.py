@@ -6,7 +6,8 @@ from django.db import connection
 from collections import namedtuple
 
 from ml_export_wizard.utils.exporter import exporters
-from hiris.apps.core.models import Publication
+
+from hiris.apps.core.models import Publication, Feature
 
 def generic_query(sql: str = None, no_return: bool=False) -> list[dict]|None:
     """ Reuturns a list of namedtuples with the data """
@@ -30,6 +31,39 @@ def generic_query_flat(sql: str = None) -> namedtuple:
         return None
     
     return result[0]
+
+
+def get_most_interesting(environment: str=None) -> Feature:
+    """ Returns the most interesting gene for an environment """
+
+    query = exporters["SummaryByGene"].query(
+        extra_field = [
+            {
+                "column_name": "interestingness",
+                "formula": '"total_in_gene"::numeric/"unique_sites"::numeric/coalesce("subjects"::numeric, 1)',
+            },
+        ],
+        group_by = ["feature_name", "total_in_gene", "unique_sites", "subjects"],
+        order_by = [
+            {"formula": '"total_in_gene"::numeric/"unique_sites"::numeric/coalesce("subjects"::numeric, 1)::numeric'}, 
+            {"formula": 'coalesce("subjects", 1)', "order": "DESC"},
+            {"field": "unique_sites", "order": "DESC"},
+            {"field": "total_in_gene", "order": "DESC"}
+        ],
+        where = [
+            {
+                "field": "integration_environment_name",
+                "value": environment,
+            },
+            {
+                "field": "feature_name",
+                "not_null": True,
+            }
+        ],
+        limit = 1,
+    )
+    
+    return Feature.objects.get(feature_name=query.get_single_dict()["feature_name"])
 
 
 def get_environments_count() -> dict:

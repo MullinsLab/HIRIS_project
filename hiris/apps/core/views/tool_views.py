@@ -11,6 +11,7 @@ from ml_export_wizard.utils.exporter import exporters, ExporterQuery
 
 from hiris.apps.core.utils.db import get_environments_count, get_genes_count, get_data_sources, get_summary_by_gene
 from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
+from hiris.apps.core.utils.files import integrations_bed
 
 
 class Home(LoginRequiredMixin, View):
@@ -101,9 +102,12 @@ class Exports(LoginRequiredMixin, View):
         match file_name:
             case "integration-summary":
                 query = exporters["IntegrationsSummary"].query()
-
             case "integration-gene-summary":
-                query = exporters["IntegrationFeatures"].query(limit=10)
+                query = exporters["IntegrationsGeneSummary"].query()
+            case "summary-by-gene":
+                query = exporters["SummaryByGene"].query()
+            
+        log.debug(f"Mime type: {file_mime_type}")
 
         match file_mime_type:
             case "text/csv":
@@ -112,5 +116,7 @@ class Exports(LoginRequiredMixin, View):
                 file_content = query.xlsx()
             case "application/json":
                 file_content = query.json()
+            case "application/vnd.realvnc.bed":
+                file_content = integrations_bed(environment=file_name.replace("_", " "))
 
         return HttpResponse(file_content, content_type=file_mime_type)

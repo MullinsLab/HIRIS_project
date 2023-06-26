@@ -110,7 +110,6 @@ class FeatureLocation(CoreBaseModel):
     def name(self) -> str:
         ''' Set the name for a GeneLocation to be Gene: Landmark '''
 
-        # return f'{self.feature.name}: {self.landmark}'
         return f'{self.feature.name}: {self.landmark}'
 
     class Meta:

@@ -8,7 +8,7 @@ ML_EXPORT_WIZARD = {
     "Setup_On_Start": True,
     'Exporters': [
         {
-            # IntegrationFeatures
+            # IntegrationFeatures - Broad export that contains all the features for all the integrations
             "name": "IntegrationFeatures",
             "exclude_fields": ["added", "updated"],
             "extra_field":[
@@ -112,6 +112,47 @@ ML_EXPORT_WIZARD = {
                         },
                     ],
                     "group_by": ["integration_environment_name", "feature_name", "gene_type_name", "external_gene_id"],
+                },
+            ],
+        },
+        {
+            #IntegrationsGeneSummary
+            "name": "IntegrationsGeneSummary",
+            "rollups": [
+                {
+                    "name": "IntegrationsGeneSummary",
+                    "exporter": "IntegrationFeatures",
+                    "group_by": ["integration_environment_name", "subject_identifier", "core.IntegrationLocation.landmark", "location", "chromosome", "orientation_in_landmark", "gene_type_name", "feature_name", "external_gene_id"],
+                    "where_before_join": {
+                        "IntegrationFeature": [
+                            {
+                                "field": "feature_type_name",
+                                "value": "gene",
+                            },
+                        ],
+                    },
+                    "extra_field": [
+                        {
+                            "column_name": "multiplicity", 
+                            "function": "count",
+                        },
+                        {
+                            "column_name": "source_names", 
+                            "function": "aggragate", 
+                            "source_field": "data_set_name", 
+                            "order": "ASC", 
+                            "distinct": True,
+                            "field_type": "text",
+                        },
+                        {
+                            "column_name": "pubmed_ids", 
+                            "function": "aggragate", 
+                            "source_field": "publication_pubmed_id", 
+                            "order": "ASC", 
+                            "distinct": True,
+                            "field_type": "text",
+                        },
+                    ],
                 },
             ],
         },

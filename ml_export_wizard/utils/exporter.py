@@ -340,8 +340,11 @@ class Exporter(BaseExporter):
                     where_bit = f"{field.column(query_layer=field_query_layer)} {operator} %({field.column(query_layer=field_query_layer)})s"
                     added_parameters[field.column(query_layer=field_query_layer)] = where_item["value"]
 
-                elif "not_null" in where_item:
+                elif "not_null" in where_item and where_item["not_null"]:
                     where_bit = f"{field.column(query_layer=field_query_layer)} IS NOT NULL"
+
+                elif "valid" in where_item and where_item["valid"]:
+                    where_bit = f"{field.column(query_layer=field_query_layer)} IS NOT NULL AND {field.column(query_layer=field_query_layer)}::TEXT != ''"
 
                 sql_dict["where"] = " AND ".join(filter(None, (sql_dict.get("where"), where_bit)))                        
                 parameters = parameters | added_parameters
@@ -692,6 +695,10 @@ class ExporterQuery(object):
     def get_dict_list(self) -> list[dict]:
         return self.exporter.get_dict_list(query=self)
     
+    def get_dict_list_generator(self) -> Generator[dict, None, None]:
+        for row in self.exporter.get_dict_list_generator(query=self):
+            yield row
+
     def get_sql(self) -> str:
         return self.exporter.final_sql(query=self, sql_only=True)
 
