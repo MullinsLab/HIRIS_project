@@ -4,8 +4,9 @@ from django.conf import settings
 import logging
 log = logging.getLogger('test')
 
-from ml_export_wizard.utils.exporter import merge_sql_dicts
+from ml_export_wizard.utils.exporter import exporters, merge_sql_dicts
 from ml_export_wizard.utils.simple import listify
+from ml_export_wizard.exceptions import MLExportWizardExporterNotFound, MLExportWizardFieldNotFound
 
 class InclusionTest(TestCase):
     """ A test to make sure the Import Wizard app is being included """
@@ -53,6 +54,41 @@ class UtilsTests(TestCase):
                     "having": "count(thing2) = 22",
                     "parameters": {},
                     }
+
+    # Tests of Exporter.parse_formula()
+    def test_parse_formula_to_sql_should_return_null_given_insufficient_info(self):
+        """ parse_formula_to_sql should return None given insufficient info """
+        sql = exporters["Integrations"]._resolve_formula(formula=None)
+        self.assertIs(sql, None)
+
+    def test_parse_formula_to_sql_should_return_formula_given_no_valid_fields(self):
+        """ parse_formula_to_sql should return formula given no valid fields """
+        sql = exporters["Integrations"]._resolve_formula(formula="test")
+        self.assertEqual(sql, "test")
+
+    def test_parse_formula_to_sql_should_raise_exception_given_invalid_enclosed_field_name(self):
+        """ parse_formula_to_sql should raise exception given invalid enclosed field name """
+        with self.assertRaises(MLExportWizardFieldNotFound):
+            sql = exporters["Integrations"]._resolve_formula(formula='test("bad_field")')
+
+    def test_parse_formula_to_sql_should_return_formula_with_fields_given_valid_enclosed_field_name(self):
+        """ parse_formula_to_sql should return formula with fields given valid enclosed field name """
+        sql = exporters["Integrations"]._resolve_formula(formula='test("ltr")')
+        self.assertEqual(sql, 'test(ltr)')
+
+    def test_parse_formula_to_sql_should_return_formula_with_fields_given_valid_enclosed_field_name_at_query_layer(self):
+        """ parse_formula_to_sql should return formula with fields given valid enclosed field name at query layer """
+        sql = exporters["Integrations"]._resolve_formula(formula='test("ltr")', query_layer="base")
+        self.assertEqual(sql, 'test(integrations.ltr)')
+
+        sql = exporters["Integrations"]._resolve_formula(formula='test("ltr")', query_layer="middle")
+        self.assertEqual(sql, 'test(integrations_ltr)')
+
+    def test_parse_formula_to_sql_should_raise_exception_givein_invalid_query_layer(self):
+        """ parse_formula_to_sql should raise exception given invalid query layer """
+        with self.assertRaises(ValueError):
+            sql = exporters["Integrations"]._resolve_formula(formula='test("ltr")', query_layer="bad")
+
 
     def test_merge_sql_dicts_none_dicts_should_return_none(self):
         """ merge_sql_dicts should return None when both dicts are none """

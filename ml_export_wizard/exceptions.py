@@ -19,7 +19,7 @@ class LoggingException(Exception):
         return self.message
     
 
-class MLExportWizardNoFieldFound(LoggingException):
+class MLExportWizardFieldNotFound(LoggingException):
     """ A field (or app or model) was requested that doesn't exist """
 
 class MLExportWizardQueryExecuting(LoggingException):
@@ -27,3 +27,6 @@ class MLExportWizardQueryExecuting(LoggingException):
 
 class MLExportWizardQueryNotExecuted(LoggingException):
     """ The query has not been executed yet """
+
+class MLExportWizardExporterNotFound(LoggingException):
+    """ The exporter was not found """

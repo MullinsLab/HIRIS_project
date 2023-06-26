@@ -1,4 +1,4 @@
-import csv, io, json, copy
+import csv, io, json, copy, re
 from weakref import proxy
 from openpyxl import Workbook
 from tempfile import NamedTemporaryFile
@@ -14,10 +14,10 @@ import logging
 log = logging.getLogger(settings.ML_EXPORT_WIZARD['Logger'])
 
 from ml_export_wizard.utils.simple import fancy_name, deep_exists, listify
-from ml_export_wizard.exceptions import MLExportWizardNoFieldFound, MLExportWizardQueryExecuting, MLExportWizardQueryNotExecuted
+from ml_export_wizard.exceptions import MLExportWizardFieldNotFound, MLExportWizardQueryExecuting, MLExportWizardQueryNotExecuted, MLExportWizardExporterNotFound
 
 
-exporters: dict = {}
+exporters: dict[str, "Exporter"] = {}
 
 
 class BaseExporter(object):
@@ -116,7 +116,7 @@ class Exporter(BaseExporter):
 
         return json.dumps(self.get_dict_list(query=query))
 
-    def base_sql(self, *, sql_only: bool=False, query: "ExporterQuery", query_layer: str=None) -> tuple|str:
+    def base_sql(self, *, sql_only: bool=False, query: "ExporterQuery", query_layer: str=None) -> tuple[str, dict]|str:
         """ Returns a raw SQL query that would be used to generate the exporter data"""
         
         sql: str = ""
@@ -187,7 +187,14 @@ class Exporter(BaseExporter):
         
         with query.cursor() as cursor:
             return {row[0]: row[1] for row in cursor.fetchall()}
+
+    def get_single_dict(self, query: "ExporterQuery"=None) -> dict:
+        """ execute the final query and returns a dictionary of values """
         
+        with query.cursor() as cursor:
+            columns = query.columns
+            return dict(zip(columns, cursor.fetchone()))
+
     def get_dict_list(self, query: "ExporterQuery"=None) -> list:
         """ execute the final query and returns a list of dictionaries of values """
         
@@ -217,11 +224,10 @@ class Exporter(BaseExporter):
                 model_object = app_object.models_by_name[model]
                 field_object = model_object.fields_by_name[field]
             except:
-                raise MLExportWizardNoFieldFound(f"Field not found in exporter (exporter: {self.name}, app: {app}, model: {model}, field: {field})")
+                raise MLExportWizardFieldNotFound(f"Field not found in exporter (exporter: {self.name}, app: {app}, model: {model}, field: {field})")
         
         elif field:
-            # fields: list[object] = [field for field in self.fields if field.name == field]
-            fields: list[object] = []
+            fields: list[ExporterField] = []
             if field_object := self.fields_by_name.get(field):
                 fields.append(field_object)
  
@@ -232,18 +238,18 @@ class Exporter(BaseExporter):
                 fields += rollup._get_field(field=field)
 
             if len(fields) == 0:
-                raise MLExportWizardNoFieldFound(f"Field not found in exporter (exporter: {self.name}, field: {field})")
+                raise MLExportWizardFieldNotFound(f"Field not found in exporter (exporter: {self.name}, field: {field})")
             elif len(fields) == 1:
                 field_object = fields[0]
             else:
-                raise MLExportWizardNoFieldFound(f"Field is ambiguous, try indicating the model or app (exporter: {self.name}, field: {field})")
+                raise MLExportWizardFieldNotFound(f"Field is ambiguous, try indicating the model or app (exporter: {self.name}, field: {field})")
             
         else:
-            raise MLExportWizardNoFieldFound(f"Lookup for undefined field failed (exporter: {self.name})")
+            raise MLExportWizardFieldNotFound(f"Lookup for undefined field failed (exporter: {self.name})")
 
         return field_object
 
-    def final_sql(self, *, query: "ExporterQuery"=None, sql_dict: dict=None, query_layer: str=None) -> tuple[str, dict]:
+    def final_sql(self, *, sql_only: bool=False, query: "ExporterQuery"=None, sql_dict: dict=None, query_layer: str=None) -> tuple[str, dict]:
         """ Build the final query """
         
         parameters: dict = {}
@@ -283,6 +289,7 @@ class Exporter(BaseExporter):
                 order: str = "ASC"
                 order_field: str = None
                 field: ExporterField = None
+                explicit_field: bool = False
 
                 if type(order_set) is str:
                     order_field = order_set
@@ -299,9 +306,16 @@ class Exporter(BaseExporter):
                 if type(order_field) is str:
                     field = self.find_field(field=order_field);
                 else:
-                    field = self.find_field(app=order_field.get("app"), model=order_field.get("model"), field=order_field.get("field"))
+                    if "formula" in order_field:
+                        field = self._resolve_formula(formula=order_field["formula"], query_layer=field_query_layer)
+                        explicit_field = True
+                    else:
+                        field = self.find_field(app=order_field.get("app"), model=order_field.get("model"), field=order_field.get("field"))
 
-                order_bit = f"{field.column(query_layer=field_query_layer)} {order}"
+                if explicit_field:
+                    order_bit = f"{field} {order}"
+                else:
+                    order_bit = f"{field.column(query_layer=field_query_layer)} {order}"
 
                 sql_dict["order_by"] = ", ".join(filter(None, (sql_dict.get("order_by"), order_bit)))
 
@@ -341,17 +355,20 @@ class Exporter(BaseExporter):
         else:
             sql = f"SELECT * FROM ({sql}) AS {self.name}"
 
-        if sql_dict.get("group_by"):
-            sql = f"{sql} GROUP BY {sql_dict['group_by']}"
-
         if sql_dict.get("where"):
             sql = f"{sql} WHERE {sql_dict['where']}"
+
+        if sql_dict.get("group_by"):
+            sql = f"{sql} GROUP BY {sql_dict['group_by']}"
 
         if sql_dict.get("order_by"):
             sql = f"{sql} ORDER BY {sql_dict['order_by']}"
 
         if sql_dict.get("limit"):
             sql = f"{sql} LIMIT {sql_dict['limit']}"
+
+        if sql_only:
+            return sql % {key: f"'{value}'" for (key, value) in parameters.items()}
 
         return (sql, parameters)
     
@@ -382,6 +399,9 @@ class Exporter(BaseExporter):
         elif case_expression := column.get("case_expression"):
             field_column = self._resolve_source_field(source_field=case_expression.get("source_field"), field_query_layer=field_query_layer, operator=case_expression.get("operator"))
         
+        if column.get("formula"):
+            select_bit = self._resolve_formula(formula=column["formula"], query_layer=field_query_layer)
+
         match column.get("function"):
             case "sum":
                 if field_column:
@@ -506,6 +526,21 @@ class Exporter(BaseExporter):
             else:
                 field_column = ", ".join([field.column(query_layer=field_query_layer) for field in fields])
                 return f"ROW({field_column})"
+            
+    def _resolve_formula(self, *, formula: str, query_layer: str=None) -> str:
+        """ Parse a formula to SQL """
+
+        if not formula:
+            return None
+        
+        if query_layer and query_layer not in ["base", "middle"]:
+            raise ValueError("Can only use query_layer 'base' or 'middle' when resolving formula")
+
+        for field in re.finditer('\".*?\"', formula):
+            field_name = self.find_field(field=field.group().replace('"', "")).column(query_layer=query_layer)
+            formula = formula.replace(field.group(), field_name)
+
+        return formula
 
 
 class ExporterQuery(object):
@@ -645,8 +680,20 @@ class ExporterQuery(object):
     def query_count(self) -> int:
         return self.exporter.query_count(query=self)
     
+    def get_single_value(self) -> str|int|float:
+        return self.exporter.get_single_value(query=self)
+    
+    def get_value_dict(self) -> dict:
+        return self.exporter.get_value_dict(query=self)
+    
+    def get_single_dict(self) -> dict:
+        return self.exporter.get_single_dict(query=self)
+    
     def get_dict_list(self) -> list[dict]:
         return self.exporter.get_dict_list(query=self)
+    
+    def get_sql(self) -> str:
+        return self.exporter.final_sql(query=self, sql_only=True)
 
     class Cursor(object):
         """ Holds the database cursor object for the query.  To be used with 'with'. """
@@ -832,7 +879,7 @@ class ExporterRollup(BaseExporter):
             self.fields.append(field_object)
             self.fields_by_name[field_object.name] = field_object
 
-        # Add psudofields for agragates so field names can be looked up
+        # Add psudofields for aggragates so field names can be looked up
         for extra_field in self.settings.get("extra_field", []):
             pseudofield = ExporterPseudofield(parent=self, name=extra_field["column_name"])
 
