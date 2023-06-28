@@ -8,7 +8,7 @@ from functools import lru_cache
 
 from ml_export_wizard.utils.exporter import exporters
 
-from hiris.apps.core.models import Publication, Feature, GenomeVersion
+from hiris.apps.core.models import Publication, Feature, GenomeVersion, LandmarkChromosome
 
 def generic_query(sql: str = None, no_return: bool=False) -> list[dict]|None:
     """ Reuturns a list of namedtuples with the data """
@@ -172,8 +172,36 @@ WHERE integration_location_id NOT IN (SELECT integration_location_id FROM integr
 def get_chromosome_from_landmark(*, landmark: str, genome_version: str|GenomeVersion) -> str:
     """ Returns the chromosome from a landmark """
 
-    if type(genome_version) == str:
-        return GenomeVersion.objects.get(genome_version_name=genome_version).landmark_chromosomes.get(landmark=landmark).chromosome_name
+    log.debug(f"Genome version name: {genome_version}, Landmark: {landmark}")
 
-    if type(genome_version) == GenomeVersion:
-        return genome_version.landmark_chromosomes.get(landmark=landmark).chromosome_name
+    if type(genome_version) == str:
+        try:
+            chromosome = GenomeVersion.objects.get(genome_version_name=genome_version).landmark_chromosomes.get(landmark=landmark).chromosome_name
+        except LandmarkChromosome.DoesNotExist:
+            chromosome = None
+
+    elif type(genome_version) == GenomeVersion:
+        try:
+            genome_version.landmark_chromosomes.get(landmark=landmark).chromosome_name
+        except LandmarkChromosome.DoesNotExist:
+            chromosome = None
+            
+    return chromosome
+
+
+def genes_with_integrations() -> list:
+    """ Returns a list of genes with integrations """
+
+    query = exporters["IntegrationFeatures"].query()
+    query.group_by = "feature_name"
+    query.where_before_join = {
+        "IntegrationFeature": [
+            {
+                "field": "feature_type_name",
+                "value": "gene",
+            },
+        ],
+    }
+    query.order_by = "feature_name"
+
+    return query.get_value_list()
