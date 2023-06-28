@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+    <h2>GFF3 files per gene</h2>
+    <p>Here you can download the GFF3 files for each gene in the database.</p>
+    <p>Click on the gene name to download the GFF3 file.</p>
+
+    {% for gene in genes %}
+        <p><a href="/exports/{{ gene }}.gff3" download>{{ gene }}</a></p>
+    {% endfor %}
+{% endblock %}

@@ -5,10 +5,7 @@ import logging
 log = logging.getLogger(settings.ML_IMPORT_WIZARD['Logger'])
 
 from typing import Dict, Any
-import hashlib
-import json
-import jsonpickle
-import re
+import hashlib, json, jsonpickle, re
 
 
 def dict_hash(dictionary: Dict[str, Any]) -> str:

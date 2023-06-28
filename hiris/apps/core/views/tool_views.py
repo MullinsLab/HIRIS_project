@@ -9,9 +9,9 @@ from django.http import HttpResponse
 
 from ml_export_wizard.utils.exporter import exporters, ExporterQuery
 
-from hiris.apps.core.utils.db import get_environments_count, get_genes_count, get_data_sources, get_summary_by_gene
+from hiris.apps.core.utils import db
 from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
-from hiris.apps.core.utils.files import integrations_bed
+from hiris.apps.core.utils.files import integrations_bed, integration_gene_summary_gff3
 
 
 class Home(LoginRequiredMixin, View):
@@ -20,7 +20,7 @@ class Home(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs) -> HttpResponse:
         ''' Returns the default template on a get '''
 
-        summary_by_gene_top_12: list = get_summary_by_gene(limit=12, order_output=True)
+        summary_by_gene_top_12: list = db.get_summary_by_gene(limit=12, order_output=True)
 
         return render(request, "about.html", context={"summary_by_gene_top_12": summary_by_gene_top_12})
 
@@ -43,9 +43,9 @@ class DataSources(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs) -> HttpResponse:
         """ Show the page """
 
-        counts: dict = underscore_keys(get_environments_count())
-        data_sources: dict = underscore_keys(group_dict_list(dict_list=get_data_sources(), key="integration_environment_name"))
-        gene_count: int = get_genes_count()
+        counts: dict = underscore_keys(db.get_environments_count())
+        data_sources: dict = underscore_keys(group_dict_list(dict_list=db.get_data_sources(), key="integration_environment_name"))
+        gene_count: int = db.get_genes_count()
 
         return render(request, "data_sources.html", context={"counts": counts, "gene_count": gene_count, "data_sources": data_sources})
     
@@ -56,7 +56,7 @@ class SummaryByGeneJS(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs) -> HttpResponse:
         """ return the file """
 
-        summary_by_gene: list = get_summary_by_gene(limit=12, order_output=True)
+        summary_by_gene: list = db.get_summary_by_gene(limit=12, order_output=True)
 
         return render(request, "summary-by-gene.js", context={"summary": summary_by_gene}, content_type="text/javascript")
     
@@ -67,7 +67,7 @@ class FullSummaryByGeneJS(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs) -> HttpResponse:
         """ return the file """
 
-        summary_by_gene: list = get_summary_by_gene(order_output=True)
+        summary_by_gene: list = db.get_summary_by_gene(order_output=True)
 
         return render(request, "summary-by-gene.js", context={"summary": summary_by_gene}, content_type="text/javascript")
     
@@ -95,28 +95,45 @@ class Exports(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
         """ The basic page """
+
         file_name: str = kwargs['file_name'].split(".")[0]
+        file_extension: str = kwargs['file_name'].split(".")[1]
         file_mime_type: str = mimetypes.guess_type(kwargs['file_name'])[0]
         query: ExporterQuery = None
 
-        match file_name:
-            case "integration-summary":
-                query = exporters["IntegrationsSummary"].query()
-            case "integration-gene-summary":
-                query = exporters["IntegrationsGeneSummary"].query()
-            case "summary-by-gene":
-                query = exporters["SummaryByGene"].query()
-            
-        log.debug(f"Mime type: {file_mime_type}")
+        if file_mime_type:
+            match file_name:
+                case "integration-summary":
+                    query = exporters["IntegrationsSummary"].query()
+                case "integration-gene-summary":
+                    query = exporters["IntegrationsGeneSummary"].query()
+                case "summary-by-gene":
+                    query = exporters["SummaryByGene"].query()
 
-        match file_mime_type:
-            case "text/csv":
-                file_content = query.csv()
-            case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-                file_content = query.xlsx()
-            case "application/json":
-                file_content = query.json()
-            case "application/vnd.realvnc.bed":
-                file_content = integrations_bed(environment=file_name.replace("_", " "))
+            match file_mime_type:
+                case "text/csv":
+                    file_content = query.csv()
+                case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                    file_content = query.xlsx()
+                case "application/json":
+                    file_content = query.json()
+                case "application/vnd.realvnc.bed":
+                    file_content = integrations_bed(environment=file_name.replace("_", " "))
+        else:
+            match file_extension:
+                case "gff3":
+                    file_content = integration_gene_summary_gff3(gene=file_name)
+                    file_mime_type = "text/plain"
 
         return HttpResponse(file_content, content_type=file_mime_type)
+
+
+class ListGFFs(LoginRequiredMixin, View):
+    """ Lists all the GFF files that can be created from database """
+
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        """ The basic page """
+        
+        genes: list[str] = db.genes_with_integrations()
+
+        return render(request, "list_gffs.html", context={"genes": genes})

@@ -187,6 +187,19 @@ class Exporter(BaseExporter):
         
         with query.cursor() as cursor:
             return {row[0]: row[1] for row in cursor.fetchall()}
+    
+    def get_value_list(self, query: "ExporterQuery"=None) -> list:
+        """ execute the final query and returns a list of values (one per record) """
+        
+        with query.cursor() as cursor:
+            return [row[0] for row in cursor.fetchall()]
+        
+    def get_value_list_generator(self, query: "ExporterQuery"=None) -> Generator[list, None, None]:
+        """ execute the final query and returns generator for a list of values (one per record) """
+        
+        with query.cursor() as cursor:
+            while row := cursor.fetchone():
+                yield row[0]
 
     def get_single_dict(self, query: "ExporterQuery"=None) -> dict:
         """ execute the final query and returns a dictionary of values """
@@ -685,6 +698,13 @@ class ExporterQuery(object):
     
     def get_single_value(self) -> str|int|float:
         return self.exporter.get_single_value(query=self)
+    
+    def get_value_list(self) -> list[str|int|float]:
+        return self.exporter.get_value_list(query=self)
+    
+    def get_value_list_generator(self) -> Generator[str|int|float, None, None]:
+        for value in self.exporter.get_value_list_generator(query=self):
+            yield value
     
     def get_value_dict(self) -> dict:
         return self.exporter.get_value_dict(query=self)
