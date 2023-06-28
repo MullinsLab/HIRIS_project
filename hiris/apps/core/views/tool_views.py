@@ -101,7 +101,11 @@ class Exports(LoginRequiredMixin, View):
         file_mime_type: str = mimetypes.guess_type(kwargs['file_name'])[0]
         query: ExporterQuery = None
 
-        if file_mime_type:
+        if file_extension == "gff3":
+            file_content = integration_gene_summary_gff3(gene=file_name)
+            file_mime_type = "text/plain"
+            
+        elif file_mime_type:
             match file_name:
                 case "integration-summary":
                     query = exporters["IntegrationsSummary"].query()
@@ -119,11 +123,6 @@ class Exports(LoginRequiredMixin, View):
                     file_content = query.json()
                 case "application/vnd.realvnc.bed":
                     file_content = integrations_bed(environment=file_name.replace("_", " "))
-        else:
-            match file_extension:
-                case "gff3":
-                    file_content = integration_gene_summary_gff3(gene=file_name)
-                    file_mime_type = "text/plain"
 
         return HttpResponse(file_content, content_type=file_mime_type)
 
