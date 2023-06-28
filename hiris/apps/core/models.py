@@ -414,3 +414,15 @@ class BlastInfo(CoreBaseModel):
 
     class Meta:
         db_table = "blast_info"
+
+
+class LandmarkChromosome(CoreBaseModel):
+    """ Holds data about the chromosomes of the landmark """
+    landmark_chromosome_id = models.BigAutoField(primary_key=True, editable=False)
+    genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="landmark_chromosomes")
+    landmark = models.CharField(max_length=255)
+    chromosome_name = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "landmark_chromosomes"
+        unique_together = ["genome_version", "landmark"]

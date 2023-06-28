@@ -31,7 +31,7 @@ ML_EXPORT_WIZARD = {
                 {
                     "name": "core",
                     #"include_models": [],
-                    "exclude_models": ["PublicationData", "SubjectData", "SampleData"],
+                    "exclude_models": ["PublicationData", "SubjectData", "SampleData", "LandmarkChromosome"],
                     "primary_model": "IntegrationLocation",
                     "models": {
                         "Integration": {
@@ -122,7 +122,7 @@ ML_EXPORT_WIZARD = {
                 {
                     "name": "IntegrationsGeneSummary",
                     "exporter": "IntegrationFeatures",
-                    "group_by": ["integration_environment_name", "subject_identifier", "core.IntegrationLocation.landmark", "location", "chromosome", "orientation_in_landmark", "gene_type_name", "feature_name", "external_gene_id"],
+                    "group_by": ["integration_environment_name", "subject_identifier", "core.IntegrationLocation.landmark", "location", "chromosome", "orientation_in_landmark", "gene_type_name", "feature_name", "external_gene_id", "feature_start"],
                     "where_before_join": {
                         "IntegrationFeature": [
                             {
@@ -164,13 +164,14 @@ ML_EXPORT_WIZARD = {
                     "name": "core",
                     "include_models": ["IntegrationLocation", "Integration", "BlastInfo", "IntegrationEnvironment", "SequencingMethod", "Preparation", "Sample", "Subject", "DataSet", "Publication", "DataSetSource", "GenomeVersion", "GenomeSpecies"],
                     "primary_model": "IntegrationLocation",
+                    "exclude_models": ["LandmarkChromosome"],
                     "models": {
                         "Integration": {
                             "dont_link_to": ["DataSet"]
                         },
-                        "DataSet": {
-                            "dont_link_to": ["GenomeVersion"]
-                        },
+                        # "DataSet": {
+                        #     "dont_link_to": ["GenomeVersion"]
+                        # },
                     },
                 },
             ],
@@ -182,7 +183,7 @@ ML_EXPORT_WIZARD = {
                 {
                     "name": "IntegrationsSummary",
                     "exporter": "Integrations",
-                    "group_by": ["integration_environment_name", "subject_identifier", "landmark", "location", "orientation_in_landmark"],
+                    "group_by": ["integration_environment_name", "subject_identifier", "landmark", "location", "orientation_in_landmark", "genome_version_name"],
                     "extra_field": [
                         {
                             "column_name": "multiplicity", 
