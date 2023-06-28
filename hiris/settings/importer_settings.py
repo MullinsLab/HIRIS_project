@@ -8,6 +8,22 @@ ML_IMPORT_WIZARD = {
     "Log_Exceptions": True,
     "Setup_On_Start": True,
     'Importers': {
+        "LandmarkChromosomes": {
+            "name": "Landmark Chromosomes",
+            "description": "Translation from accession ID to chromosome",
+            "apps": [
+                {
+                    "name": "core",
+                    "include_models": ["GenomeVersion", "LandmarkChromosome"],
+                    "models": {
+                        "GenomeVersion": {
+                            "exclude_fields": ['external_gene_id_source'],
+                            "load_value_fields": ["genome_version_name"],
+                        },
+                    },
+                },
+            ],
+        },
         'Genome': {
             'name': 'Genome',
             'description': 'Import an entire genome',

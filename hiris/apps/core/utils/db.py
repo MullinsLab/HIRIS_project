@@ -4,10 +4,11 @@ log = logging.getLogger('app')
 from django.db import connection
 
 from collections import namedtuple
+from functools import lru_cache
 
 from ml_export_wizard.utils.exporter import exporters
 
-from hiris.apps.core.models import Publication, Feature
+from hiris.apps.core.models import Publication, Feature, GenomeVersion
 
 def generic_query(sql: str = None, no_return: bool=False) -> list[dict]|None:
     """ Reuturns a list of namedtuples with the data """
@@ -165,3 +166,14 @@ from integration_locations
 WHERE integration_location_id NOT IN (SELECT integration_location_id FROM integration_features);"""
 
     return generic_query(sql=sql, no_return=True)
+
+
+@lru_cache(maxsize=1000)
+def get_chromosome_from_landmark(*, landmark: str, genome_version: str|GenomeVersion) -> str:
+    """ Returns the chromosome from a landmark """
+
+    if type(genome_version) == str:
+        return GenomeVersion.objects.get(genome_version_name=genome_version).landmark_chromosomes.get(landmark=landmark).chromosome_name
+
+    if type(genome_version) == GenomeVersion:
+        return genome_version.landmark_chromosomes.get(landmark=landmark).chromosome_name
