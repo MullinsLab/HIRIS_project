@@ -4,25 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0019_alter_subject_unique_together_and_more'),
+        ("core", "0019_alter_subject_unique_together_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='integration',
-            name='breakpoint_sequence',
+            model_name="integration",
+            name="breakpoint_sequence",
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='integration',
-            name='ltr_sequence',
+            model_name="integration",
+            name="ltr_sequence",
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='integration',
-            name='umi_sequence',
+            model_name="integration",
+            name="umi_sequence",
             field=models.TextField(blank=True, null=True),
         ),
     ]

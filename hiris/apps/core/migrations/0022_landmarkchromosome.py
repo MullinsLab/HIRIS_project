@@ -5,25 +5,36 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0021_remove_sample_culture_remove_sample_culture_day_and_more'),
+        ("core", "0021_remove_sample_culture_remove_sample_culture_day_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='LandmarkChromosome',
+            name="LandmarkChromosome",
             fields=[
-                ('added', models.DateTimeField(auto_now_add=True)),
-                ('updated', models.DateTimeField(auto_now=True)),
-                ('landmark_chromosome_id', models.BigAutoField(editable=False, primary_key=True, serialize=False)),
-                ('landmark', models.CharField(max_length=255)),
-                ('chromosome_name', models.CharField(max_length=255)),
-                ('genome_version', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='landmark_chromosomes', to='core.genomeversion')),
+                ("added", models.DateTimeField(auto_now_add=True)),
+                ("updated", models.DateTimeField(auto_now=True)),
+                (
+                    "landmark_chromosome_id",
+                    models.BigAutoField(
+                        editable=False, primary_key=True, serialize=False
+                    ),
+                ),
+                ("landmark", models.CharField(max_length=255)),
+                ("chromosome_name", models.CharField(max_length=255)),
+                (
+                    "genome_version",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="landmark_chromosomes",
+                        to="core.genomeversion",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'landmark_chromosomes',
-                'unique_together': {('genome_version', 'landmark')},
+                "db_table": "landmark_chromosomes",
+                "unique_together": {("genome_version", "landmark")},
             },
         ),
     ]

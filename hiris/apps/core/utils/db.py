@@ -1,5 +1,6 @@
 import logging
-log = logging.getLogger('app')
+
+log = logging.getLogger("app")
 
 from django.db import connection
 
@@ -8,50 +9,58 @@ from functools import lru_cache
 
 from ml_export_wizard.utils.exporter import exporters
 
-from hiris.apps.core.models import Publication, Feature, GenomeVersion, LandmarkChromosome
+from hiris.apps.core.models import (
+    Publication,
+    Feature,
+    GenomeVersion,
+    LandmarkChromosome,
+)
 
-def generic_query(sql: str = None, no_return: bool=False) -> list[dict]|None:
-    """ Reuturns a list of namedtuples with the data """
+
+def generic_query(sql: str = None, no_return: bool = False) -> list[dict] | None:
+    """Reuturns a list of namedtuples with the data"""
 
     with connection.cursor() as cursor:
         cursor.execute(sql)
 
         if no_return:
             return None
-        
+
         columns = [col[0] for col in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 
 def generic_query_flat(sql: str = None) -> namedtuple:
-    """ Returns a single namedtuple with the data """
+    """Returns a single namedtuple with the data"""
 
     result: dict = generic_query(sql=sql)
 
     if not result:
         return None
-    
+
     return result[0]
 
 
-def get_most_interesting(environment: str=None) -> Feature:
-    """ Returns the most interesting gene for an environment """
+def get_most_interesting(environment: str = None) -> Feature:
+    """Returns the most interesting gene for an environment"""
 
     query = exporters["SummaryByGene"].query(
-        extra_field = [
+        extra_field=[
             {
                 "column_name": "interestingness",
                 "formula": '"total_in_gene"::numeric/"unique_sites"::numeric/coalesce("subjects"::numeric, 1)',
             },
         ],
-        group_by = ["feature_name", "total_in_gene", "unique_sites", "subjects"],
-        order_by = [
-            {"formula": '"total_in_gene"::numeric/"unique_sites"::numeric/coalesce("subjects"::numeric, 1)::numeric'}, 
+        group_by=["feature_name", "total_in_gene", "unique_sites", "subjects"],
+        order_by=[
+            {
+                "formula": '"total_in_gene"::numeric/"unique_sites"::numeric/coalesce("subjects"::numeric, 1)::numeric'
+            },
             {"formula": 'coalesce("subjects", 1)', "order": "DESC"},
             {"field": "unique_sites", "order": "DESC"},
-            {"field": "total_in_gene", "order": "DESC"}
+            {"field": "total_in_gene", "order": "DESC"},
         ],
-        where = [
+        where=[
             {
                 "field": "integration_environment_name",
                 "value": environment,
@@ -59,16 +68,16 @@ def get_most_interesting(environment: str=None) -> Feature:
             {
                 "field": "feature_name",
                 "not_null": True,
-            }
+            },
         ],
-        limit = 1,
+        limit=1,
     )
-    
+
     return Feature.objects.get(feature_name=query.get_single_dict()["feature_name"])
 
 
 def get_environments_count() -> dict:
-    """ Returns a count of in-vivo and in-virto observations """
+    """Returns a count of in-vivo and in-virto observations"""
 
     query = exporters["Integrations"].query(group_by="integration_environment_name")
 
@@ -76,7 +85,7 @@ def get_environments_count() -> dict:
 
 
 def get_genes_count() -> int:
-    """ Returns a count of unique genes """
+    """Returns a count of unique genes"""
 
     query = exporters["IntegrationFeatures"].query(
         where_before_join={
@@ -87,45 +96,56 @@ def get_genes_count() -> int:
                 }
             ]
         },
-        count="DISTINCT:feature_name"
+        count="DISTINCT:feature_name",
     )
 
     return query.query_count()
 
 
 def get_data_sources() -> list:
-    """ Get a list of the sources grouped by in vitro or in vivo """
+    """Get a list of the sources grouped by in vitro or in vivo"""
 
     query = exporters["Integrations"].query(
-        extra_field = {
+        extra_field={
             "column_name": "count_of_integrations",
             "function": "count",
         },
-        group_by = ["data_set_name", "integration_environment_name", "publication_pubmed_id", "publication_id"],
-        order_by = "data_set_name",
+        group_by=[
+            "data_set_name",
+            "integration_environment_name",
+            "publication_pubmed_id",
+            "publication_id",
+        ],
+        order_by="data_set_name",
     )
 
-    sources =query.get_dict_list()
+    sources = query.get_dict_list()
 
     for source in [source for source in sources if source["publication_pubmed_id"]]:
         publication = Publication.objects.get(publication_id=source["publication_id"])
-        
-        source["first_author"] = publication.publication_data.get(key="first_author").value
+
+        source["first_author"] = publication.publication_data.get(
+            key="first_author"
+        ).value
         source["title"] = publication.publication_data.get(key="title").value
 
     return sources
 
 
-def get_summary_by_gene(*, limit: int=None, order_output: bool=None) -> list:
-    """ Get a list of genes with associated data """
+def get_summary_by_gene(*, limit: int = None, order_output: bool = None) -> list:
+    """Get a list of genes with associated data"""
 
     if order_output:
-        order_by: list = [{"field": "subjects", "order": "DESC"}, {"field": "unique_sites", "order": "DESC"}, {"field": "total_in_gene", "order": "DESC"}]
+        order_by: list = [
+            {"field": "subjects", "order": "DESC"},
+            {"field": "unique_sites", "order": "DESC"},
+            {"field": "total_in_gene", "order": "DESC"},
+        ]
     else:
         order_by: None
 
     query = exporters["SummaryByGene"].query(
-        where  = [
+        where=[
             {
                 "field": "subjects",
                 "not_null": True,
@@ -133,17 +153,17 @@ def get_summary_by_gene(*, limit: int=None, order_output: bool=None) -> list:
             {
                 "field": "feature_name",
                 "not_null": True,
-            }
+            },
         ],
-        order_by = order_by,
-        limit = limit,
+        order_by=order_by,
+        limit=limit,
     )
-        
+
     return query.get_dict_list()
 
 
 def process_integration_feature_links() -> None:
-    """ Execute the query that links Integrations to Features """
+    """Execute the query that links Integrations to Features"""
 
     sql = """INSERT INTO integration_features (added, updated, integration_location_id, feature_location_id, feature_type_name)
 SELECT now(), now(), integration_location_id, feature_locations.feature_location_id, feature_types.feature_type_name
@@ -169,14 +189,20 @@ WHERE integration_location_id NOT IN (SELECT integration_location_id FROM integr
 
 
 @lru_cache(maxsize=1000)
-def get_chromosome_from_landmark(*, landmark: str, genome_version: str|GenomeVersion) -> str:
-    """ Returns the chromosome from a landmark """
+def get_chromosome_from_landmark(
+    *, landmark: str, genome_version: str | GenomeVersion
+) -> str:
+    """Returns the chromosome from a landmark"""
 
     log.debug(f"Genome version name: {genome_version}, Landmark: {landmark}")
 
     if type(genome_version) == str:
         try:
-            chromosome = GenomeVersion.objects.get(genome_version_name=genome_version).landmark_chromosomes.get(landmark=landmark).chromosome_name
+            chromosome = (
+                GenomeVersion.objects.get(genome_version_name=genome_version)
+                .landmark_chromosomes.get(landmark=landmark)
+                .chromosome_name
+            )
         except LandmarkChromosome.DoesNotExist:
             chromosome = None
 
@@ -185,12 +211,12 @@ def get_chromosome_from_landmark(*, landmark: str, genome_version: str|GenomeVer
             genome_version.landmark_chromosomes.get(landmark=landmark).chromosome_name
         except LandmarkChromosome.DoesNotExist:
             chromosome = None
-            
+
     return chromosome
 
 
 def genes_with_integrations() -> list:
-    """ Returns a list of genes with integrations """
+    """Returns a list of genes with integrations"""
 
     query = exporters["IntegrationFeatures"].query()
     query.group_by = "feature_name"

@@ -4,18 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0007_remove_integration_data_set_sampledata_subjectdata'),
+        ("core", "0007_remove_integration_data_set_sampledata_subjectdata"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='sampledata',
-            unique_together={('sample', 'key')},
+            name="sampledata",
+            unique_together={("sample", "key")},
         ),
         migrations.AlterModelTable(
-            name='sampledata',
-            table='sample_data',
+            name="sampledata",
+            table="sample_data",
         ),
     ]

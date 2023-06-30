@@ -1,4 +1,3 @@
-app_name='ml_export_wizard'
+app_name = "ml_export_wizard"
 
-urlpatterns = [
-]
+urlpatterns = []

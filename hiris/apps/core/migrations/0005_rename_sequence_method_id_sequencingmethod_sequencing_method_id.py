@@ -4,15 +4,14 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0004_integrationfeature_and_more'),
+        ("core", "0004_integrationfeature_and_more"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='sequencingmethod',
-            old_name='sequence_method_id',
-            new_name='sequencing_method_id',
+            model_name="sequencingmethod",
+            old_name="sequence_method_id",
+            new_name="sequencing_method_id",
         ),
     ]

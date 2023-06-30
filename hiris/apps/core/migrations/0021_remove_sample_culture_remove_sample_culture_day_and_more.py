@@ -4,62 +4,61 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0020_integration_breakpoint_sequence_and_more'),
+        ("core", "0020_integration_breakpoint_sequence_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='sample',
-            name='culture',
+            model_name="sample",
+            name="culture",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='culture_day',
+            model_name="sample",
+            name="culture_day",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='date',
+            model_name="sample",
+            name="date",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='disease',
+            model_name="sample",
+            name="disease",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='genbank',
+            model_name="sample",
+            name="genbank",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='original_id',
+            model_name="sample",
+            name="original_id",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='provirus_activity',
+            model_name="sample",
+            name="provirus_activity",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='replicates',
+            model_name="sample",
+            name="replicates",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='tissue',
+            model_name="sample",
+            name="tissue",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='tissue_url',
+            model_name="sample",
+            name="tissue_url",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='type',
+            model_name="sample",
+            name="type",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='visit',
+            model_name="sample",
+            name="visit",
         ),
         migrations.RemoveField(
-            model_name='sample',
-            name='years_on_art',
+            model_name="sample",
+            name="years_on_art",
         ),
     ]
