@@ -5,6 +5,7 @@ django-extensions==3.2.1
 psycopg2==2.9.5
 jsonpickle
 django-settings-export
+django-guardian
 
 # Crispy Forms stuff
 django-crispy-forms
@@ -22,6 +23,7 @@ whitenoise
 # testing & devel stuff
 coverage
 django-debug-toolbar
+black
 
 # REST stuff
 djangorestframework
