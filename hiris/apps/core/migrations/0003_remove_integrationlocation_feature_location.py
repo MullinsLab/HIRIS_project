@@ -4,13 +4,14 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
+
     dependencies = [
-        ("core", "0002_integration_integration_ltr_341eb1_idx"),
+        ('core', '0002_integration_integration_ltr_341eb1_idx'),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name="integrationlocation",
-            name="feature_location",
+            model_name='integrationlocation',
+            name='feature_location',
         ),
     ]

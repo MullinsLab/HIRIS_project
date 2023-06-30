@@ -5,66 +5,43 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
+
     dependencies = [
-        ("core", "0006_alter_blastinfo_integration_location"),
+        ('core', '0006_alter_blastinfo_integration_location'),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name="integration",
-            name="data_set",
+            model_name='integration',
+            name='data_set',
         ),
         migrations.CreateModel(
-            name="SampleData",
+            name='SampleData',
             fields=[
-                ("added", models.DateTimeField(auto_now_add=True)),
-                ("updated", models.DateTimeField(auto_now=True)),
-                (
-                    "sample_data_id",
-                    models.BigAutoField(
-                        editable=False, primary_key=True, serialize=False
-                    ),
-                ),
-                ("key", models.CharField(max_length=255)),
-                ("value", models.JSONField()),
-                (
-                    "sample",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="sample_data",
-                        to="core.sample",
-                    ),
-                ),
+                ('added', models.DateTimeField(auto_now_add=True)),
+                ('updated', models.DateTimeField(auto_now=True)),
+                ('sample_data_id', models.BigAutoField(editable=False, primary_key=True, serialize=False)),
+                ('key', models.CharField(max_length=255)),
+                ('value', models.JSONField()),
+                ('sample', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sample_data', to='core.sample')),
             ],
             options={
-                "abstract": False,
+                'abstract': False,
             },
         ),
         migrations.CreateModel(
-            name="SubjectData",
+            name='SubjectData',
             fields=[
-                ("added", models.DateTimeField(auto_now_add=True)),
-                ("updated", models.DateTimeField(auto_now=True)),
-                (
-                    "subject_data_id",
-                    models.BigAutoField(
-                        editable=False, primary_key=True, serialize=False
-                    ),
-                ),
-                ("key", models.CharField(max_length=255)),
-                ("value", models.JSONField()),
-                (
-                    "subject",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="subject_data",
-                        to="core.subject",
-                    ),
-                ),
+                ('added', models.DateTimeField(auto_now_add=True)),
+                ('updated', models.DateTimeField(auto_now=True)),
+                ('subject_data_id', models.BigAutoField(editable=False, primary_key=True, serialize=False)),
+                ('key', models.CharField(max_length=255)),
+                ('value', models.JSONField()),
+                ('subject', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='subject_data', to='core.subject')),
             ],
             options={
-                "db_table": "subject_data",
-                "unique_together": {("subject", "key")},
+                'db_table': 'subject_data',
+                'unique_together': {('subject', 'key')},
             },
         ),
     ]

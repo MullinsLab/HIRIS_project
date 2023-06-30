@@ -5,21 +5,15 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
+
     dependencies = [
-        (
-            "core",
-            "0005_rename_sequence_method_id_sequencingmethod_sequencing_method_id",
-        ),
+        ('core', '0005_rename_sequence_method_id_sequencingmethod_sequencing_method_id'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="blastinfo",
-            name="integration_location",
-            field=models.OneToOneField(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="blast_info",
-                to="core.integrationlocation",
-            ),
+            model_name='blastinfo',
+            name='integration_location',
+            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='blast_info', to='core.integrationlocation'),
         ),
     ]

@@ -4,124 +4,119 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+
     dependencies = [
-        ("core", "0011_alter_publicationdata_publication_and_more"),
+        ('core', '0011_alter_publicationdata_publication_and_more'),
     ]
 
     operations = [
         migrations.RemoveIndex(
-            model_name="publicationdata",
-            name="publication_publica_e9c9ed_idx",
+            model_name='publicationdata',
+            name='publication_publica_e9c9ed_idx',
         ),
         migrations.AddField(
-            model_name="integration",
-            name="breakpoint_sequence_3p",
+            model_name='integration',
+            name='breakpoint_sequence_3p',
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name="integration",
-            name="breakpoint_sequence_5p",
+            model_name='integration',
+            name='breakpoint_sequence_5p',
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name="integration",
-            name="ltr_sequence_3p",
+            model_name='integration',
+            name='ltr_sequence_3p',
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name="integration",
-            name="ltr_sequence_5p",
+            model_name='integration',
+            name='ltr_sequence_5p',
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name="integration",
-            name="provirus_sequence",
+            model_name='integration',
+            name='provirus_sequence',
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name="integration",
-            name="umi_sequence_3p",
+            model_name='integration',
+            name='umi_sequence_3p',
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name="integration",
-            name="umi_sequence_5p",
+            model_name='integration',
+            name='umi_sequence_5p',
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name="integrationlocation",
-            name="breakpoint_landmark",
+            model_name='integrationlocation',
+            name='breakpoint_landmark',
             field=models.CharField(max_length=255, null=True),
         ),
         migrations.AddField(
-            model_name="integrationlocation",
-            name="breakpoint_landmark_3p",
+            model_name='integrationlocation',
+            name='breakpoint_landmark_3p',
             field=models.CharField(max_length=255, null=True),
         ),
         migrations.AddField(
-            model_name="integrationlocation",
-            name="breakpoint_landmark_5p",
+            model_name='integrationlocation',
+            name='breakpoint_landmark_5p',
             field=models.CharField(max_length=255, null=True),
         ),
         migrations.AddField(
-            model_name="integrationlocation",
-            name="breakpoint_location",
+            model_name='integrationlocation',
+            name='breakpoint_location',
             field=models.IntegerField(null=True),
         ),
         migrations.AddField(
-            model_name="integrationlocation",
-            name="breakpoint_location_3p",
+            model_name='integrationlocation',
+            name='breakpoint_location_3p',
             field=models.IntegerField(null=True),
         ),
         migrations.AddField(
-            model_name="integrationlocation",
-            name="breakpoint_location_5p",
+            model_name='integrationlocation',
+            name='breakpoint_location_5p',
             field=models.IntegerField(null=True),
         ),
         migrations.AddField(
-            model_name="integrationlocation",
-            name="landmark_3p",
+            model_name='integrationlocation',
+            name='landmark_3p',
             field=models.CharField(max_length=255, null=True),
         ),
         migrations.AddField(
-            model_name="integrationlocation",
-            name="landmark_5p",
+            model_name='integrationlocation',
+            name='landmark_5p',
             field=models.CharField(max_length=255, null=True),
         ),
         migrations.AddField(
-            model_name="integrationlocation",
-            name="location_3p",
+            model_name='integrationlocation',
+            name='location_3p',
             field=models.IntegerField(null=True),
         ),
         migrations.AddField(
-            model_name="integrationlocation",
-            name="location_5p",
+            model_name='integrationlocation',
+            name='location_5p',
             field=models.IntegerField(null=True),
         ),
         migrations.AddIndex(
-            model_name="publicationdata",
-            index=models.Index(
-                fields=["publication"], name="publication_publica_3c66b5_idx"
-            ),
+            model_name='publicationdata',
+            index=models.Index(fields=['publication'], name='publication_publica_3c66b5_idx'),
         ),
         migrations.AddIndex(
-            model_name="sampledata",
-            index=models.Index(fields=["key"], name="sample_data_key_edd28c_idx"),
+            model_name='sampledata',
+            index=models.Index(fields=['key'], name='sample_data_key_edd28c_idx'),
         ),
         migrations.AddIndex(
-            model_name="sampledata",
-            index=models.Index(
-                fields=["sample"], name="sample_data_sample__e1f3a3_idx"
-            ),
+            model_name='sampledata',
+            index=models.Index(fields=['sample'], name='sample_data_sample__e1f3a3_idx'),
         ),
         migrations.AddIndex(
-            model_name="subjectdata",
-            index=models.Index(fields=["key"], name="subject_dat_key_18ede5_idx"),
+            model_name='subjectdata',
+            index=models.Index(fields=['key'], name='subject_dat_key_18ede5_idx'),
         ),
         migrations.AddIndex(
-            model_name="subjectdata",
-            index=models.Index(
-                fields=["subject"], name="subject_dat_subject_e27e0c_idx"
-            ),
+            model_name='subjectdata',
+            index=models.Index(fields=['subject'], name='subject_dat_subject_e27e0c_idx'),
         ),
     ]

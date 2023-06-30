@@ -4,51 +4,38 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
+
     dependencies = [
-        ("core", "0018_alter_subject_unique_together"),
+        ('core', '0018_alter_subject_unique_together'),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name="subject",
-            unique_together={("publication", "subject_identifier")},
+            name='subject',
+            unique_together={('publication', 'subject_identifier')},
         ),
         migrations.AddIndex(
-            model_name="publicationdata",
-            index=models.Index(
-                fields=["publication", "key", "value"],
-                name="publication_publica_0cc4ea_idx",
-            ),
+            model_name='publicationdata',
+            index=models.Index(fields=['publication', 'key', 'value'], name='publication_publica_0cc4ea_idx'),
         ),
         migrations.AddIndex(
-            model_name="publicationdata",
-            index=models.Index(
-                fields=["key", "value"], name="publication_key_99bbdd_idx"
-            ),
+            model_name='publicationdata',
+            index=models.Index(fields=['key', 'value'], name='publication_key_99bbdd_idx'),
         ),
         migrations.AddIndex(
-            model_name="sampledata",
-            index=models.Index(
-                fields=["sample", "key", "value"], name="sample_data_sample__ced023_idx"
-            ),
+            model_name='sampledata',
+            index=models.Index(fields=['sample', 'key', 'value'], name='sample_data_sample__ced023_idx'),
         ),
         migrations.AddIndex(
-            model_name="sampledata",
-            index=models.Index(
-                fields=["key", "value"], name="sample_data_key_7eb610_idx"
-            ),
+            model_name='sampledata',
+            index=models.Index(fields=['key', 'value'], name='sample_data_key_7eb610_idx'),
         ),
         migrations.AddIndex(
-            model_name="subjectdata",
-            index=models.Index(
-                fields=["subject", "key", "value"],
-                name="subject_dat_subject_eacf60_idx",
-            ),
+            model_name='subjectdata',
+            index=models.Index(fields=['subject', 'key', 'value'], name='subject_dat_subject_eacf60_idx'),
         ),
         migrations.AddIndex(
-            model_name="subjectdata",
-            index=models.Index(
-                fields=["key", "value"], name="subject_dat_key_9cd9c1_idx"
-            ),
+            model_name='subjectdata',
+            index=models.Index(fields=['key', 'value'], name='subject_dat_key_9cd9c1_idx'),
         ),
     ]

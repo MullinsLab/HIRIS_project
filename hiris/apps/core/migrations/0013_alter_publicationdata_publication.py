@@ -5,18 +5,15 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
+
     dependencies = [
-        ("core", "0012_remove_publicationdata_publication_publica_e9c9ed_idx_and_more"),
+        ('core', '0012_remove_publicationdata_publication_publica_e9c9ed_idx_and_more'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="publicationdata",
-            name="publication",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="publication_data",
-                to="core.publication",
-            ),
+            model_name='publicationdata',
+            name='publication',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='publication_data', to='core.publication'),
         ),
     ]

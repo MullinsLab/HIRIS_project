@@ -5,27 +5,20 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
+
     dependencies = [
-        ("core", "0010_alter_subject_unique_together_subject_publication_and_more"),
+        ('core', '0010_alter_subject_unique_together_subject_publication_and_more'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="publicationdata",
-            name="publication",
-            field=models.OneToOneField(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="publication_data",
-                to="core.publication",
-            ),
+            model_name='publicationdata',
+            name='publication',
+            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='publication_data', to='core.publication'),
         ),
         migrations.AlterField(
-            model_name="subject",
-            name="publication",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="subjects",
-                to="core.publication",
-            ),
+            model_name='subject',
+            name='publication',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='subjects', to='core.publication'),
         ),
     ]
