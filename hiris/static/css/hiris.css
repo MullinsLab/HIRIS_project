@@ -108,3 +108,7 @@ dd {
 a:link{
     text-decoration: none;
 }
+
+.nav-link:hover{
+    color: blue !important;
+}

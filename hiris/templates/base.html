@@ -35,44 +35,53 @@
     </div>
     <div class="row mb-5">
       <!--  navigation bar -->
-      <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container-fluid  bg-light border rounded">
-          <a class="navbar-brand" href="#">HIRIS</a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <nav class="navbar navbar-expand-sm navbar-light">
+        <div class="container-fluid bg-light border rounded">
+            <a class="navbar-brand" href="#">HIRIS</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
             <ul class="navbar-nav navbar-expand-lg me-auto mb-2 mb-lg-0">
-              {% url 'tools:about' as about_url %}
-              <li class="nav-item {% if request.get_full_path == about_url %}active border nav-active{% endif %}">
-                <a class="nav-link" aria-current="page" href="{{about_url}}">About</a>
-              </li>
+                {% url 'tools:about' as about_url %}
+                <li class="nav-item {% if request.get_full_path == about_url %}active border nav-active{% endif %}">
+                    <a class="nav-link" aria-current="page" href="{{about_url}}">About</a>
+                </li>
+                {% url 'tools:top_genes' as top_genes_url %}
+                <li class="nav-item {% if top_genes_url in request.get_full_path %}active border nav-active{% endif %}">
+                    <a class="nav-link" href="{{top_genes_url}}">Top Genes</a>
+                </li>
 
-              {% url 'tools:top_genes' as top_genes_url %}
-              <li class="nav-item {% if top_genes_url in request.get_full_path %}active border nav-active{% endif %}">
-                <a class="nav-link" href="{{top_genes_url}}">Top Genes</a>
-              </li>
+                {% url 'tools:get_the_data' as get_the_data_url %}
+                <li class="nav-item {% if get_the_data_url in request.get_full_path %}active border nav-active{% endif %}">
+                    <a class="nav-link" href="{{get_the_data_url}}">Get the Data</a>
+                </li>
+                
+                {% url 'tools:data_sources' as data_sources_url %}
+                <li class="nav-item {% if data_sources_url in request.get_full_path %}active border nav-active{% endif %}">
+                    <a class="nav-link" href="{{data_sources_url}}">Data Sources</a>
+                </li>
 
-              {% url 'tools:get_the_data' as get_the_data_url %}
-              <li class="nav-item {% if get_the_data_url in request.get_full_path %}active border nav-active{% endif %}">
-                <a class="nav-link" href="{{get_the_data_url}}">Get the Data</a>
-              </li>
-              
-              {% url 'tools:data_sources' as data_sources_url %}
-              <li class="nav-item {% if data_sources_url in request.get_full_path %}active border nav-active{% endif %}">
-                <a class="nav-link" href="{{data_sources_url}}">Data Sources</a>
-              </li>
-
-              {% url 'ml_import_wizard:import' as import_url %}
-              <li class="nav-item {% if import_url in request.get_full_path %}active border nav-active{% endif %}"">
-                <a class="nav-link" href="{{import_url}}"> Import</a>
-              </li>
+                {% url 'tools:data_tools' as data_tools_url %}
+                <li class="nav-item {% if data_tools_url in request.get_full_path %}active border nav-active{% endif %}"">
+                    <a class="nav-link" href="{{ data_tools_url }}">Data Tools</a>
+                </li>
             </ul>
-          </div>
-            
-          </div>
+
+            <div class="collapse navbar-collapse " id="navbarSupportedContent">
+                <ul class="navbar-nav ms-auto">
+                    {% if user.is_staff %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+                        </li>
+                    {% endif %}
+                    <li class="nav-item ">
+                        <a class="nav-link" href="/logout?next={{ about_url }}">Logout</a>
+                    </li>
+                </ul>
+                
+            </div>
         </div>
-      </nav>
     </div>
 
     <!-- default -->
