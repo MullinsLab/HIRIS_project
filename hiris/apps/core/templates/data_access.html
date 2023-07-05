@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_content %}
+    <div class="row">
+        Control who can access Data Sets.
+
+        <ul>
+            {% for data_set in data_sets%}
+                <li>{{data_set.data_set_name}}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

@@ -1,4 +1,6 @@
 {% load static %}
+{% comment %} {% load core_tags %} {% endcomment %}
+
 <!DOCTYPE html>
 <html style="font-size:1em;">
 <head>
@@ -37,13 +39,13 @@
       <!--  navigation bar -->
       <nav class="navbar navbar-expand-sm navbar-light">
         <div class="container-fluid bg-light border rounded">
-            <a class="navbar-brand" href="#">HIRIS</a>
+            {% url 'tools:about' as about_url %}
+            <a class="navbar-brand" href="{{about_url}}">HiRIS</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
             <ul class="navbar-nav navbar-expand-lg me-auto mb-2 mb-lg-0">
-                {% url 'tools:about' as about_url %}
                 <li class="nav-item {% if request.get_full_path == about_url %}active border nav-active{% endif %}">
                     <a class="nav-link" aria-current="page" href="{{about_url}}">About</a>
                 </li>
@@ -61,11 +63,13 @@
                 <li class="nav-item {% if data_sources_url in request.get_full_path %}active border nav-active{% endif %}">
                     <a class="nav-link" href="{{data_sources_url}}">Data Sources</a>
                 </li>
-
-                {% url 'tools:data_tools' as data_tools_url %}
-                <li class="nav-item {% if data_tools_url in request.get_full_path %}active border nav-active{% endif %}"">
-                    <a class="nav-link" href="{{ data_tools_url }}">Data Tools</a>
-                </li>
+                
+                {% if user.is_authenticated %}
+                    {% url 'tools:data_tools' as data_tools_url %}
+                    <li class="nav-item {% if data_tools_url in request.get_full_path %}active border nav-active{% endif %}"">
+                        <a class="nav-link" href="{{ data_tools_url }}">Data Tools</a>
+                    </li>
+                    {% endif %}
             </ul>
 
             <div class="collapse navbar-collapse " id="navbarSupportedContent">
@@ -75,11 +79,18 @@
                             <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
                         </li>
                     {% endif %}
-                    <li class="nav-item ">
-                        <a class="nav-link" href="/logout?next={{ about_url }}">Logout</a>
-                    </li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.get_username }}{% endif %}
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                                <li><a class="dropdown-item" href="/logout?next={{ about_url }}">Logout</a></li>
+                                <li><a class="dropdown-item" href="#">Change Password</a></li>
+                            </ul>
+                        </li>
+                    {% endif %}
                 </ul>
-                
             </div>
         </div>
     </div>

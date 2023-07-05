@@ -133,7 +133,12 @@ class DataSet(CoreBaseModel):
     genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="data_sets")
 
     class Meta:
-        db_table='data_sets'
+        db_table = "data_sets"
+        ordering = ["data_set_name"]
+        permissions = (
+            ("control_dataset", "Full controll"),
+            # ("view_dataset", "View data set"),
+        )
 
 
 class DataSetSource(CoreBaseModel):
