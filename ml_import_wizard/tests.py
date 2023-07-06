@@ -363,9 +363,9 @@ class TemplateAndViewTests(SimpleTestCase):
     def setUp(self):
         ''' Log in the user '''
 
-        if User.objects.first():
-            self.user = User.objects.first()
-        else:
+        try:
+            self.user = User.objects.get(username="testuser")
+        except User.DoesNotExist:
             self.user = User.objects.create(username='testuser')
             self.user.set_password('12345')
             self.user.save()

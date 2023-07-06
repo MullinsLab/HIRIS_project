@@ -1,5 +1,9 @@
+import logging
+log = logging.getLogger('test')
+
 from django.test import TestCase
 from django.urls import reverse  
+from django.contrib.auth.models import User
 
 from hiris.apps.core.models import GenomeVersion, GenomeSpecies, FeatureLocation, FeatureType, GeneType, Feature
 
@@ -35,3 +39,23 @@ class TemplateAndViewTests(TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'about.html')
+
+class PermissionsTests(TestCase):
+    """ Tests for permissions """
+
+    def setUp(self):
+        """ Create the permissions_user """
+
+        try:
+            self.user = User.objects.get(username="testuser")
+        except User.DoesNotExist:
+            self.user = User.objects.create(username='testuser')
+            self.user.set_password('12345')
+            self.user.save()
+
+    def test_permissions_user_should_be_in_group_everyone(self):
+        """ The permissions_user should be in the group everyone """
+
+        log.debug(self.user.groups.all())
+
+        self.assertTrue(self.user.groups.filter(name='Everyone').exists())
