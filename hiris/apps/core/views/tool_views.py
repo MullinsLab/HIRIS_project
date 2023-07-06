@@ -1,5 +1,7 @@
-import logging, mimetypes
+import logging
 log = logging.getLogger('app')
+
+import mimetypes
 
 from django.views.generic.base import View
 from django.shortcuts import render
@@ -15,6 +17,7 @@ from ml_export_wizard.utils.exporter import exporters, ExporterQuery
 
 from hiris.apps.core.utils import db
 from hiris.apps.core.models import DataSet
+from hiris.apps.core.forms import DataSetPublicForm
 from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
 from hiris.apps.core.utils.files import integrations_bed, integration_gene_summary_gff3
 
@@ -164,6 +167,6 @@ class DataAccess(LoginRequiredMixin, View):
         else:
             data_sets: QuerySet[DataSet] = get_objects_for_user(user, "core.view_dataset")
 
-        #log.debug(f"Data sets: {data_sets}")
+        form: DataSetPublicForm = DataSetPublicForm(data_sets=data_sets)
 
-        return render(request, "data_access.html", context={"data_sets": data_sets})
+        return render(request, "data_access.html", context={"form": form})

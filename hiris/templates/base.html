@@ -1,5 +1,5 @@
 {% load static %}
-{% comment %} {% load core_tags %} {% endcomment %}
+{% load core_tags %}
 
 <!DOCTYPE html>
 <html style="font-size:1em;">
@@ -82,7 +82,7 @@
                     {% if user.is_authenticated %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                {% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.get_username }}{% endif %}
+                                {% pretty_user_name %}
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <li><a class="dropdown-item" href="/logout?next={{ about_url }}">Logout</a></li>

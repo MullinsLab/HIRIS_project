@@ -8,7 +8,7 @@ register = template.Library()
 
 
 @register.simple_tag(takes_context=True)
-def pretty_name(context: dict) -> str:
+def pretty_user_name(context: dict) -> str:
     """ Return the pretty name of a user from the context """
 
     user = context.get('user')

@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 {% load static %}
+{% load crispy_forms_tags %}
 
 {% block page_content %}
     <div class="row">
-        Control who can access Data Sets.
+        Control who can access Data Sets.<br>
 
         <ul>
-            {% for data_set in data_sets%}
-                <li>{{data_set.data_set_name}}</li>
-            {% endfor %}
+            {% crispy form %}
         </ul>
     </div>
 {% endblock %}
