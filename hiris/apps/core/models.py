@@ -1,5 +1,8 @@
-from django.db import models
 import re
+
+from django.db import models
+
+from hiris.apps.core.utils.permissions import object_is_public
 
 # Overriding the default ID will make for a more comprehensible database for non-Django queries.
 # Including dates for each object.  It's cheap to store and may be useful at some time.
@@ -29,6 +32,12 @@ class CoreBaseModel(models.Model):
     def __str__(self) ->str:
         ''' Generic stringify function.  Most objects will have a name so it's the default. '''
         return self.name
+    
+    @property
+    def is_public(self) -> bool:
+        """ Returns true if the object is public """
+
+        return object_is_public(self)
 
 
 class GenomeSpecies(CoreBaseModel):
