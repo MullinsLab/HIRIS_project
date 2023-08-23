@@ -89,7 +89,6 @@ class UtilsTests(TestCase):
         with self.assertRaises(ValueError):
             sql = exporters["Integrations"]._resolve_formula(formula='test("ltr")', query_layer="bad")
 
-
     def test_merge_sql_dicts_none_dicts_should_return_none(self):
         """ merge_sql_dicts should return None when both dicts are none """
         dict1 = dict2 = None

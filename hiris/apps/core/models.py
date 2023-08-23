@@ -400,7 +400,7 @@ class IntegrationLocation(CoreBaseModel):
 
 
 class IntegrationFeature(CoreBaseModel):
-    """ Holds the links between Integrations and Features.  Doesn't inherit from CoreBaseModel """
+    """ Holds the links between Integrations and Features """
     integration_feature_id = models.BigAutoField(primary_key=True)
     integration_location = models.ForeignKey(IntegrationLocation, on_delete=models.DO_NOTHING)
     feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING)

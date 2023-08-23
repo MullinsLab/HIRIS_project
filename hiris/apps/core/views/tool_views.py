@@ -22,7 +22,7 @@ from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
 from hiris.apps.core.utils.files import integrations_bed, integration_gene_summary_gff3
 
 
-class Home(LoginRequiredMixin, View):
+class Home(View):
     ''' The default view for HIRIS Home.  Currently shows the About page '''
     
     def get(self, request, *args, **kwargs) -> HttpResponse:

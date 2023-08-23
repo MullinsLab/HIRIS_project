@@ -1,10 +1,13 @@
 from django.db import migrations
 from django.db.models import Q
-from django.contrib.auth.models import Group, User
+# from django.contrib.auth.models import Group, User
 
 
 def add_everyone_group(apps, schema_editor):
     """ Create a group for everyone """
+
+    User = apps.get_model("auth", "User")
+    Group = apps.get_model("auth", "Group")
 
     everyone = Group.objects.create(name="Everyone")
     users = User.objects.filter(~Q(username="AnonymousUser"))
@@ -14,6 +17,7 @@ def add_everyone_group(apps, schema_editor):
 def remove_everyone_group(apps, schema_editor):
     """ Remove the group for everyone """
 
+    Group = apps.get_model("django.contrib.auth", "Group")
     Group.objects.get(name="Everyone").delete()
 
 
