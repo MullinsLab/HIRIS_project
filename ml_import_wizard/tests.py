@@ -8,6 +8,8 @@ from django.test import TestCase, TransactionTestCase, SimpleTestCase
 from django.contrib.auth.models import User
 from django.conf import settings
 
+from unittest import skipIf
+
 from .models import ImportScheme, ImportSchemeFile
 from .utils.simple import dict_hash, sound_user_name, split_by_caps, stringalize, mached_name_choices, fancy_name, resolve_true, deep_exists
 from .utils.cache import LRUCacheThing
@@ -19,7 +21,7 @@ class InclusionTest(TestCase):
         ''' Makesure True is True '''
         self.assertTrue(True)
         
-
+@skipIf("Genome" not in settings.ML_IMPORT_WIZARD["Importers"], "Don't include model tests")
 class ModelTests(TestCase):
     '''  Tests of basic model functionality '''
 
@@ -49,7 +51,6 @@ class ModelTests(TestCase):
     def test_import_file_name_should_be_file_id_padded_to_8_digits(self):
         """ import_file_name should be padded to 8 digits """
         self.assertEqual('00000001', self.import_file_1.file_name)
-    
 
     def test_import_scheme_can_list_its_files(self):
         ''' Test that ImportScheme.list_files() works correctly '''
@@ -338,7 +339,8 @@ class SoundUserNameTests(TestCase):
     def test_sound_user_name_with_all_names_returns_first_name_last_name(self):
         self.assertEqual(sound_user_name(self.user4), 'first_name last_name')
 
-    
+
+@skipIf("Genome" not in settings.ML_IMPORT_WIZARD["Importers"], "Don't include template and view tests")
 class TemplateAndViewTests(SimpleTestCase):
     ''' Test the templates/views in Import Wizard '''
 
