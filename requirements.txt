@@ -34,4 +34,5 @@ django-filter
 gffutils
 
 # File stuff
+pandas
 openpyxl
