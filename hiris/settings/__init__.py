@@ -1,16 +1,20 @@
-# Copyright 2023 Victor de Jager
-# 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-# 
-#     http://www.apache.org/licenses/LICENSE-2.0
-# 
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+### Settings for the HiRIS app
+
+import os, sys
+from pathlib import Path
+
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+
+# Needed to find ml_import_wizard.  Remove if it's ever installed as a package.
+if os.path.exists(os.path.join(BASE_DIR, 'ML_Import_Wizard')):
+    sys.path.insert(0, os.path.join(BASE_DIR, 'ML_Import_Wizard'))
+
+# Take environment variables from .env file
+# env = environ.Env(DEBUG=(int, 0))
+# environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 from .base_settings import *       # All Django related settings
 from .third_party_settings import *  # UW-SAML2

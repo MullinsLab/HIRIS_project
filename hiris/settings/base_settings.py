@@ -7,9 +7,16 @@ import logging.config
 from django.utils.log import DEFAULT_LOGGING
 from django.urls import reverse_lazy
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-PROJECT_DIR = Path(__file__).resolve().parent.parent
+from . import BASE_DIR, PROJECT_DIR
+
+### These settings have been moved to __init__.py
+
+    # Build paths inside the project like this: BASE_DIR / 'subdir'.
+    # BASE_DIR = Path(__file__).resolve().parent.parent.parent
+    # PROJECT_DIR = Path(__file__).resolve().parent.parent
+
+### End moved settings
+
 
 # Take environment variables from .env file
 env = environ.Env(DEBUG=(int, 0))
