@@ -1,1 +1,0 @@
-ML_Import_Wizard is a Django app that allows for easy imports of data files across multiple models, using model introspection to reduce setup.
