@@ -8,9 +8,12 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 
-# Needed to find ml_import_wizard.  Remove if it's ever installed as a package.
+# Needed to find ml_import_wizard and ml_export_wizard.  Remove if it's ever installed as a package.
 if os.path.exists(os.path.join(BASE_DIR, 'ML_Import_Wizard')):
     sys.path.insert(0, os.path.join(BASE_DIR, 'ML_Import_Wizard'))
+
+if os.path.exists(os.path.join(BASE_DIR, 'ML_Export_Wizard')):
+    sys.path.insert(0, os.path.join(BASE_DIR, 'ML_Export_Wizard'))
 
 # Take environment variables from .env file
 # env = environ.Env(DEBUG=(int, 0))
