@@ -1,3 +1,5 @@
 [submodule "ML_Import_Wizard"]
 	path = ML_Import_Wizard
 	url = https://github.com/MullinsLab/ML_Import_Wizard.git
+[submodule "ML_Export_Wizard"]
+	path = ML_Export_Wizard
