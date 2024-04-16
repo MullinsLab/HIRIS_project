@@ -6,11 +6,11 @@ from django.db.models import Q
 from hiris.apps.core.models import FeatureLocation
 
 
-def translate_chromosome_to_accession_id(*, user_input_chromosome: str=None, field_lookup_genome_version_name: str=None) -> str:
+def translate_chromosome_to_accession_id(*, user_input_chromosome: str=None, field_lookup_core__GenomeVersion__genome_version_name: str=None) -> str:
     """ Look up accession id from chromosome name (chr1 ... chrY) for landmarks """
 
     chromosome: str = str(user_input_chromosome)
-    genome_version_name: str = field_lookup_genome_version_name
+    genome_version_name: str = field_lookup_core__GenomeVersion__genome_version_name
 
     if chromosome.startswith("chr"):
         chromosome = chromosome.replace("chr", "")
