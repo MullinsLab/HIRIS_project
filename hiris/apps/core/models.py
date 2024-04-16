@@ -10,6 +10,7 @@ from hiris.apps.core.utils.permissions import object_is_public
 class CoreBaseModel(models.Model):
     ''' A base class to hold comon methods and attributes.  It's Abstract so Django won't make a table for it
     The # pragma: no cover keeps the lines from being counted in coverage percentages '''
+    
     class Meta:
         abstract = True
     
@@ -20,6 +21,7 @@ class CoreBaseModel(models.Model):
     def name(self) -> str:
         """ Returns the specific class name field as name 
         uses explicit name_field if it exists, otherwise defaults to the class name + "_name" """
+
         if hasattr(self, 'name_field') and self.name_field:         # type: ignore
             return str(getattr(self, self.name_field))              # type: ignore   # pragma: no cover
         else:
@@ -31,6 +33,7 @@ class CoreBaseModel(models.Model):
 
     def __str__(self) ->str:
         ''' Generic stringify function.  Most objects will have a name so it's the default. '''
+
         return self.name
     
     @property
@@ -42,6 +45,7 @@ class CoreBaseModel(models.Model):
 
 class GenomeSpecies(CoreBaseModel):
     ''' Holds genome hosts.  Initially should contain: Homo Sapiens'''
+
     genome_species_id = models.BigAutoField(primary_key=True, editable=False)
     genome_species_name = models.CharField("Name of the species.", max_length=255, unique=True)
     
@@ -51,6 +55,7 @@ class GenomeSpecies(CoreBaseModel):
 
 class GenomeVersion(CoreBaseModel):
     ''' Holds Genome top level data '''
+
     genome_version_id = models.BigAutoField(primary_key=True, editable=False)
     genome_version_name = models.CharField(max_length=255, unique=True)
     # The name of the external_gene_id field in the outside source.  For example, a gene from NCBi would have an external_gene_id_name of 'NCBI_Gene_ID'
@@ -64,6 +69,7 @@ class GenomeVersion(CoreBaseModel):
 class GeneType(CoreBaseModel):
     ''' Hold gene types.  Initially should contain: 
     protein-coding, pseudo, rRNA, tRNA, ncRNA, scRNA, snRNA, snoRNA, miscRNA, transposon, biological-region, lnRNA, SE, eRNA, other '''
+
     gene_type_id = models.BigAutoField(primary_key=True, editable=False)
     gene_type_name = models.CharField(max_length=255, unique=True)
 
@@ -73,6 +79,7 @@ class GeneType(CoreBaseModel):
 
 class FeatureType(CoreBaseModel):
     ''' Holds feature types, such as Gene, Pseudogene, Exxon, etc. '''
+
     feature_type_id = models.BigAutoField(primary_key=True, editable=False)
     feature_type_name = models.CharField(max_length=255, unique=True)
 
@@ -82,6 +89,7 @@ class FeatureType(CoreBaseModel):
 
 class Feature(CoreBaseModel):
     ''' Holds gene data except for locations '''
+
     feature_id = models.BigAutoField(primary_key=True, editable=False)
     genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="features")
     feature_name = models.CharField(max_length=255, null=True)
@@ -107,6 +115,7 @@ class Feature(CoreBaseModel):
 
 class FeatureLocation(CoreBaseModel):
     ''' Holds gene (and other feature) location data '''
+
     feature_location_id = models.BigAutoField(primary_key=True, editable=False)
     feature = models.ForeignKey(Feature, on_delete=models.CASCADE, related_name="feature_locations")
     chromosome = models.CharField(max_length=255, null=True)
@@ -137,6 +146,7 @@ class FeatureLocation(CoreBaseModel):
 
 class DataSet(CoreBaseModel):
     """ Holds core data about a data set """
+
     data_set_id = models.BigAutoField(primary_key=True, editable=False)
     data_set_name = models.CharField(max_length=255, unique=True)
     genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="data_sets")
@@ -152,6 +162,7 @@ class DataSet(CoreBaseModel):
 
 class DataSetSource(CoreBaseModel):
     """ Holds data about the source of a data set """
+
     data_set_source_id = models.BigAutoField(primary_key=True, editable=False)
     data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="data_set_sources")
     document_pubmed_id = models.IntegerField(null=True, blank=True)
@@ -182,6 +193,7 @@ class DataSetSource(CoreBaseModel):
 
 class Publication(CoreBaseModel):
     """ Holds information about the publications that the data comes from """
+
     publication_id = models.BigAutoField(primary_key=True, editable=False)
     data_set = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name="publications")
     publication_pubmed_id = models.IntegerField(null=True)
@@ -195,6 +207,7 @@ class Publication(CoreBaseModel):
 
 class PublicationData(CoreBaseModel):
     """ Holds information about publications, one row per key/value pair """
+
     publication_data_id = models.BigAutoField(primary_key=True, editable=False)
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE, related_name="publication_data")
     key = models.CharField(max_length=255)
@@ -214,6 +227,7 @@ class PublicationData(CoreBaseModel):
 
 class Subject(CoreBaseModel):
     """ Holds data about the subject the samples were collected from """
+
     subject_id = models.BigAutoField(primary_key=True, editable=False)
     publication = models.ForeignKey(Publication, on_delete=models.CASCADE, related_name="subjects")
     subject_identifier = models.CharField(max_length=255, null=True, blank=True)
@@ -231,6 +245,7 @@ class Subject(CoreBaseModel):
 
 class SubjectData(CoreBaseModel):
     """ Holds random data about the subject """
+
     subject_data_id = models.BigAutoField(primary_key=True, editable=False)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="subject_data")
     key = models.CharField(max_length=255, null=False, blank=False)
@@ -238,6 +253,7 @@ class SubjectData(CoreBaseModel):
 
     def __str__(self) -> str:
         """ Return key: value as string """
+
         return f"{self.key}: {self.value}"
 
     class Meta: 
@@ -253,6 +269,7 @@ class SubjectData(CoreBaseModel):
 
 class Sample(CoreBaseModel):
     """ Holds data about a specific sample """
+
     sample_id = models.BigAutoField(primary_key=True, editable=False)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="samples")
     sample_name = models.CharField(max_length=255, null=True, blank=True)
@@ -269,6 +286,7 @@ class Sample(CoreBaseModel):
 
 class SampleData(CoreBaseModel):
     """ Holds random data about the sample """
+
     sample_data_id = models.BigAutoField(primary_key=True, editable=False)
     sample = models.ForeignKey(Sample, on_delete=models.CASCADE, related_name="sample_data")
     key = models.CharField(max_length=255, null=False, blank=False)
@@ -288,6 +306,7 @@ class SampleData(CoreBaseModel):
 
 class Preparation(CoreBaseModel):
     """ Holds data about how thesample was prepared """
+
     preparation_id = models.BigAutoField(primary_key=True, editable=False)
     sample = models.ForeignKey(Sample, on_delete=models.CASCADE, related_name="preparations")
     preparation_description = models.TextField(null=True)
@@ -305,6 +324,7 @@ class Preparation(CoreBaseModel):
     
 class SequencingMethod(CoreBaseModel):
     """ Holds data about how the samples were sequenced """
+
     sequencing_method_id = models.BigAutoField(primary_key=True, editable=False)
     preparation = models.ForeignKey(Preparation, on_delete=models.CASCADE, related_name="sequencing_methods")
     sequencing_method_name = models.CharField(max_length=255, null=True)
@@ -317,6 +337,7 @@ class SequencingMethod(CoreBaseModel):
 
 class IntegrationEnvironment(CoreBaseModel):
     """ Holds data about the environment the sample was collected from """
+
     integration_environment_id = models.BigAutoField(primary_key=True, editable=False)
     integration_environment_name = models.CharField(max_length=255, unique=True)
 
@@ -326,6 +347,7 @@ class IntegrationEnvironment(CoreBaseModel):
 
 class Integration(CoreBaseModel):
     """ Holds data about an individual integration """
+
     integration_id = models.BigAutoField(primary_key=True, editable=False)
     integration_environment = models.ForeignKey(IntegrationEnvironment, on_delete=models.CASCADE, related_name="integrations", null=True)
     sequencing_method = models.ForeignKey(SequencingMethod, on_delete=models.CASCADE, related_name="integrations")
@@ -363,6 +385,7 @@ class Integration(CoreBaseModel):
 
 class IntegrationLocation(CoreBaseModel):
     """ Holds data about the locations of a specific integration """
+
     integration_location_id = models.BigAutoField(primary_key=True, editable=False)
     integration = models.ForeignKey(Integration, on_delete=models.CASCADE, related_name="integration_locations")
     feature_locations = models.ManyToManyField(FeatureLocation, related_name="integration_locations", through="IntegrationFeature", editable=False)
@@ -401,6 +424,7 @@ class IntegrationLocation(CoreBaseModel):
 
 class IntegrationFeature(CoreBaseModel):
     """ Holds the links between Integrations and Features """
+
     integration_feature_id = models.BigAutoField(primary_key=True)
     integration_location = models.ForeignKey(IntegrationLocation, on_delete=models.DO_NOTHING)
     feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING)
@@ -417,6 +441,7 @@ class IntegrationFeature(CoreBaseModel):
 
 class BlastInfo(CoreBaseModel):
     """ Holds blast data about an individual location """
+
     blast_info_id = models.BigAutoField(primary_key=True, editable=False)
     integration_location = models.OneToOneField(IntegrationLocation, on_delete=models.CASCADE, related_name="blast_info")
     identity = models.CharField(max_length=255, null=True, blank=True)
@@ -432,6 +457,7 @@ class BlastInfo(CoreBaseModel):
 
 class LandmarkChromosome(CoreBaseModel):
     """ Holds data about the chromosomes of the landmark """
+    
     landmark_chromosome_id = models.BigAutoField(primary_key=True, editable=False)
     genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="landmark_chromosomes")
     landmark = models.CharField(max_length=255)
