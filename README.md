@@ -145,3 +145,6 @@ Set up import fields:
     * Q Start: q_start
     * Gaps: gaps
     * Score: Set to "No Data"
+
+Run management command "process_after_import"
+```root@b7b166e095bd:/hiris# ./manage.py process_after_import```

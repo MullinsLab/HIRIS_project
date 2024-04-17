@@ -119,8 +119,9 @@ def get_data_sources() -> list:
 def get_summary_by_gene(*, limit: int=None, order_output: bool=None) -> list:
     """ Get a list of genes with associated data """
 
+    order_by: list[dict[str: str]] = None
     if order_output:
-        order_by: list = [{"field": "subjects", "order": "DESC"}, {"field": "unique_sites", "order": "DESC"}, {"field": "total_in_gene", "order": "DESC"}]
+        order_by = [{"field": "subjects", "order": "DESC"}, {"field": "unique_sites", "order": "DESC"}, {"field": "total_in_gene", "order": "DESC"}]
     else:
         order_by: None
 
