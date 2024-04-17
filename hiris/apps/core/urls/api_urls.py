@@ -5,7 +5,8 @@ from rest_framework import routers
 from hiris.apps.core import views
 
 router = routers.DefaultRouter()
-router.register(r'genome_hosts', views.GenomeSpecies)
+router.register(r'genome_hosts', views.GenomeSpeciesViewSet, basename='genome_host')
+router.register(r'users', views.UserViewSet, basename='user')
 
 # determine appname
 app_name='api'

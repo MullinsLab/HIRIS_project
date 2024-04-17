@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% load humanize %}
+{% load static %}
+
+{% block header_content %}
+<link src="https://cdn.datatables.net/2.0.4/css/dataTables.dataTables.min.css" />
+<script src="https://cdn.datatables.net/2.0.4/js/dataTables.min.js"></script>
+<script src="{% static 'js/apiTableUtils.js' %}"></script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <h4>Scientists</h4>
+    <div class="row">
+        <div class="col-sm-6" style="margin-bottom: .5rem;">
+            <input type="text" class="form-control" id="SearchBox" placeholder="Search Name">
+        </div>
+        <div class="col-sm-6"></div>
+    </div>
+    <div class="row">
+        <div class="col-sm-3 summaryfilter" style="min-width: 230px;">
+            <div style="margin-bottom: .5rem;" class="filters"><a href="javascript:void(0);" id="resetFilters">Reset All Filters</a></div>
+            <div class="summaryfilter-border">
+                <div class="form-group filter-width" id="roleFilterContainer"></div>
+                <div class="form-group filter-width" id="scientist_groupFilterContainer"></div>
+                <div class="form-group filter-width" id="labFilterContainer"></div>
+            </div>
+        </div>
+        <div class="col-sm-9">
+            <a href="{% url "admin:user_create" %}">Add User</a>
+            <table  id="DataTable" 
+                    class="table table-striped table-bordered table-sm" 
+                    style="width:100%">
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        new apiTable({
+            ajax: "{% url 'api:user-list' %}?format=datatables", 
+            columns: [
+                "username",
+                "first_name",
+                "last_name",
+                "email", 
+                {% comment %} {name: "Edit", editURL: "{% url 'viroserve:scientist' %}(row:scientist_id)/", toolTip: "Edit scientist"},
+                {name: "Set Pwd.", editURL: "{% url 'viroserve:scientist_user' %}(row:scientist_id)/", filterValue: "(row:email)", filterIf: "isUWEmail", buttonIcon: "lock", toolTip: "Set scientist password"}, {% endcomment %}
+            ],
+            {% comment %} filters: [
+                {name: "role", ajax: "{% url 'api:scientist-table-list' %}roles/"},
+                {name: "scientist_group", title: "Group", ajax: "{% url 'api:scientist-table-list' %}scientist_groups/", labelField: "scientist_group__name"},
+                {name: "lab", title: "Lab", ajax: "{% url 'api:scientist-table-list' %}labs/", labelField: "lab__name"},
+            ] {% endcomment %}
+        });
+    });
+</script>
+{% endblock %}

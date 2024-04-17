@@ -155,6 +155,7 @@ class DataTools(LoginRequiredMixin, View):
 
         return render(request, "tools.html")
     
+
 class DataAccess(LoginRequiredMixin, View):
     """ Control who can access the data """
 

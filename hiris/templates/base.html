@@ -51,17 +51,17 @@
                 </li>
                 {% url 'tools:top_genes' as top_genes_url %}
                 <li class="nav-item {% if top_genes_url in request.get_full_path %}active border nav-active{% endif %}">
-                    <a class="nav-link" href="{{top_genes_url}}">Top Genes</a>
+                    <a class="nav-link" href="{{ top_genes_url }}">Top Genes</a>
                 </li>
 
                 {% url 'tools:get_the_data' as get_the_data_url %}
                 <li class="nav-item {% if get_the_data_url in request.get_full_path %}active border nav-active{% endif %}">
-                    <a class="nav-link" href="{{get_the_data_url}}">Get the Data</a>
+                    <a class="nav-link" href="{{ get_the_data_url }}">Get the Data</a>
                 </li>
                 
                 {% url 'tools:data_sources' as data_sources_url %}
                 <li class="nav-item {% if data_sources_url in request.get_full_path %}active border nav-active{% endif %}">
-                    <a class="nav-link" href="{{data_sources_url}}">Data Sources</a>
+                    <a class="nav-link" href="{{ data_sources_url }}">Data Sources</a>
                 </li>
                 
                 {% if user.is_authenticated %}
@@ -76,7 +76,22 @@
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_staff %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Admin
+                                </a>
+                                <ul class="dropdown-menu">
+                                  <li><a class="dropdown-item text-nowrap" href="{% url 'admin:user_list' %}">Manage Users</a></li>
+                                  {% comment %} <li><a class="dropdown-item text-nowrap" href="{% url 'viroserve:scientist' %}">Manage scientists</a></li>
+                                  <li><a class="dropdown-item text-nowrap" href="{% url 'viroserve:scientist_group' %}">Manage groups</a></li>
+                                  <li><a class="dropdown-item" href="#"> Manage Metadata &raquo </a>
+                                    <ul class="submenu dropdown-menu">
+                                        {% for model in settings.METADATA_MODELS%}
+                                            <li><a class="dropdown-item text-nowrap" href="{% url 'viroserve:metadata_list' focus=model %}">{{ model|model_to_titles }}</a></li>
+                                        {% endfor %}
+                                    </ul> {% endcomment %}
+                                </ul>
+                            </li>
                         </li>
                     {% endif %}
                     {% if user.is_authenticated %}

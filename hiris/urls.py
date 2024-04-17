@@ -7,10 +7,11 @@ from django.conf import settings
 app_name='base'
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
     
-    path('', include('hiris.apps.core.urls.tool_urls', namespace='core')),
+    path('', include('hiris.apps.core.urls.tool_urls', namespace='tools')),
     path('api/', include('hiris.apps.core.urls.api_urls', namespace='api')),
+    path('admin/', include('hiris.apps.core.urls.admin_urls', namespace='admin')),
     path('import/', include('ml_import_wizard.urls', namespace='ml_import_wizard')),
     path('export/', include('ml_export_wizard.urls', namespace='ml_export_wizard')),
 
