@@ -7,9 +7,12 @@ from django.contrib.auth.models import User, Group
 
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.urls import reverse, reverse_lazy
 
 from django.views.generic.base import TemplateView
 from django.views.generic.edit import CreateView, UpdateView
+
+from hiris.apps.core import forms
 
     
 class UsersList(LoginRequiredMixin, TemplateView):
@@ -25,7 +28,7 @@ class UserUpdate(LoginRequiredMixin, UpdateView):
     """ Handles requests for editing a scientist """
 
     model = User
-    template_name = 'scientist_form.html'
+    template_name = 'admin/user_form.html'
     # form_class = ScientistForm
 
     # success_url = reverse_lazy("viroserve:scientist")
@@ -34,8 +37,8 @@ class UserUpdate(LoginRequiredMixin, UpdateView):
 class UserCreate(LoginRequiredMixin, CreateView):
     """ Handles requests for creating a scientist """
 
-    # model = Scientist
-    # template_name = 'scientist_form.html'
-    # form_class = ScientistForm
+    model = User
+    template_name = 'admin/user_form.html'
+    form_class = forms.UserForm
 
-    # success_url = reverse_lazy("viroserve:scientist")
+    success_url = reverse_lazy("admin:user_list")

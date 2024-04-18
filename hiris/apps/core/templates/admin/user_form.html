@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load rest_framework %}
+{% load crispy_forms_tags %}
+
+{% block page_name%}::Scientists{% endblock %}
+{% block alert %}{% include "in_development.html" %}{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="message" id="message"></div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <h4 class="page-header">
+                {% if request.resolver_match.url_name == 'user_create' %} Add User{% else %} Edit {{ form.username.value }}{% endif %}
+            </h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <form action="" method="post">
+                {% csrf_token %}
+                <table>
+                    <tr>
+                        <td class="col-sm-2">{{ form.username.label_tag }}<span class="danger">{{ form.username.errors }}</span></td>
+                        <td>{{ form.username }}</td>
+                    </tr>
+                    <tr>
+                        <td class="col-sm-2">{{ form.first_name.label_tag }}<span class="danger">{{ form.first_name.errors }}</span></td>
+                        <td>{{ form.first_name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="col-sm-2">{{ form.last_name.label_tag }}<span class="danger">{{ form.last_name.errors }}</span></td>
+                        <td>{{ form.last_name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="col-sm-2">{{ form.email.label_tag }}<span class="danger">{{ form.email.errors }}</span></td>
+                        <td>{{ form.email }}</td>
+                    </tr>
+                    <tr>
+                        <td class="col-sm-2">{{ form.role.label_tag }}<span class="danger">{{ form.role.errors }}</span></td>
+                        <td>{{ form.role }}</td>
+                    </tr>
+                    <tr>
+                        <td class="col-sm-2">{{ form.lab.label_tag }}<span class="danger">{{ form.lab.errors }}</span></td>
+                        <td>{{ form.lab }}</td>
+                    </tr>
+                    <tr>
+                        <td class="col-sm-2">{{ form.group.label_tag }}{{ form.group.errors }}</td>
+                        <td><div style="max-height: 20em; overflow-y: auto; display: block; padding-left: 5px" class="border">{{ form.group }}</div></td>
+                    </tr>
+                </table>
+                <input type="submit" value="Save">
+            </form><br>
+        </div>
+    </div>
+</div>
+{% endblock %}

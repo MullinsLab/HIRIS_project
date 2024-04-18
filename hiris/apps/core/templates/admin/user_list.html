@@ -11,10 +11,10 @@
 
 {% block page_content %}
 <div class="container-fluid">
-    <h4>Scientists</h4>
+    <h4>Users</h4>
     <div class="row">
         <div class="col-sm-6" style="margin-bottom: .5rem;">
-            <input type="text" class="form-control" id="SearchBox" placeholder="Search Name">
+            <input type="text" class="form-control" id="SearchBox" placeholder="Search">
         </div>
         <div class="col-sm-6"></div>
     </div>
@@ -45,8 +45,7 @@
                 "first_name",
                 "last_name",
                 "email", 
-                {% comment %} {name: "Edit", editURL: "{% url 'viroserve:scientist' %}(row:scientist_id)/", toolTip: "Edit scientist"},
-                {name: "Set Pwd.", editURL: "{% url 'viroserve:scientist_user' %}(row:scientist_id)/", filterValue: "(row:email)", filterIf: "isUWEmail", buttonIcon: "lock", toolTip: "Set scientist password"}, {% endcomment %}
+                {name: "Edit", editURL: "{% url 'admin:user_list' %}(row:id)/", toolTip: "Edit user"},
             ],
             {% comment %} filters: [
                 {name: "role", ajax: "{% url 'api:scientist-table-list' %}roles/"},

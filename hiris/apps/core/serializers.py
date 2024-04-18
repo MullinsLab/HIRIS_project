@@ -19,4 +19,5 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'username', 'group']
+        fields = ["id", "first_name", "last_name", "email", "username", "group"]
+        datatables_always_serialize = ("id", )
