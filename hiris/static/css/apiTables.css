@@ -1,0 +1,53 @@
+/* padding for filters on sample details */
+.summaryfilter {
+    /* margin-left: 20px; */
+    /* margin-right: -20px;
+    padding-left: 20px; */
+    padding-left: 20px;
+    padding-top: 10px;
+    min-width: 230px;
+    /* min-width: 200px; */
+    margin-bottom: 10px;
+}
+
+.summaryfilter-border{
+    padding-left: 20px; 
+    padding-top: 5px;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 4px;
+    border-color: #d9534f;
+}
+
+.filters::before {
+    content: "Filters ";
+    font-size: 15pt; 
+    color: #d9534f;
+}
+
+.summaryfiltertop {
+    padding-top: 10px;
+    min-width: 230px;
+}
+
+/* filter details (e.g. Tissue, Derived By) */
+.filter-width {
+    width: 220px;
+}
+
+.filterGroup {
+    max-height: 20em;
+    overflow-y: auto;
+    display: block;
+}
+
+.filterGroupHalf {
+    max-height: 8em;
+    overflow-y: auto;
+    display: block;
+}
+
+.searchFiltersTop {
+    max-width: 1200px;
+    margin: 0 auto;
+}

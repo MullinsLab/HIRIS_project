@@ -71,8 +71,8 @@ class apiTable{
         var args = {};
 
         if (this.ajax) {
-           args.serverSide = true;
-            args.ajax = this.ajax
+            args.serverSide = true;
+            args.ajax = this.ajax;
         };
 
         args.columns = this.columnsForTable();
@@ -360,6 +360,7 @@ class column {
             name: this.name,
             title: this.title,
             data: this.data,
+            searchable: this.searchable,
             orderable: this.orderable,
             visible: this.visible,
             render: this.render,
@@ -588,13 +589,13 @@ class filter {
                 totalCount += data[dataIndex][this.countField];
             };
 
-            var badge = 'badge-dark';
+            var badge = 'bg-dark';
             var checked = ! this.currentValues.length || this.currentValues.includes("__All__") ? " checked" : "";
             var active = checked ? " active" : "";
 
             this.listElement.append(`<label class="btn btn-outline-secondary shadow-none d-flex justify-content-between align-items-center text-left${active}">` +
                             `<input class="virofilter" type="${type}" id="${(this.name + "___All__").replace(/[^A-Z0-9]/ig, "_")}" name="${this.name}" autocomplete="off" value="__ALL__"${checked}><i>All</i>`+
-                            `&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge badge-pill ${badge}">${totalCount.toLocaleString()}</span>` +
+                            `&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge rounded-pill ${badge}">${totalCount.toLocaleString()}</span>` +
                             `</label>`);
         };
 
@@ -604,12 +605,11 @@ class filter {
             var safeId = (this.name + "_" + label).replace(/[^A-Z0-9]/ig, "_");
             var checked = this.currentValues.includes(label) ? " checked" : "";
             var active = checked ? " active" : "";
-            var badge = (count == 0 && value.checked ? 'badge-danger' : 'badge-dark');
+            var badge = (count == 0 && value.checked ? 'bg-danger' : 'bg-dark');
 
-            // This is gross. Reformat it some day
-            this.listElement.append(`<label class="btn btn-outline-secondary shadow-none d-flex justify-content-between align-items-center text-left${active}">` +
-                            `<input class="virofilter" type="${type}" id="${safeId}" name="${this.name}" autocomplete="off" value="${label}"${checked}>${label}`+
-                            `&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge badge-pill ${badge}">${count.toLocaleString()}</span>` +
+            this.listElement.append(`<input class="virofilter btn-check" type="${type}" id="${safeId}" name="${this.name}" autocomplete="off" value="${label}"${checked}>`+
+                            `<label class="btn btn-outline-secondary shadow-none d-flex justify-content-between align-items-center text-left${active}" for="${safeId}">` +
+                            `${label}&nbsp;&nbsp;&nbsp;&nbsp;<span class="badge rounded-pill ${badge}">${count.toLocaleString()}</span>` +
                             `</label>`);
         }
     }

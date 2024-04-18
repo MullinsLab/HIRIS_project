@@ -15,8 +15,6 @@ crispy-bootstrap5
 # Requirements for UW-Django-SAML2
 UW-Django-SAML2
 
-# Datatables View
-
 # Web serving stuff
 whitenoise
 
@@ -41,3 +39,6 @@ gffutils
 # File stuff
 pandas
 openpyxl
+
+# Laytout and graphics stuff
+fontawesomefree

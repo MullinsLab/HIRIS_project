@@ -6,7 +6,10 @@
 {% block header_content %}
 <link src="https://cdn.datatables.net/2.0.4/css/dataTables.dataTables.min.css" />
 <script src="https://cdn.datatables.net/2.0.4/js/dataTables.min.js"></script>
+<link href="{% static 'css/apiTables.css' %}" rel="stylesheet" type="text/css">
 <script src="{% static 'js/apiTableUtils.js' %}"></script>
+<link href="{% static 'fontawesomefree/css/fontawesome.css' %}" rel="stylesheet" type="text/css">
+<link href="{% static 'fontawesomefree/css/solid.css' %}" rel="stylesheet" type="text/css">
 {% endblock %}
 
 {% block page_content %}
@@ -22,9 +25,7 @@
         <div class="col-sm-3 summaryfilter" style="min-width: 230px;">
             <div style="margin-bottom: .5rem;" class="filters"><a href="javascript:void(0);" id="resetFilters">Reset All Filters</a></div>
             <div class="summaryfilter-border">
-                <div class="form-group filter-width" id="roleFilterContainer"></div>
-                <div class="form-group filter-width" id="scientist_groupFilterContainer"></div>
-                <div class="form-group filter-width" id="labFilterContainer"></div>
+                <div class="form-group filter-width" id="groupFilterContainer"></div>
             </div>
         </div>
         <div class="col-sm-9">
@@ -45,13 +46,13 @@
                 "first_name",
                 "last_name",
                 "email", 
+                {name: "groups", orderable: false, searchable: false, objectField: "name"},
                 {name: "Edit", editURL: "{% url 'admin:user_list' %}(row:id)/", toolTip: "Edit user"},
+                {name: "Password", editURL: "{% url 'admin:user_list' %}(row:id)/password/", toolTip: "Set password", buttonIcon: "lock"},
             ],
-            {% comment %} filters: [
-                {name: "role", ajax: "{% url 'api:scientist-table-list' %}roles/"},
-                {name: "scientist_group", title: "Group", ajax: "{% url 'api:scientist-table-list' %}scientist_groups/", labelField: "scientist_group__name"},
-                {name: "lab", title: "Lab", ajax: "{% url 'api:scientist-table-list' %}labs/", labelField: "lab__name"},
-            ] {% endcomment %}
+            filters: [
+                {name: "group", title: "Group", ajax: "{% url 'api:user-list' %}groups/", labelField: "groups__name"},
+            ]
         });
     });
 </script>

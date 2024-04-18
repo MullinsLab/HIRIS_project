@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     "guardian",
+    "fontawesomefree",
 
     # HIRIS apps
     'hiris.apps.core',
