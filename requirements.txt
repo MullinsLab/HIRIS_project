@@ -14,6 +14,7 @@ crispy-bootstrap5
 
 # Requirements for UW-Django-SAML2
 UW-Django-SAML2
+xmlsec==1.3.13
 
 # Web serving stuff
 whitenoise
