@@ -12,10 +12,11 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic.base import TemplateView
 from django.views.generic.edit import CreateView, UpdateView, FormView
 
+from hiris.utils import StaffRequiredMixin
 from hiris.apps.core import forms
 
     
-class UsersList(LoginRequiredMixin, TemplateView):
+class UsersList(StaffRequiredMixin, TemplateView):
     """ Control who can access the data """
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
@@ -24,7 +25,7 @@ class UsersList(LoginRequiredMixin, TemplateView):
         return render(request, "admin/user_list.html")
     
 
-class UserUpdate(LoginRequiredMixin, UpdateView):
+class UserUpdate(StaffRequiredMixin, UpdateView):
     """ Handles requests for editing a scientist """
 
     model = User
@@ -34,7 +35,7 @@ class UserUpdate(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy("admin:user_list")
     
 
-class UserCreate(LoginRequiredMixin, CreateView):
+class UserCreate(StaffRequiredMixin, CreateView):
     """ Handles requests for creating a scientist """
 
     model = User
@@ -44,7 +45,7 @@ class UserCreate(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy("admin:user_list")
 
 
-class UserPassword(LoginRequiredMixin, FormView):
+class UserPassword(StaffRequiredMixin, FormView):
     """ Handles requests for setting a scientist's user password """
 
     form_class = forms.UserPasswordForm
@@ -72,11 +73,3 @@ class UserPassword(LoginRequiredMixin, FormView):
         log.debug("Form is valid")
         form.save()
         return super().form_valid(form)  
-    
-    def form_invalid(self, form):
-        log.debug("Form is invalid")
-        return super().form_invalid(form)
-    
-    def post(self, request, *args, **kwargs):
-        log.debug("Post")
-        return super().post(request, *args, **kwargs)

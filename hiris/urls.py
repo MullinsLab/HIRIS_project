@@ -1,8 +1,10 @@
-from django.contrib import admin
-from django.urls import path, include, re_path
-from django.views.generic import RedirectView
-from django.contrib.auth import views as auth_views
 from django.conf import settings
+
+from django.contrib import admin
+from django.contrib.auth import views as auth_views
+
+from django.urls import path, include, re_path
+from django.views.generic import RedirectView, TemplateView
 
 app_name='base'
 
@@ -20,6 +22,9 @@ urlpatterns = [
 
     # For UW_SAML
     re_path(r'^saml/', include('uw_saml.urls')),
+
+    # For error pages
+    path("error/staff_required/", TemplateView.as_view(template_name="errors/staff_required.html"), name="error_staff_required"),
 
     # For debug_toolbar
     path('__debug__/', include('debug_toolbar.urls')),
