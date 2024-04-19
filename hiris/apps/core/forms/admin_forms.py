@@ -13,34 +13,33 @@ class UserForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ("username", "first_name", "last_name", "email", "groups")
-        widgets = {
-        #     "name": forms.TextInput(attrs={'placeholder': 'Name', 'style': 'width: 50em;'}),
-        #     "email": forms.TextInput(attrs={'placeholder': 'Email', 'style': 'width: 50em;'}),
-        #     "lab": forms.Select(),
-            "groups": forms.CheckboxSelectMultiple()
-        }
+        widgets = {"groups": forms.CheckboxSelectMultiple()}
 
-    # def __init__(self, *args, **kwargs) -> None:
-    #     super().__init__(*args, **kwargs)
-    #     self.fields["scientist_group"].queryset = ScientistGroup.objects.filter(display=True).order_by('name')
 
-    # def save(self, commit=True):
-    #     """ Save the scientist, and update the info on the Django user, if it exists """
+class UserPasswordForm(forms.Form):
+    """ Form for setting a user's password. """
 
-    #     old_email: str = None
-    #     if not self.instance._state.adding:
-    #         old_email = Scientist.objects.get(pk=self.instance.pk).email
+    user_id = forms.IntegerField(widget=forms.HiddenInput())
+    password = forms.CharField(widget=forms.PasswordInput)
+    password_confirm = forms.CharField(widget=forms.PasswordInput)
+
+    def clean(self):
+        """ Ensure the passwords match. """
         
-    #     scientist: Scientist = super().save(commit=commit)
+        cleaned_data = super().clean()
 
-    #     try:
-    #         if old_email:
-    #             user: User = User.objects.get(email=old_email)
-    #             user.email = scientist.email
-    #             user.username = scientist.email
-    #             user.save()
+        if cleaned_data.get("password") != cleaned_data.get("password_confirm"):
+            self.add_error(None, "Passwords did not match.")
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """ Update the password. """
 
-    #     except User.DoesNotExist:
-    #         pass
+        user: User = User.objects.get(pk=self.cleaned_data["user_id"])
+        user.set_password(self.cleaned_data["password"])
 
-    #     return scientist
+        if commit:
+            user.save()
+
+        return user

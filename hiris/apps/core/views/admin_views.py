@@ -10,7 +10,7 @@ from django.shortcuts import render
 from django.urls import reverse, reverse_lazy
 
 from django.views.generic.base import TemplateView
-from django.views.generic.edit import CreateView, UpdateView
+from django.views.generic.edit import CreateView, UpdateView, FormView
 
 from hiris.apps.core import forms
 
@@ -29,9 +29,9 @@ class UserUpdate(LoginRequiredMixin, UpdateView):
 
     model = User
     template_name = 'admin/user_form.html'
-    # form_class = ScientistForm
+    form_class = forms.UserForm
 
-    # success_url = reverse_lazy("viroserve:scientist")
+    success_url = reverse_lazy("admin:user_list")
     
 
 class UserCreate(LoginRequiredMixin, CreateView):
@@ -42,3 +42,41 @@ class UserCreate(LoginRequiredMixin, CreateView):
     form_class = forms.UserForm
 
     success_url = reverse_lazy("admin:user_list")
+
+
+class UserPassword(LoginRequiredMixin, FormView):
+    """ Handles requests for setting a scientist's user password """
+
+    form_class = forms.UserPasswordForm
+    template_name: str = "admin/user_password_form.html"
+    success_url = reverse_lazy("admin:user_list")
+
+    def get_context_data(self, **kwargs):
+        """ Add the user to the context """
+
+        context: dict = super().get_context_data(**kwargs)
+        context["user"] = User.objects.get(pk=self.kwargs.get("pk"))
+        return context
+    
+    def get_initial(self):
+        """ Set the initial data for the form """
+
+        initial: dict = super().get_initial()
+        initial["user_id"] = self.kwargs.get("pk")
+
+        return initial
+    
+    def form_valid(self, form):
+        """ Save the form and redirect to the success url """
+
+        log.debug("Form is valid")
+        form.save()
+        return super().form_valid(form)  
+    
+    def form_invalid(self, form):
+        log.debug("Form is invalid")
+        return super().form_invalid(form)
+    
+    def post(self, request, *args, **kwargs):
+        log.debug("Post")
+        return super().post(request, *args, **kwargs)

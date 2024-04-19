@@ -632,8 +632,6 @@ class filter {
     click() {
         // Handle a click on the filter
 
-        console.log("click")
-
         this.currentValues = [];
         
         var currentValues = this.currentValues;

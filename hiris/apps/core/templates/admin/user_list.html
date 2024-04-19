@@ -25,13 +25,13 @@
         <div class="col-sm-3 summaryfilter" style="min-width: 230px;">
             <div style="margin-bottom: .5rem;" class="filters"><a href="javascript:void(0);" id="resetFilters">Reset All Filters</a></div>
             <div class="summaryfilter-border">
-                <div class="form-group filter-width" id="groupFilterContainer"></div>
+                <div class="form-group filter-width" id="groupsFilterContainer"></div>
             </div>
         </div>
         <div class="col-sm-9">
             <a href="{% url "admin:user_create" %}">Add User</a>
             <table  id="DataTable" 
-                    class="table table-striped table-bordered table-sm" 
+                    class="table table-striped table-bordered table-sm"
                     style="width:100%">
             </table>
         </div>
@@ -51,7 +51,7 @@
                 {name: "Password", editURL: "{% url 'admin:user_list' %}(row:id)/password/", toolTip: "Set password", buttonIcon: "lock"},
             ],
             filters: [
-                {name: "group", title: "Group", ajax: "{% url 'api:user-list' %}groups/", labelField: "groups__name"},
+                {name: "groups", title: "Group", ajax: "{% url 'api:user-list' %}groups/", labelField: "groups__name"},
             ]
         });
     });
