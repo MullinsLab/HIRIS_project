@@ -16,6 +16,7 @@ from . import BASE_DIR, PROJECT_DIR
 # Take environment variables from .env file
 env = environ.Env(DEBUG=(int, 0))
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+print(env)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # False if not in os.environ because of casting above
@@ -49,7 +50,7 @@ if LOGIN_TYPE == "sso":
 # The ports are only needed to get UW_SAML to not redirect to a bad port on login
 if LOGIN_TYPE in ("dual", "sso"):
     WEB_PORT = env("WEB_PORT")
-    EXTERNAL_WEB_PORT = env("EXTERNAL_WEB_PORT")
+    EXTERNAL_WEB_PORT = env("EXTERNAL_WEB_PORT", None)
 else:
     WEB_PORT = None
     EXTERNAL_WEB_PORT = None

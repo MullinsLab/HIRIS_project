@@ -57,24 +57,37 @@ if 'UW_SAML_CERT_DIR' in env:
         }
     }
 
-# Mock login for testing
-# DJANGO_LOGIN_MOCK_SAML = {
-#     'NAME_ID': 'mock-nameid',
-#     'SESSION_INDEX': 'mock-session',
-#     'SAML_USERS': [
-#         {
-#             "username": env('MOCK_USERNAME'),
-#             "password": 'saml',
-#             "email": 'saml@darleyconsulting.com',
-#             "MOCK_ATTRIBUTES" : {
-#                 'uwnetid': ['saml@uw.edu'],
-#                 'affiliations': ['student', 'member'],
-#                 'eppn': ['javerage@washington.edu'],
-#                 'scopedAffiliations': ['student@washington.edu', 'member@washington.edu'],
-#                 'isMemberOf': [
-#                     'u_test_group', 'u_test_another_group'
-#                 ],
-#             }
-#         }
-#     ]
-# }
+
+# SAML mocking
+if env('SAML_MOCK', default=False):
+
+    MOCK_SAML_ATTRIBUTES = {
+        'uwnetid': [env('MOCK_USERNAME')],
+        'affiliations': ['student', 'member'],
+        'eppn': [env('MOCK_EMAIL')],
+        'email': [env('MOCK_EMAIL')],
+        'scopedAffiliations': ['student@washington.edu', 'member@washington.edu'],
+        'isMemberOf': ['u_test_group', 'u_test_another_group'],
+    }
+
+    DJANGO_LOGIN_MOCK_SAML = {
+        'NAME_ID': 'mock-nameid',
+        'SESSION_INDEX': 'mock-session',
+        'SAML_USERS': [
+            {
+                "username":env('MOCK_USERNAME'),
+                "password": env('MOCK_PASSWORD'),
+                "email": env('MOCK_EMAIL'),
+                "MOCK_ATTRIBUTES" : {
+                    'uwnetid': [env('MOCK_USERNAME')],
+                    'affiliations': ['student', 'member'],
+                    'eppn': [env('MOCK_EMAIL')],
+                    'email': [env('MOCK_EMAIL')],
+                    'scopedAffiliations': ['student@washington.edu', 'member@washington.edu'],
+                    'isMemberOf': [
+                        'u_test_group', 'u_test_another_group'
+                    ],
+                }
+            }
+        ]
+    }
