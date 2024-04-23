@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% load humanize %}
+{% load static %}
+
+{% block header_content %}
+<link src="https://cdn.datatables.net/2.0.4/css/dataTables.dataTables.min.css" />
+<script src="https://cdn.datatables.net/2.0.4/js/dataTables.min.js"></script>
+<link href="{% static 'css/apiTables.css' %}" rel="stylesheet" type="text/css">
+<script src="{% static 'js/apiTableUtils.js' %}"></script>
+{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <h4>UserGroupss</h4>
+    <div class="row">
+        <div class="col-sm-6" style="margin-bottom: .5rem;">
+            <input type="text" class="form-control" id="SearchBox" placeholder="Search">
+        </div>
+        <div class="col-sm-6"></div>
+    </div>
+    <div class="row">
+        {% comment %} <div class="col-sm-3 summaryfilter" style="min-width: 230px;">
+            <div style="margin-bottom: .5rem;" class="filters"><a href="javascript:void(0);" id="resetFilters">Reset All Filters</a></div>
+            <div class="summaryfilter-border">
+                <div class="form-group filter-width" id="groupsFilterContainer"></div>
+            </div>
+        </div> {% endcomment %}
+        <div class="col-sm-9">
+            <a href="{% url "admin:group_create" %}">Add Group</a>
+            <table  id="DataTable" 
+                    class="table table-striped table-bordered table-sm"
+                    style="width:100%">
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        new apiTable({
+            ajax: "{% url 'api:group-list' %}?format=datatables", 
+            columns: [
+                "name",
+                {name: "Edit", editURL: "{% url 'admin:group_list' %}(row:id)/", toolTip: "Edit group"},
+            ],
+        });
+    });
+</script>
+{% endblock %}

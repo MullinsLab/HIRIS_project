@@ -43,3 +43,11 @@ class UserPasswordForm(forms.Form):
             user.save()
 
         return user
+    
+
+class GroupForm(forms.ModelForm):
+    """ Form for creating/editing a group. """
+
+    class Meta:
+        model = Group
+        fields = ("name",)

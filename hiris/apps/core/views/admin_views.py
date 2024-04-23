@@ -17,7 +17,7 @@ from hiris.apps.core import forms
 
     
 class UsersList(StaffRequiredMixin, TemplateView):
-    """ Control who can access the data """
+    """ Lists the users for editing """
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
         """ The basic page """
@@ -73,3 +73,34 @@ class UserPassword(StaffRequiredMixin, FormView):
         log.debug("Form is valid")
         form.save()
         return super().form_valid(form)  
+    
+    
+class GroupsList(StaffRequiredMixin, TemplateView):
+    """ Lists the groups for editing """
+
+    template_name = 'admin/group_list.html'
+
+    # def get(self, request, *args, **kwargs) -> HttpResponse:
+    #     """ The basic page """
+
+    #     return render(request, "admin/group_list.html")
+    
+
+class GroupUpdate(StaffRequiredMixin, UpdateView):
+    """ Handles requests for editing a group """
+
+    model = Group
+    template_name = 'admin/group_form.html'
+    fields = ["name"]
+
+    success_url = reverse_lazy("admin:group_list")
+
+
+class GroupCreate(StaffRequiredMixin, CreateView):
+    """ Handles requests for creating a group """
+
+    model = Group
+    template_name = 'admin/group_form.html'
+    fields = ["name"]
+
+    success_url = reverse_lazy("admin:group_list")
