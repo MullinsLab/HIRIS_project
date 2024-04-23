@@ -6,7 +6,6 @@ django-extensions==3.2.1
 psycopg2-binary
 jsonpickle
 django-settings-export
-django-guardian
 
 # Crispy Forms stuff
 django-crispy-forms

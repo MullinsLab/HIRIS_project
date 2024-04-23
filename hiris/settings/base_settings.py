@@ -72,7 +72,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'crispy_forms',
     'crispy_bootstrap5',
-    "guardian",
     "fontawesomefree",
 
     # HIRIS apps
@@ -85,7 +84,6 @@ AUTHENTICATION_BACKENDS = [
     # For UW_SAML
     'django.contrib.auth.backends.RemoteUserBackend',
     'django.contrib.auth.backends.ModelBackend',
-    'guardian.backends.ObjectPermissionBackend',
 ]
 
 MIDDLEWARE = list(filter(None, [

@@ -11,8 +11,6 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 
-from guardian.shortcuts import get_objects_for_user
-
 from ml_export_wizard.utils.exporter import exporters, ExporterQuery
 
 from hiris.apps.core.utils import db
@@ -147,27 +145,27 @@ class ListGFFs(LoginRequiredMixin, View):
     
 
 # Viewes for managing data
-class DataTools(LoginRequiredMixin, View):
-    """ List of the tools for managing data """
+# class DataTools(LoginRequiredMixin, View):
+#     """ List of the tools for managing data """
 
-    def get(self, request, *args, **kwargs) -> HttpResponse:
-        """ The basic page """
+#     def get(self, request, *args, **kwargs) -> HttpResponse:
+#         """ The basic page """
 
-        return render(request, "tools.html")
+#         return render(request, "tools.html")
     
 
-class DataAccess(LoginRequiredMixin, View):
-    """ Control who can access the data """
+# class DataAccess(LoginRequiredMixin, View):
+#     """ Control who can access the data """
 
-    def get(self, request, *args, **kwargs) -> HttpResponse:
-        """ The basic page """
+#     def get(self, request, *args, **kwargs) -> HttpResponse:
+#         """ The basic page """
 
-        user: User = request.user 
-        if user.is_staff:
-            data_sets: QuerySet[DataSet] = DataSet.objects.all()
-        else:
-            data_sets: QuerySet[DataSet] = get_objects_for_user(user, "core.view_dataset")
+#         user: User = request.user 
+#         if user.is_staff:
+#             data_sets: QuerySet[DataSet] = DataSet.objects.all()
+#         else:
+#             data_sets: QuerySet[DataSet] = get_objects_for_user(user, "core.view_dataset")
 
-        form: DataSetPublicForm = DataSetPublicForm(data_sets=data_sets)
+#         form: DataSetPublicForm = DataSetPublicForm(data_sets=data_sets)
 
-        return render(request, "data_access.html", context={"form": form})
+#         return render(request, "data_access.html", context={"form": form})
