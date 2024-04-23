@@ -2,6 +2,8 @@ import re
 
 from django.db import models
 
+from django.contrib.auth.models import User, Group
+
 from hiris.apps.core.utils.permissions import object_is_public
 
 # Overriding the default ID will make for a more comprehensible database for non-Django queries.
@@ -150,6 +152,8 @@ class DataSet(CoreBaseModel):
     data_set_id = models.BigAutoField(primary_key=True, editable=False)
     data_set_name = models.CharField(max_length=255, unique=True)
     genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="data_sets")
+    groups = models.ManyToManyField(Group, related_name="data_sets", blank=True)
+    users = models.ManyToManyField(User, related_name="data_sets", blank=True)
 
     class Meta:
         db_table = "data_sets"
