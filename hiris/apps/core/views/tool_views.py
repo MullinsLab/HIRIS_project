@@ -144,14 +144,14 @@ class ListGFFs(LoginRequiredMixin, View):
         return render(request, "list_gffs.html", context={"genes": genes})
     
 
-# Viewes for managing data
-# class DataTools(LoginRequiredMixin, View):
-#     """ List of the tools for managing data """
+# Views for managing data
+class DataTools(LoginRequiredMixin, View):
+    """ List of the tools for managing data """
 
-#     def get(self, request, *args, **kwargs) -> HttpResponse:
-#         """ The basic page """
+    def get(self, request, *args, **kwargs) -> HttpResponse:
+        """ The basic page """
 
-#         return render(request, "tools.html")
+        return render(request, "tools.html")
     
 
 # class DataAccess(LoginRequiredMixin, View):

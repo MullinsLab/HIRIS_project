@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load rest_framework %}
+{% load crispy_forms_tags %}
+
+{% block header_content %}{% include "utils/table_includes.html" %}{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+<h4>Data Set Access</h4>
+<table id="dataSets" class="table table-striped">
+    <tr>
+        <thead>
+            <th>Data Set</th>
+            <th>Public</th>
+            <th>All Logged In Users</th>
+            <th>Specific Users / Groups</th>
+        </thead>
+    </tr>
+
+    <tbody>
+    {% for data_set in data_sets %}
+        <tr>
+        {% with access_control=data_set.access_control %}
+            <td>{{ data_set.name }}</td>
+            <td>{% if access_control == "Public" %}1{% else %}0{% endif %}</td>
+            <td>{% if access_control == "Everyone" %}1{% else %}0{% endif %}</td>
+            <td>{% if access_control == "Specific" %}1{% else %}0{% endif %}</td>
+        {% endwith %}
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    $(document).ready(function() {
+        new DataTable('#dataSets')
+    });
+</script>
+
+{% endblock %}

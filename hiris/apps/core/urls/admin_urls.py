@@ -18,4 +18,6 @@ urlpatterns = [
     path("groups/", views.GroupsList.as_view(), name="group_list"),
     path("groups/<int:pk>/", views.GroupUpdate.as_view(), name="group_update"),
     path("groups/create/", views.GroupCreate.as_view(), name="group_create"),
+
+    path("data_set_access/", views.DataSetAccessList.as_view(), name="data_set_access_list"),
 ]

@@ -14,15 +14,13 @@ from django.views.generic.edit import CreateView, UpdateView, FormView
 
 from hiris.utils import StaffRequiredMixin
 from hiris.apps.core import forms
+from hiris.apps.core.models import DataSet
 
     
 class UsersList(StaffRequiredMixin, TemplateView):
     """ Lists the users for editing """
 
-    def get(self, request, *args, **kwargs) -> HttpResponse:
-        """ The basic page """
-
-        return render(request, "admin/user_list.html")
+    template_name = "admin/user_list.html"
     
 
 class UserUpdate(StaffRequiredMixin, UpdateView):
@@ -79,11 +77,6 @@ class GroupsList(StaffRequiredMixin, TemplateView):
     """ Lists the groups for editing """
 
     template_name = 'admin/group_list.html'
-
-    # def get(self, request, *args, **kwargs) -> HttpResponse:
-    #     """ The basic page """
-
-    #     return render(request, "admin/group_list.html")
     
 
 class GroupUpdate(StaffRequiredMixin, UpdateView):
@@ -104,3 +97,10 @@ class GroupCreate(StaffRequiredMixin, CreateView):
     fields = ["name"]
 
     success_url = reverse_lazy("admin:group_list")
+
+
+class DataSetAccessList(StaffRequiredMixin, TemplateView):
+    """ Handles requests for viewing and editing dataset permissions """
+
+    template_name = "admin/dataset_access_list.html"
+    extra_context = {"data_sets": DataSet.objects.all()}

@@ -1,14 +1,6 @@
 {% extends "base.html" %}
 
-{% load humanize %}
-{% load static %}
-
-{% block header_content %}
-<link src="https://cdn.datatables.net/2.0.4/css/dataTables.dataTables.min.css" />
-<script src="https://cdn.datatables.net/2.0.4/js/dataTables.min.js"></script>
-<link href="{% static 'css/apiTables.css' %}" rel="stylesheet" type="text/css">
-<script src="{% static 'js/apiTableUtils.js' %}"></script>
-{% endblock %}
+{% block header_content %}{% include "utils/table_includes.html" %}{% endblock %}
 
 {% block page_content %}
 <div class="container-fluid">

@@ -3,7 +3,10 @@
 import logging
 logger = logging.getLogger("app")
 
+from functools import cache
+
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import User, Group
 from django.http import HttpResponseRedirect
 from django.shortcuts import reverse
 
@@ -19,3 +22,17 @@ class StaffRequiredMixin(LoginRequiredMixin):
             return HttpResponseRedirect(reverse("error_staff_required"))
         
         return super().dispatch(request, *args, **kwargs)
+    
+
+@cache
+def get_anonymous_user():
+    """ Returns the anonymout user """
+
+    return User.objects.get(username="AnonymousUser")
+
+
+@cache
+def get_everyone_group():
+    """ Returns the everyone group """
+
+    return Group.objects.get(name="Everyone")

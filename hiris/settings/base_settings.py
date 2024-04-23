@@ -16,7 +16,6 @@ from . import BASE_DIR, PROJECT_DIR
 # Take environment variables from .env file
 env = environ.Env(DEBUG=(int, 0))
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-print(env)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # False if not in os.environ because of casting above

@@ -4,6 +4,7 @@ from django.db import models
 
 from django.contrib.auth.models import User, Group
 
+from hiris.utils import get_anonymous_user, get_everyone_group
 from hiris.apps.core.utils.permissions import object_is_public
 
 # Overriding the default ID will make for a more comprehensible database for non-Django queries.
@@ -162,6 +163,19 @@ class DataSet(CoreBaseModel):
             ("control_dataset", "Full controll"),
             # ("view_dataset", "View data set"),
         )
+
+    @property
+    def access_control(self) -> str:
+        """ Returns the number of users and groups that have access to the data set """
+
+        if get_anonymous_user() in self.users.all():
+            return "Public"
+        
+        if get_everyone_group() in self.groups.all():
+            return "Everyone"
+        
+        else:
+            return "Specific"
 
 
 class DataSetSource(CoreBaseModel):

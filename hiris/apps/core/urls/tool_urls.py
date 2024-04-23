@@ -18,6 +18,6 @@ urlpatterns = [
     path("summary-by-gene.js", views.SummaryByGeneJS.as_view(), name="summary_by_gene_js"),
     path("full-summary-by-gene.js", views.FullSummaryByGeneJS.as_view(), name="full_summary_by_gene_js"),
     path ("list_gffs", views.ListGFFs.as_view(), name="gff_files"),
-    # path("data_tools", views.DataTools.as_view(), name="data_tools"),
+    path("data_tools", views.DataTools.as_view(), name="data_tools"),
     # path("data_access", views.DataAccess.as_view(), name="data_access"),
 ]
