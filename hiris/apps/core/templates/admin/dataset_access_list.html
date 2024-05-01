@@ -7,24 +7,39 @@
 {% block page_content %}
 <div class="container-fluid">
 <h4>Data Set Access</h4>
-<table id="dataSets" class="table table-striped">
-    <tr>
-        <thead>
+<table id="dataSets" class="table table-striped compact">
+    <thead>
+        <tr>
             <th>Data Set</th>
-            <th>Public</th>
-            <th>All Logged In Users</th>
-            <th>Specific Users / Groups</th>
-        </thead>
-    </tr>
+            <th>Access</th>
+            <th>Specific Access</th>
+        </tr>
+    </thead>
 
     <tbody>
     {% for data_set in data_sets %}
         <tr>
         {% with access_control=data_set.access_control %}
             <td>{{ data_set.name }}</td>
-            <td>{% if access_control == "Public" %}1{% else %}0{% endif %}</td>
-            <td>{% if access_control == "Everyone" %}1{% else %}0{% endif %}</td>
-            <td>{% if access_control == "Specific" %}1{% else %}0{% endif %}</td>
+            {% comment %} <td>{{ access_control }}</td> {% endcomment %}
+            <td>
+                <select class="form-select" aria-label="Default select example" style="width:auto;">
+                    {% for option,label in options.items %}
+                    <option value="{{ option }}"{% if option == access_control %} selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td>
+                {% if access_control == 'specific' %}
+                    <ul>
+                        {% for user in data_set.users.all %}
+                        <li>{{ user }}</li>
+                    {% endfor %}
+                    {% for group in data_set.groups.all %}
+                        <li>{{ group }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
         {% endwith %}
         </tr>
     {% endfor %}

@@ -77,25 +77,23 @@
             <div class="collapse navbar-collapse " id="navbarSupportedContent">
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_staff %}
-                        <li class="nav-item">
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Admin
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item text-nowrap" href="{% url 'admin:user_list' %}">Manage Users</a></li>
-                                    <li><a class="dropdown-item text-nowrap" href="{% url 'admin:group_list' %}">Manage User Groups</a></li>
-                                    <li><a class="dropdown-item text-nowrap" href="{% url 'admin:data_set_access_list' %}">Manage Data Set Access</a></li>
-                                </ul>
-                            </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarAdminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Admin
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarAdminDropdown">
+                                <li><a class="dropdown-item text-nowrap" href="{% url 'admin:user_list' %}">Manage Users</a></li>
+                                <li><a class="dropdown-item text-nowrap" href="{% url 'admin:group_list' %}">Manage User Groups</a></li>
+                                <li><a class="dropdown-item text-nowrap" href="{% url 'admin:data_set_access_list' %}">Manage Data Set Access</a></li>
+                            </ul>
                         </li>
                     {% endif %}
                     {% if user.is_authenticated %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 {% pretty_user_name %}
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
                                 <li><a class="dropdown-item" href="/logout?next={{ about_url }}">Logout</a></li>
                                 <li><a class="dropdown-item" href="#">Change Password</a></li>
                             </ul>

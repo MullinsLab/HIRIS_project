@@ -1,7 +1,9 @@
 from rest_framework import serializers
 
-from hiris.apps.core.models import GenomeSpecies
+
 from django.contrib.auth.models import User, Group
+
+from hiris.apps.core.models import GenomeSpecies, DataSet
 
 
 class GenomeSpeciesSerializer(serializers.HyperlinkedModelSerializer):
@@ -30,3 +32,15 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "first_name", "last_name", "email", "username", "groups"]
         datatables_always_serialize = ("id", )
+
+
+class DataSetSerializer(serializers.ModelSerializer):
+    """ Serializer for DataSet """
+
+    users = UserSerializer(many=True, read_only=False)
+    groups = GroupSerializer(many=True, read_only=False)
+
+    class Meta:
+        model = DataSet
+        fields = '__all__'
+        datatables_always_serialize = ("id",)

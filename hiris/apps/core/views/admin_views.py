@@ -102,5 +102,7 @@ class GroupCreate(StaffRequiredMixin, CreateView):
 class DataSetAccessList(StaffRequiredMixin, TemplateView):
     """ Handles requests for viewing and editing dataset permissions """
 
+    options: dict = {"Anonymous": "Anonymous users", "Everyone": "All logged in users", "Specific": "Specific users or groups"}
+
     template_name = "admin/dataset_access_list.html"
-    extra_context = {"data_sets": DataSet.objects.all()}
+    extra_context = {"data_sets": DataSet.objects.all(), "options": options}

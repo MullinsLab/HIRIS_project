@@ -6,9 +6,10 @@ from django.db import connection
 from collections import namedtuple
 from functools import lru_cache
 
-from ml_export_wizard.utils.exporter import exporters
+from ml_export_wizard.utils.exporter import exporters # type: ignore
 
 from hiris.apps.core.models import Publication, Feature, GenomeVersion, LandmarkChromosome
+
 
 def generic_query(sql: str = None, no_return: bool=False) -> list[dict]|None:
     """ Reuturns a list of namedtuples with the data """
