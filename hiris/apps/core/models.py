@@ -155,7 +155,7 @@ class DataSet(CoreBaseModel):
     genome_version = models.ForeignKey(GenomeVersion, on_delete=models.CASCADE, related_name="data_sets")
     groups = models.ManyToManyField(Group, related_name="data_sets", blank=True)
     users = models.ManyToManyField(User, related_name="data_sets", blank=True)
-
+    
     class Meta:
         db_table = "data_sets"
         ordering = ["data_set_name"]

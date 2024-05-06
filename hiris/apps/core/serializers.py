@@ -43,4 +43,4 @@ class DataSetSerializer(serializers.ModelSerializer):
     class Meta:
         model = DataSet
         fields = '__all__'
-        datatables_always_serialize = ("id",)
+        datatables_always_serialize = ("data_set_id",)

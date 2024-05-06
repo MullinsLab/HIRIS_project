@@ -7,6 +7,8 @@ from django.contrib.auth.models import User
 from rest_framework_datatables.django_filters.filters import GlobalFilter
 from rest_framework_datatables.django_filters.filterset import DatatablesFilterSet
 
+from hiris.apps.core.models import DataSet
+
 
 class GlobalCharFilter(GlobalFilter, filters.CharFilter):
     pass
@@ -23,4 +25,14 @@ class UserGlobalFilter(DatatablesFilterSet):
 
     class Meta:
         model = User
+        fields = '__all__'
+
+
+class DataSetFilter(DatatablesFilterSet):
+    """ Filter DataSet by name and description """
+
+    data_set_name = GlobalCharFilter(lookup_expr="icontains")
+
+    class Meta:
+        model = DataSet
         fields = '__all__'

@@ -10,32 +10,30 @@ from rest_framework.response import Response
 
 from rest_framework_datatables.django_filters.backends import DatatablesFilterBackend
 
-from hiris.apps.core.models import GenomeSpecies
-from hiris.apps.core.serializers import GenomeSpeciesSerializer, UserSerializer, GroupSerializer
-from hiris.apps.core.filters import UserGlobalFilter
+from hiris.apps.core import models, serializers, filters
 
 class GenomeSpeciesViewSet(viewsets.ModelViewSet):
     """ ViewSet for viewing and editing GenomeSpecies objects """
 
-    queryset = GenomeSpecies.objects.all()
-    serializer_class = GenomeSpeciesSerializer
+    queryset = models.GenomeSpecies.objects.all()
+    serializer_class = serializers.GenomeSpeciesSerializer
 
 
 class GroupViewSet(viewsets.ModelViewSet):
     """ ViewSet for viewing and editing Group objects """
 
     queryset = Group.objects.all()
-    serializer_class = GroupSerializer
+    serializer_class = serializers.GroupSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
     """ ViewSet for viewing and editing User objects """
 
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = serializers.UserSerializer
 
     filter_backends = (DatatablesFilterBackend, )
-    filterset_class = UserGlobalFilter
+    filterset_class = filters.UserGlobalFilter
 
     @action(detail=False)
     def groups(self, request, *args, **kwargs):
@@ -48,3 +46,14 @@ class UserViewSet(viewsets.ModelViewSet):
         result_list = queryset.values('groups__name').annotate(count=Count('pk')).order_by()
 
         return Response(result_list)
+    
+
+class DataSetViewSet(viewsets.ModelViewSet):
+    """ ViewSet for viewing and editing DataSet objects """
+
+    queryset = models.DataSet.objects.all()
+    serializer_class = serializers.DataSetSerializer
+
+    # filter_backends = (DatatablesFilterBackend, )
+    # filterset_fields = '__all__'
+    # filterset_class = filters.DataSetFilter
