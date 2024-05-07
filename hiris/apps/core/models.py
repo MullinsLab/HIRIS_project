@@ -1,3 +1,6 @@
+import logging
+log = logging.getLogger("app")
+
 import re
 
 from django.db import models
@@ -159,10 +162,6 @@ class DataSet(CoreBaseModel):
     class Meta:
         db_table = "data_sets"
         ordering = ["data_set_name"]
-        permissions = (
-            ("control_dataset", "Full controll"),
-            # ("view_dataset", "View data set"),
-        )
 
     @property
     def access_control(self) -> str:
@@ -176,6 +175,31 @@ class DataSet(CoreBaseModel):
         
         else:
             return "Specific"
+        
+    @access_control.setter
+    def access_control(self, value: str) -> None:
+        """ Set the access control for the data set """
+
+        log.warn(f"Got value: {value}")
+
+        if self.access_control == value:
+            return
+
+        if value == "Public":
+            self.users.add(get_anonymous_user())
+            log.warn(f"Added anonymous user to {self.data_set_name}")
+        
+        elif value == "Everyone":
+            self.groups.add(get_everyone_group())
+            self.users.remove(get_anonymous_user())
+            log.warn(f"Added everyone group to {self.data_set_name}")
+        
+        elif value == "Specific":
+            self.groups.remove(get_everyone_group())
+            self.users.remove(get_anonymous_user())
+            log.warn(f"Removed everyone group from {self.data_set_name}")
+
+        self.save()
 
 
 class DataSetSource(CoreBaseModel):

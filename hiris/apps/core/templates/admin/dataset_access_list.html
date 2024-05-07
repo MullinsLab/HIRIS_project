@@ -52,10 +52,9 @@
     });
 
     function updateAccessControl(control) {
-        updateAPIEndpoint({keyName: "data_set_id", keyValue: control.id.split('_')[1], apiEndpoint: "data_sets", fields: {data_set_name: "test"}})
+        console.log($(control).find(":selected").val())
+        updateAPIEndpoint({keyValue: control.id.split('_')[1], apiEndpoint: "data_sets", fields: {access_control: $(control).find(":selected").val()}})
     }
-
-    {% comment %} function  {% endcomment %}
 </script>
 
 {% endblock %}

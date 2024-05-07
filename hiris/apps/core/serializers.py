@@ -36,11 +36,12 @@ class UserSerializer(serializers.ModelSerializer):
         datatables_always_serialize = ("id", )
 
 
-class DataSetSerializer(serializers.ModelSerializer):
+class DataSetSerializer(serializers.ModelSerializer): 
     """ Serializer for DataSet """
 
     users = UserSerializer(many=True, read_only=False)
     groups = GroupSerializer(many=True, read_only=False)
+    access_control = serializers.CharField(read_only=False)
 
     class Meta:
         model = DataSet
@@ -51,6 +52,7 @@ class DataSetSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         """ Update DataSet instance """
 
-        log.debug(validated_data)
+        if access_control := validated_data.pop("access_control", None):
+            instance.access_control = access_control
 
         return instance
