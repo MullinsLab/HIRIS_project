@@ -53,6 +53,7 @@ class DataSetViewSet(viewsets.ModelViewSet):
 
     queryset = models.DataSet.objects.all()
     serializer_class = serializers.DataSetSerializer
+    filterset_fields = ["data_set_id"]
 
     # filter_backends = (DatatablesFilterBackend, )
     # filterset_fields = '__all__'

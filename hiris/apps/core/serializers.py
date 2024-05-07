@@ -1,5 +1,7 @@
-from rest_framework import serializers
+import logging
+log = logging.getLogger("app")
 
+from rest_framework import serializers
 
 from django.contrib.auth.models import User, Group
 
@@ -42,5 +44,13 @@ class DataSetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DataSet
-        fields = '__all__'
+        fields = ["data_set_id", "data_set_name", "users", "groups", "added", "updated", "access_control"]
+        read_only_fields = ("data_set_id",)
         datatables_always_serialize = ("data_set_id",)
+
+    def update(self, instance, validated_data):
+        """ Update DataSet instance """
+
+        log.debug(validated_data)
+
+        return instance

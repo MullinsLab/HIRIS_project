@@ -23,7 +23,7 @@
             <td>{{ data_set.name }}</td>
             {% comment %} <td>{{ access_control }}</td> {% endcomment %}
             <td>
-                <select class="form-select" aria-label="Default select example" style="width:auto;">
+                <select class="form-select" aria-label="Default select example" style="width:auto;" id="accessControl_{{ data_set.pk }}" onchange="updateAccessControl(this);">
                     {% for option,label in options.items %}
                     <option value="{{ option }}"{% if option == access_control %} selected{% endif %}>{{ label }}</option>
                     {% endfor %}
@@ -50,6 +50,12 @@
     $(document).ready(function() {
         new DataTable('#dataSets')
     });
+
+    function updateAccessControl(control) {
+        updateAPIEndpoint({keyName: "data_set_id", keyValue: control.id.split('_')[1], apiEndpoint: "data_sets", fields: {data_set_name: "test"}})
+    }
+
+    {% comment %} function  {% endcomment %}
 </script>
 
 {% endblock %}
