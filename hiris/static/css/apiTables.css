@@ -1,12 +1,8 @@
 /* padding for filters on sample details */
 .summaryfilter {
-    /* margin-left: 20px; */
-    /* margin-right: -20px;
-    padding-left: 20px; */
     padding-left: 20px;
     padding-top: 10px;
     min-width: 230px;
-    /* min-width: 200px; */
     margin-bottom: 10px;
 }
 

@@ -5,6 +5,7 @@ log = logging.getLogger('app')
 from django import forms
 
 from django.contrib.auth.models import User, Group
+from hiris.apps.core import models
 
 
 class UserForm(forms.ModelForm):
@@ -51,3 +52,12 @@ class GroupForm(forms.ModelForm):
     class Meta:
         model = Group
         fields = ("name",)
+
+
+class DataSetForm(forms.ModelForm):
+    """ Form for creating/editing a data set. """
+
+    class Meta:
+        model = models.DataSet
+        fields = ("data_set_name", "users", "groups")
+        widgets = {"users": forms.CheckboxSelectMultiple(), "groups": forms.CheckboxSelectMultiple()}

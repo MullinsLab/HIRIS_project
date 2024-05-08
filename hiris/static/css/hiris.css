@@ -116,3 +116,11 @@ a:link{
 .center{
     text-align: center;
 }
+
+.hide{
+    display: none;
+}
+
+.nowrap{
+    white-space: nowrap;
+}

@@ -103,6 +103,19 @@ class DataSetAccessList(StaffRequiredMixin, TemplateView):
     """ Handles requests for viewing and editing dataset permissions """
 
     options: dict = {"Public": "Public", "Everyone": "All logged in users", "Specific": "Specific users or groups"}
+    template_name: str = "admin/dataset_access_list.html"
 
-    template_name = "admin/dataset_access_list.html"
-    extra_context = {"data_sets": DataSet.objects.all(), "options": options}
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["data_sets"] = DataSet.objects.all().prefetch_related("users").prefetch_related("groups")
+        context["options"] = self.options
+
+        return context
+
+
+class DataSetAccessUpdate(StaffRequiredMixin, UpdateView):
+    """ Handles requests for editing dataset permissions """
+
+    model = DataSet
+    template_name = "admin/dataset_form.html"
+    form_class = forms.DataSetForm

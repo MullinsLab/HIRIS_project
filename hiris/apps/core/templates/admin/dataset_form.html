@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load rest_framework %}
+{% load crispy_forms_tags %}
+
+{% block page_name%}::Scientists{% endblock %}
+{% block alert %}{% include "in_development.html" %}{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid">
+    <div class="message" id="message"></div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <h4 class="page-header">
+                Set specific permissions for {{ form.data_set_name.value }}
+            </h4>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <form action="" method="post">
+                {% csrf_token %}
+                <table>
+                    <tr>
+                        <td class="col-sm-2">{{ form.users.label_tag }}{{ form.users.errors }}</td>
+                        <td><div style="max-height: 20em; overflow-y: auto; display: block; padding-left: 5px" class="border">{{ form.users }}</div></td>
+                    </tr>
+                    <tr>
+                        <td class="col-sm-2">{{ form.groups.label_tag }}{{ form.groups.errors }}</td>
+                        <td><div style="max-height: 20em; overflow-y: auto; display: block; padding-left: 5px" class="border">{{ form.groups }}</div></td>
+                    </tr>
+                </table>
+                <input type="submit" value="Save">
+            </form><br>
+        </div>
+    </div>
+</div>
+{% endblock %}

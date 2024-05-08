@@ -10,6 +10,8 @@ function updateAPIEndpoint(args) {
     $.ajax({ 
         url: `/api/${args.apiEndpoint}/${args.keyValue}/`,
         method: 'PATCH', 
+        headers: {'X-CSRFToken': csrftoken},
+        mode: 'same-origin',
         data: args.fields, 
         success: function(response) { 
             // Add in when needed

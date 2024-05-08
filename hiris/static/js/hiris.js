@@ -52,7 +52,7 @@ $( document ).ready(function() {
     
     // set csrftoken value
     window.csrftoken = getCookie('csrftoken');
-    ajaxSetup(csrftoken);
+    // ajaxSetup(csrftoken);
     
     //var buttons = d3.selectAll('#render');
     //buttons.each(function(){console.log(this)})

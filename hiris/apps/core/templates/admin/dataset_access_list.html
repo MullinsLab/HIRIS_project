@@ -7,12 +7,12 @@
 {% block page_content %}
 <div class="container-fluid">
 <h4>Data Set Access</h4>
-<table id="dataSets" class="table table-striped compact">
+<table id="dataSets" class="table table-striped w-auto nowrap">
     <thead>
         <tr>
             <th>Data Set</th>
             <th>Access</th>
-            <th>Specific Access</th>
+            <th></th>
         </tr>
     </thead>
 
@@ -21,25 +21,16 @@
         <tr>
         {% with access_control=data_set.access_control %}
             <td>{{ data_set.name }}</td>
-            {% comment %} <td>{{ access_control }}</td> {% endcomment %}
             <td>
                 <select class="form-select" aria-label="Default select example" style="width:auto;" id="accessControl_{{ data_set.pk }}" onchange="updateAccessControl(this);">
                     {% for option,label in options.items %}
-                    <option value="{{ option }}"{% if option == access_control %} selected{% endif %}>{{ label }}</option>
+                        <option value="{{ option }}"{% if option == access_control %} selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </td>
             <td>
-                {% if access_control == 'specific' %}
-                    <ul>
-                        {% for user in data_set.users.all %}
-                        <li>{{ user }}</li>
-                    {% endfor %}
-                    {% for group in data_set.groups.all %}
-                        <li>{{ group }}</li>
-                    {% endfor %}
-                    </ul>
-                {% endif %}
+                <a href="{% url "admin:data_set_access_list" %}{{ data_set.pk }}/"{% if access_control != "Specific" %} class='hide'{% endif %}><i class="fa fa-pencil"></i> Edit users/groups</a>
+            </td>
         {% endwith %}
         </tr>
     {% endfor %}
