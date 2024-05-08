@@ -306,6 +306,8 @@ logging.config.dictConfig({
         'app': {
             'level': LOGLEVEL,
             'handlers': ['console', 'hiris.log'],
+            # prevent duplicate log in console
+            'propagate': False,
         },
 
         # Logging for tests
