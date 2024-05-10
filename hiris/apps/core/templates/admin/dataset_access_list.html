@@ -29,7 +29,7 @@
                 </select>
             </td>
             <td>
-                <a href="{% url "admin:data_set_access_list" %}{{ data_set.pk }}/"{% if access_control != "Specific" %} class='hide'{% endif %}><i class="fa fa-pencil"></i> Edit users/groups</a>
+                <a href="{% url "admin:data_set_access_list" %}{{ data_set.pk }}/"{% if access_control != "Specific" %} class='hide'{% endif %} id='editSpecific{{ data_set.pk }}'><i class="fa fa-pencil"></i> Edit users/groups</a>
             </td>
         {% endwith %}
         </tr>
@@ -43,8 +43,14 @@
     });
 
     function updateAccessControl(control) {
-        console.log($(control).find(":selected").val())
-        updateAPIEndpoint({keyValue: control.id.split('_')[1], apiEndpoint: "data_sets", fields: {access_control: $(control).find(":selected").val()}})
+        var access_control = $(control).find(":selected").val()
+        updateAPIEndpoint({keyValue: control.id.split('_')[1], apiEndpoint: "data_sets", fields: {access_control: access_control}})
+        
+        if (access_control == "Specific") {
+            $(control).parent().parent().find('a').removeClass('hide')
+        } else {
+            $(control).parent().parent().find('a').addClass('hide')
+        }
     }
 </script>
 

@@ -59,5 +59,5 @@ class DataSetForm(forms.ModelForm):
 
     class Meta:
         model = models.DataSet
-        fields = ("data_set_name", "users", "groups")
+        fields = ("users", "groups") 
         widgets = {"users": forms.CheckboxSelectMultiple(), "groups": forms.CheckboxSelectMultiple()}

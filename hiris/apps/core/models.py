@@ -163,6 +163,9 @@ class DataSet(CoreBaseModel):
         db_table = "data_sets"
         ordering = ["data_set_name"]
 
+    def str(self) -> str:
+        return self.data_set_name
+
     @property
     def access_control(self) -> str:
         """ Returns the number of users and groups that have access to the data set """
