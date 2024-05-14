@@ -38,7 +38,22 @@ ML_EXPORT_WIZARD = {
                             "dont_link_to": ["DataSet"]
                         },
                         "DataSet": {
-                            "dont_link_to": ["GenomeVersion"]
+                            "dont_link_to": ["GenomeVersion"],
+                            # "compound_where": {
+                            #     "compounder": "or",
+                            #     "where": [
+                            #         {
+                            #             "field": "data_set_name",
+                            #             "operator": "like",
+                            #             "value": "Broad",
+                            #         },
+                            #         {
+                            #             "field": "data_set_name",
+                            #             "operator": "like",
+                            #             "value": "Broad%",
+                            #         },
+                            #     ],
+                            # }
                         },
                     },
                 }
