@@ -4,14 +4,14 @@ log = logging.getLogger("app")
 import re
 
 from django.db import models
-
 from django.contrib.auth.models import User, Group
 
 from hiris.utils import get_anonymous_user, get_everyone_group
-from hiris.apps.core.utils.permissions import object_is_public
+from hiris.apps.core.managers import DataSetLimitingManager
 
 # Overriding the default ID will make for a more comprehensible database for non-Django queries.
 # Including dates for each object.  It's cheap to store and may be useful at some time.
+
 
 class CoreBaseModel(models.Model):
     ''' A base class to hold comon methods and attributes.  It's Abstract so Django won't make a table for it
@@ -41,12 +41,17 @@ class CoreBaseModel(models.Model):
         ''' Generic stringify function.  Most objects will have a name so it's the default. '''
 
         return self.name
-    
-    @property
-    def is_public(self) -> bool:
-        """ Returns true if the object is public """
 
-        return object_is_public(self)
+
+class DataSetLimitingModel(CoreBaseModel):
+    """ Holds the managers for models that need to be limited by cohort.  
+    It's Abstract so Django won't make a table for it """
+
+    objects = DataSetLimitingManager()
+    objects_raw = models.Manager()
+
+    class Meta:
+        abstract = True
 
 
 class GenomeSpecies(CoreBaseModel):
@@ -119,7 +124,7 @@ class Feature(CoreBaseModel):
         return f"{self.feature_id}: {self.feature_name}"
 
 
-class FeatureLocation(CoreBaseModel):
+class FeatureLocation(DataSetLimitingModel):
     ''' Holds gene (and other feature) location data '''
 
     feature_location_id = models.BigAutoField(primary_key=True, editable=False)
@@ -150,7 +155,7 @@ class FeatureLocation(CoreBaseModel):
         ]
 
 
-class DataSet(CoreBaseModel):
+class DataSet(DataSetLimitingModel):
     """ Holds core data about a data set """
 
     data_set_id = models.BigAutoField(primary_key=True, editable=False)
@@ -168,7 +173,7 @@ class DataSet(CoreBaseModel):
 
     @property
     def access_control(self) -> str:
-        """ Returns the number of users and groups that have access to the data set """
+        """ Returns who has access to the data set """
 
         if get_anonymous_user() in self.users.all():
             return "Public"
@@ -201,7 +206,7 @@ class DataSet(CoreBaseModel):
         self.save()
 
 
-class DataSetSource(CoreBaseModel):
+class DataSetSource(DataSetLimitingModel):
     """ Holds data about the source of a data set """
 
     data_set_source_id = models.BigAutoField(primary_key=True, editable=False)
@@ -232,7 +237,7 @@ class DataSetSource(CoreBaseModel):
         unique_together = ("data_set", "document_pubmed_id", "document_uri", "document_citation_url", "document_citation_doi", "document_citation_issn", "document_citation_year", "document_citation_type", "document_citation_pages", "document_citation_title", "document_citation_author", "document_citation_issue_number", "document_citation_volume", "document_citation_journal", "document_citation_citekey")
 
 
-class Publication(CoreBaseModel):
+class Publication(DataSetLimitingModel):
     """ Holds information about the publications that the data comes from """
 
     publication_id = models.BigAutoField(primary_key=True, editable=False)
@@ -246,7 +251,7 @@ class Publication(CoreBaseModel):
         unique_together = ("data_set", "publication_pubmed_id")
 
 
-class PublicationData(CoreBaseModel):
+class PublicationData(DataSetLimitingModel):
     """ Holds information about publications, one row per key/value pair """
 
     publication_data_id = models.BigAutoField(primary_key=True, editable=False)
@@ -266,7 +271,7 @@ class PublicationData(CoreBaseModel):
         ]
 
 
-class Subject(CoreBaseModel):
+class Subject(DataSetLimitingModel):
     """ Holds data about the subject the samples were collected from """
 
     subject_id = models.BigAutoField(primary_key=True, editable=False)
@@ -284,7 +289,7 @@ class Subject(CoreBaseModel):
         unique_together = ('publication', 'subject_identifier')
 
 
-class SubjectData(CoreBaseModel):
+class SubjectData(DataSetLimitingModel):
     """ Holds random data about the subject """
 
     subject_data_id = models.BigAutoField(primary_key=True, editable=False)
@@ -308,7 +313,7 @@ class SubjectData(CoreBaseModel):
             models.Index(fields=["subject"]),
         ]
 
-class Sample(CoreBaseModel):
+class Sample(DataSetLimitingModel):
     """ Holds data about a specific sample """
 
     sample_id = models.BigAutoField(primary_key=True, editable=False)
@@ -325,7 +330,7 @@ class Sample(CoreBaseModel):
         db_table = "samples"
     
 
-class SampleData(CoreBaseModel):
+class SampleData(DataSetLimitingModel):
     """ Holds random data about the sample """
 
     sample_data_id = models.BigAutoField(primary_key=True, editable=False)
@@ -345,7 +350,7 @@ class SampleData(CoreBaseModel):
         ]
 
 
-class Preparation(CoreBaseModel):
+class Preparation(DataSetLimitingModel):
     """ Holds data about how thesample was prepared """
 
     preparation_id = models.BigAutoField(primary_key=True, editable=False)
@@ -363,7 +368,7 @@ class Preparation(CoreBaseModel):
         unique_together = ("sample", "preparation_description")
 
     
-class SequencingMethod(CoreBaseModel):
+class SequencingMethod(DataSetLimitingModel):
     """ Holds data about how the samples were sequenced """
 
     sequencing_method_id = models.BigAutoField(primary_key=True, editable=False)
@@ -376,7 +381,7 @@ class SequencingMethod(CoreBaseModel):
         unique_together = ("preparation", "sequencing_method_name", "sequencing_method_descripion")
 
 
-class IntegrationEnvironment(CoreBaseModel):
+class IntegrationEnvironment(DataSetLimitingModel):
     """ Holds data about the environment the sample was collected from """
 
     integration_environment_id = models.BigAutoField(primary_key=True, editable=False)
@@ -386,7 +391,7 @@ class IntegrationEnvironment(CoreBaseModel):
         db_table = "integration_environments"
 
 
-class Integration(CoreBaseModel):
+class Integration(DataSetLimitingModel):
     """ Holds data about an individual integration """
 
     integration_id = models.BigAutoField(primary_key=True, editable=False)
@@ -424,7 +429,7 @@ class Integration(CoreBaseModel):
         ]
 
 
-class IntegrationLocation(CoreBaseModel):
+class IntegrationLocation(DataSetLimitingModel):
     """ Holds data about the locations of a specific integration """
 
     integration_location_id = models.BigAutoField(primary_key=True, editable=False)
@@ -463,7 +468,7 @@ class IntegrationLocation(CoreBaseModel):
         return f"{self.landmark}: {self.location}"
 
 
-class IntegrationFeature(CoreBaseModel):
+class IntegrationFeature(DataSetLimitingModel):
     """ Holds the links between Integrations and Features """
 
     integration_feature_id = models.BigAutoField(primary_key=True)
@@ -480,7 +485,7 @@ class IntegrationFeature(CoreBaseModel):
         ]
 
 
-class BlastInfo(CoreBaseModel):
+class BlastInfo(DataSetLimitingModel):
     """ Holds blast data about an individual location """
 
     blast_info_id = models.BigAutoField(primary_key=True, editable=False)
@@ -496,7 +501,7 @@ class BlastInfo(CoreBaseModel):
         db_table = "blast_info"
 
 
-class LandmarkChromosome(CoreBaseModel):
+class LandmarkChromosome(DataSetLimitingModel):
     """ Holds data about the chromosomes of the landmark """
     
     landmark_chromosome_id = models.BigAutoField(primary_key=True, editable=False)

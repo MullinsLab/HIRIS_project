@@ -121,11 +121,3 @@ class DataSetAccessUpdate(StaffRequiredMixin, UpdateView):
     form_class = forms.DataSetForm
 
     success_url = reverse_lazy("admin:data_set_access_list")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        #context["options"] = DataSetAccessList.options
-
-        log.warn(context)
-
-        return context

@@ -14,8 +14,6 @@ from django.contrib.auth.models import User
 from ml_export_wizard.utils.exporter import exporters, ExporterQuery
 
 from hiris.apps.core.utils import db
-from hiris.apps.core.models import DataSet
-from hiris.apps.core.forms import DataSetPublicForm
 from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
 from hiris.apps.core.utils.files import integrations_bed, integration_gene_summary_gff3
 
