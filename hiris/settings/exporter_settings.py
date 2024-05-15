@@ -27,6 +27,21 @@ ML_EXPORT_WIZARD = {
                     ],
                 },
             ],
+            "compound_filter": {
+                "operator": "or",
+                "filters": [
+                    {
+                        "field": "data_set_id",
+                        "operator": "in",
+                        "value": {"type": "query", "query": "(SELECT data_set_id FROM data_set_users WHERE user_id = {user_id})"},
+                    },
+                    {
+                        "field": "data_set_id",
+                        "operator": "in",
+                        "query": "(SELECT dataset_id FROM data_sets_groups JOIN auth_user_groups using (group_id) WHERE user_id={user_id})",
+                    },
+                ],
+            },
             "apps" : [
                 {
                     "name": "core",
@@ -39,21 +54,6 @@ ML_EXPORT_WIZARD = {
                         },
                         "DataSet": {
                             "dont_link_to": ["GenomeVersion"],
-                            # "compound_where": {
-                            #     "compounder": "or",
-                            #     "where": [
-                            #         {
-                            #             "field": "data_set_name",
-                            #             "operator": "like",
-                            #             "value": "Broad",
-                            #         },
-                            #         {
-                            #             "field": "data_set_name",
-                            #             "operator": "like",
-                            #             "value": "Broad%",
-                            #         },
-                            #     ],
-                            # }
                         },
                     },
                 }
