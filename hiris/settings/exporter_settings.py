@@ -27,21 +27,26 @@ ML_EXPORT_WIZARD = {
                     ],
                 },
             ],
-            "compound_filter": {
-                "operator": "or",
-                "filters": [
-                    {
-                        "field": "data_set_id",
-                        "operator": "in",
-                        "value": {"type": "query", "query": "(SELECT data_set_id FROM data_set_users WHERE user_id = {user_id})"},
+            "compound_where_before_join": [
+                {
+                    "if_missing_value": "don't filter", #"raise error",
+                    "operator": "or",
+                    "filter": {
+                        "DataSet": [
+                            {
+                                "field": "data_set_id",
+                                "operator": "in",
+                                "query": "SELECT data_sets_users.dataset_id FROM data_sets_users WHERE user_id = {user_id}",
+                            },
+                            {
+                                "field": "data_set_id",
+                                "operator": "in",
+                                "query": "SELECT data_sets_groups.dataset_id FROM data_sets_groups JOIN auth_user_groups using (group_id) WHERE user_id={user_id}",
+                            },
+                        ],
                     },
-                    {
-                        "field": "data_set_id",
-                        "operator": "in",
-                        "query": "(SELECT dataset_id FROM data_sets_groups JOIN auth_user_groups using (group_id) WHERE user_id={user_id})",
-                    },
-                ],
-            },
+                },
+            ],
             "apps" : [
                 {
                     "name": "core",
