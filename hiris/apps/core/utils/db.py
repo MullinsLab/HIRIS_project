@@ -9,7 +9,7 @@ from functools import lru_cache
 from ml_export_wizard.utils.exporter import exporters # type: ignore
 
 from hiris.apps.core.models import Publication, Feature, GenomeVersion, LandmarkChromosome
-
+from hiris.utils import current_user
 
 def generic_query(sql: str = None, no_return: bool=False) -> list[dict]|None:
     """ Reuturns a list of namedtuples with the data """
@@ -35,10 +35,23 @@ def generic_query_flat(sql: str = None) -> namedtuple:
     return result[0]
 
 
+def get_current_user_external_value() -> dict:
+    """ Returns the external values for the current user """
+
+    if user := current_user():
+        # if not user.is_staff:
+        #     return {"user_id": user.pk}
+
+        return {"user_id": user.pk}
+
+    return {}
+
+
 def get_most_interesting(environment: str=None) -> Feature:
     """ Returns the most interesting gene for an environment """
 
     query = exporters["SummaryByGene"].query(
+        external_values=get_current_user_external_value(),
         extra_field = [
             {
                 "column_name": "interestingness",
@@ -71,7 +84,7 @@ def get_most_interesting(environment: str=None) -> Feature:
 def get_environments_count() -> dict:
     """ Returns a count of in-vivo and in-virto observations """
 
-    query = exporters["Integrations"].query(group_by="integration_environment_name")
+    query = exporters["Integrations"].query(external_values=get_current_user_external_value(), group_by="integration_environment_name")
 
     return query.query_count()
 
@@ -80,6 +93,7 @@ def get_genes_count() -> int:
     """ Returns a count of unique genes """
 
     query = exporters["IntegrationFeatures"].query(
+        external_values=get_current_user_external_value(),
         where_before_join={
             "IntegrationFeature": [
                 {
@@ -98,6 +112,7 @@ def get_data_sources() -> list:
     """ Get a list of the sources grouped by in vitro or in vivo """
 
     query = exporters["Integrations"].query(
+        external_values=get_current_user_external_value(),
         extra_field = {
             "column_name": "count_of_integrations",
             "function": "count",
@@ -106,6 +121,7 @@ def get_data_sources() -> list:
         order_by = "data_set_name",
     )
 
+    # log.warn(query.get_sql())
     sources =query.get_dict_list()
 
     for source in [source for source in sources if source["publication_pubmed_id"]]:
@@ -127,6 +143,7 @@ def get_summary_by_gene(*, limit: int=None, order_output: bool=None) -> list:
         order_by: None
 
     query = exporters["SummaryByGene"].query(
+        external_values=get_current_user_external_value(),
         where  = [
             {
                 "field": "subjects",
@@ -195,6 +212,7 @@ def genes_with_integrations() -> list:
     """ Returns a list of genes with integrations """
 
     query = exporters["IntegrationFeatures"].query()
+    query.external_value=get_current_user_external_value()
     query.group_by = "feature_name"
     query.where_before_join = {
         "IntegrationFeature": [

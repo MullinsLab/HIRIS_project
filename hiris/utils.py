@@ -10,6 +10,8 @@ from django.contrib.auth.models import User, Group
 from django.http import HttpResponseRedirect
 from django.shortcuts import reverse
 
+from hiris.utils_early import get_request_object
+
 
 class StaffRequiredMixin(LoginRequiredMixin):
     """Verify that the current user is authenticated and is staff."""
@@ -36,3 +38,9 @@ def get_everyone_group():
     """ Returns the everyone group """
 
     return Group.objects.get(name="Everyone")
+
+
+def current_user():
+    request = get_request_object()
+
+    return request.user if request else get_anonymous_user()
