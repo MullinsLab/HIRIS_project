@@ -118,6 +118,8 @@ class Exports(View):
                 case "summary-by-gene":
                     query = exporters["SummaryByGene"].query()
 
+            query.external_values = db.get_current_user_external_value()
+
             match file_mime_type:
                 case "text/csv":
                     file_content = query.csv()
