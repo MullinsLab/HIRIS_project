@@ -41,7 +41,6 @@ def get_current_user_external_value() -> dict:
     if user := current_user():
         # if not user.is_staff:
         #     return {"user_id": user.pk}
-
         return {"user_id": user.pk}
 
     return {}
@@ -121,7 +120,6 @@ def get_data_sources() -> list:
         order_by = "data_set_name",
     )
 
-    # log.warn(query.get_sql())
     sources =query.get_dict_list()
 
     for source in [source for source in sources if source["publication_pubmed_id"]]:

@@ -6,6 +6,7 @@ logger = logging.getLogger("app")
 from functools import cache
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth.models import User, Group
 from django.http import HttpResponseRedirect
 from django.shortcuts import reverse
@@ -43,4 +44,7 @@ def get_everyone_group():
 def current_user():
     request = get_request_object()
 
-    return request.user if request else get_anonymous_user()
+    if isinstance(request.user, AnonymousUser):
+        return get_anonymous_user()
+
+    return request.user
