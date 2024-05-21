@@ -195,6 +195,26 @@ ML_EXPORT_WIZARD = {
                     },
                 },
             ],
+            "compound_where_before_join": [
+                {
+                    "if_missing_value": "don't filter", #"raise error",
+                    "operator": "or",
+                    "filter": {
+                        "DataSet": [
+                            {
+                                "field": "data_set_id",
+                                "operator": "in",
+                                "query": "SELECT data_sets_users.dataset_id FROM data_sets_users WHERE user_id = {user_id}",
+                            },
+                            {
+                                "field": "data_set_id",
+                                "operator": "in",
+                                "query": "SELECT data_sets_groups.dataset_id FROM data_sets_groups JOIN auth_user_groups using (group_id) WHERE user_id={user_id}",
+                            },
+                        ],
+                    },
+                },
+            ],
         },
         {
             #IntegrationsSummary
