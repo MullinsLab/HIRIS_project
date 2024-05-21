@@ -12,12 +12,13 @@ def add_everyone_group(apps, schema_editor):
     everyone = Group.objects.create(name="Everyone")
 
     try:
-        anonymous = User.objects.get(username="AnonymousUser")
+        anonymous = User.objects.get(username="AnonymousUser"))
     except User.DoesNotExist:
         User.objects.create(username="AnonymousUser")
-        anonymous = User.objects.get(username="AnonymousUser")
+    
+    users = User.objects.filter(~Q(username="AnonymousUser"))
 
-    everyone.user_set.add(anonymous)
+    everyone.user_set.add(*users)
 
 
 def remove_everyone_group(apps, schema_editor):
