@@ -10,14 +10,20 @@ def add_everyone_group(apps, schema_editor):
     Group = apps.get_model("auth", "Group")
 
     everyone = Group.objects.create(name="Everyone")
-    users = User.objects.filter(~Q(username="AnonymousUser"))
-    everyone.user_set.add(*users)
+
+    try:
+        anonymous = User.objects.get(username="AnonymousUser")
+    except User.DoesNotExist:
+        User.objects.create(username="AnonymousUser")
+        anonymous = User.objects.get(username="AnonymousUser")
+
+    everyone.user_set.add(anonymous)
 
 
 def remove_everyone_group(apps, schema_editor):
     """ Remove the group for everyone """
 
-    Group = apps.get_model("django.contrib.auth", "Group")
+    Group = apps.get_model("auth", "Group")
     Group.objects.get(name="Everyone").delete()
 
 
