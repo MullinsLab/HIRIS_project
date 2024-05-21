@@ -41,7 +41,7 @@ class Home(View):
         return render(request, "about.html")
     
 
-class DataSources(LoginRequiredMixin, View):
+class DataSources(View):
     """ View to show the data sources in the database """
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
@@ -76,7 +76,7 @@ class FullSummaryByGeneJS(LoginRequiredMixin, View):
         return render(request, "summary-by-gene.js", context={"summary": summary_by_gene}, content_type="text/javascript")
     
 
-class TopGenes(LoginRequiredMixin, View):
+class TopGenes(View):
     """ Stuff for the top_genes page """
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
@@ -85,7 +85,7 @@ class TopGenes(LoginRequiredMixin, View):
         return render(request, "top_genes.html")
     
 
-class GetTheData(LoginRequiredMixin, View):
+class GetTheData(View):
     """ Stuff for the get_the_data page """
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
@@ -94,7 +94,7 @@ class GetTheData(LoginRequiredMixin, View):
         return render(request, "get_the_data.html")
     
 
-class Exports(LoginRequiredMixin, View):
+class Exports(View):
     """ Class that serves files created from queries """
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
