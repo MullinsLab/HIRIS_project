@@ -6,52 +6,53 @@
 
 {% block page_content %}
 <div class="container-fluid">
-<h4>Data Set Access</h4>
-<table id="dataSets" class="table table-striped w-auto nowrap">
-    <thead>
-        <tr>
-            <th>Data Set</th>
-            <th>Access</th>
-            <th></th>
-        </tr>
-    </thead>
+    <h4>Data Set Access</h4>
+    <table id="dataSets" class="table table-striped w-auto nowrap">
+        <thead>
+            <tr>
+                <th>Data Set</th>
+                <th>Access</th>
+                <th></th>
+            </tr>
+        </thead>
 
-    <tbody>
-    {% for data_set in data_sets %}
-        <tr>
-        {% with access_control=data_set.access_control %}
-            <td>{{ data_set.name }}</td>
-            <td>
-                <select class="form-select" aria-label="Default select example" style="width:auto;" id="accessControl_{{ data_set.pk }}" onchange="updateAccessControl(this);">
-                    {% for option,label in options.items %}
-                        <option value="{{ option }}"{% if option == access_control %} selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </td>
-            <td>
-                <a href="{% url "admin:data_set_access_list" %}{{ data_set.pk }}/"{% if access_control != "Specific" %} class='hide'{% endif %} id='editSpecific{{ data_set.pk }}'><i class="fa fa-pencil"></i> Edit users/groups</a>
-            </td>
-        {% endwith %}
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
+        <tbody>
+        {% for data_set in data_sets %}
+            <tr>
+            {% with access_control=data_set.access_control %}
+                <td>{{ data_set.name }}</td>
+                <td>
+                    <select class="form-select" aria-label="Default select example" style="width:auto;" id="accessControl_{{ data_set.pk }}" onchange="updateAccessControl(this);">
+                        {% for option,label in options.items %}
+                            <option value="{{ option }}"{% if option == access_control %} selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <a href="{% url "admin:data_set_access_list" %}{{ data_set.pk }}/"{% if access_control != "Specific" %} class='hide'{% endif %} id='editSpecific{{ data_set.pk }}'><i class="fa fa-pencil"></i> Edit users/groups</a>
+                </td>
+            {% endwith %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 
-<script>
-    $(document).ready(function() {
-        new DataTable('#dataSets')
-    });
+    <script>
+        $(document).ready(function() {
+            new DataTable('#dataSets')
+        });
 
-    function updateAccessControl(control) {
-        var access_control = $(control).find(":selected").val()
-        updateAPIEndpoint({keyValue: control.id.split('_')[1], apiEndpoint: "data_sets", fields: {access_control: access_control}})
-        
-        if (access_control == "Specific") {
-            $(control).parent().parent().find('a').removeClass('hide')
-        } else {
-            $(control).parent().parent().find('a').addClass('hide')
+        function updateAccessControl(control) {
+            var access_control = $(control).find(":selected").val()
+            updateAPIEndpoint({keyValue: control.id.split('_')[1], apiEndpoint: "data_sets", fields: {access_control: access_control}})
+            
+            if (access_control == "Specific") {
+                $(control).parent().parent().find('a').removeClass('hide')
+            } else {
+                $(control).parent().parent().find('a').addClass('hide')
+            }
         }
-    }
-</script>
+    </script>
+</div>
 
 {% endblock %}
