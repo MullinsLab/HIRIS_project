@@ -5,15 +5,15 @@
 <div class="row">
     <div class="col col-md-7 col-sm-12">
       <h2>Download latest datasets</h2>
-      <p class="notice bg-info">
+      {% comment %} <p class="notice bg-info">
         Please read <a href="doc/Manual.html">the ISDB manual</a> for guidelines on
         using HIRIS-Private and the data contained within.
-      </p>
+      </p> {% endcomment %}
 
       <p>
         These downloadable datasets are broad summaries of the full data
-        contained within HIRIS-Private.
-        Many questions are best answered by querying the database directly.
+        contained within HIRIS.
+        {% comment %} Many questions are best answered by querying the database directly.
 
         
           <span class="visible-sm-inline visible-xs-inline">
@@ -22,7 +22,7 @@
         
 
         If you’re unfamiliar with SQL databases, you’re encouraged to
-        collaborate with your local bioinformatics practitioner.
+        collaborate with your local bioinformatics practitioner. {% endcomment %}
       </p>
 
       <p>
@@ -175,7 +175,7 @@
       <p>
         If you’d rather view the data in other genomics software such as
         <a href="http://software.broadinstitute.org/software/igv/home">IGV</a>,
-        you can download the <a href="exports/in_vitro.bed">in vitro</a> and <a href="exports/in_vivo.bed">in vivo</a>track data as BED
+        you can download the <a href="exports/in_vitro.bed">in vitro</a> and <a href="exports/in_vivo.bed">in vivo</a> track data as BED
         files.
       </p>
 
@@ -186,9 +186,10 @@
         letting you quickly focus on a specific gene of interest.
       </p>
       <p>
-        Get started by <a href="doc/GFF-per-gene-exports.html">learning how to
+        {% comment %} Get started by <a href="doc/GFF-per-gene-exports.html">learning how to
         use these exports</a>.  Once familiar with their data, you can <a
-        href="/list_gffs">browse the files</a> 
+        href="/list_gffs">browse the files</a>  {% endcomment %}
+        You can <a href="/list_gffs">browse the files</a> 
         {% comment %} or <a href="exports/gff-per-gene.zip">download a zip file</a> containing them all. {% endcomment %}
       </p>
     </div>
