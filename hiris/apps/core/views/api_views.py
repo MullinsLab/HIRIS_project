@@ -3,6 +3,8 @@ log = logging.getLogger("app")
 
 from django.contrib.auth.models import User, Group
 from django.db.models import Count
+from django.http import JsonResponse
+from django.views.generic.base import View
 
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -54,3 +56,26 @@ class DataSetViewSet(viewsets.ModelViewSet):
     queryset = models.DataSet.objects.all()
     serializer_class = serializers.DataSetSerializer
     filterset_fields = ["data_set_id"]
+
+
+class LimitDataSets(View):
+    """ Manage what data_sets are included in exports and graphs
+        This Should use the DRF framework, but I'm out of time to work on this project, so it's a simple view """
+
+    def get(self, request, *args, **kwargs) -> JsonResponse:
+        """ Returns the limited data sets """
+
+        json: dict = {}
+        session_data_sets: list[int] = request.session.get("data_sets", [])
+
+        for data_set in models.DataSet.objects.all():
+            json[data_set.pk] = {"name": data_set.data_set_name, "selected": data_set.pk in session_data_sets}
+
+        return JsonResponse(json)
+    
+    def post(self, request, *args, **kwargs) -> JsonResponse:
+        """ Updates the session data sets """
+
+        request.session["data_sets"] = request.POST.getlist("data_sets[]")
+
+        return self.get(request, *args, **kwargs)

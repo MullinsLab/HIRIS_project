@@ -14,5 +14,6 @@ router.register(r"data_sets", views.DataSetViewSet, basename="data_set")
 app_name="api"
 
 urlpatterns = [
-     path('', include(router.urls)),
+    path('', include(router.urls)),
+    path("limit_data_sets", views.LimitDataSets.as_view(), name="limit_data_sets"),
 ]
