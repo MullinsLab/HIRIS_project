@@ -32,127 +32,147 @@
 
 </head>
 <body>
-<div class="container">
-  <div class="container-fluid">
-    <div class="row">
-      <h1>HiRIS: HIV-1 Reservoirs Integration Sites    
-        <small>“high-rise”</small>    
-      </h1>
-    </div>
-    <div class="row mb-5">
-      <!--  navigation bar -->
-        <nav class="navbar navbar-expand-sm navbar-light">
-            <div class="container-fluid bg-light border rounded">
-                {% url 'tools:about' as about_url %}
-                <a class="navbar-brand" href="{{about_url}}">HiRIS</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+    <div class="container">
+    <div class="container-fluid">
+        <div class="row">
+        <h1>HiRIS: HIV-1 Reservoirs Integration Sites    
+            <small>“high-rise”</small>    
+        </h1>
+        </div>
+        <div class="row mb-5">
+        <!--  navigation bar -->
+            <nav class="navbar navbar-expand-sm navbar-light">
+                <div class="container-fluid bg-light border rounded">
+                    {% url 'tools:about' as about_url %}
+                    <a class="navbar-brand" href="{{about_url}}">HiRIS</a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
 
-                <ul class="navbar-nav navbar-expand-lg me-auto mb-2 mb-lg-0">
-                    <li class="nav-item {% if request.get_full_path == about_url %}active border nav-active{% endif %}">
-                        <a class="nav-link" aria-current="page" href="{{about_url}}">About</a>
-                    </li>
-                    {% url 'tools:top_genes' as top_genes_url %}
-                    <li class="nav-item {% if top_genes_url in request.get_full_path %}active border nav-active{% endif %}">
-                        <a class="nav-link" href="{{ top_genes_url }}">Top Genes</a>
-                    </li>
-
-                    {% url 'tools:get_the_data' as get_the_data_url %}
-                    <li class="nav-item {% if get_the_data_url in request.get_full_path %}active border nav-active{% endif %}">
-                        <a class="nav-link" href="{{ get_the_data_url }}">Get the Data</a>
-                    </li>
-                    
-                    {% url 'tools:data_sources' as data_sources_url %}
-                    <li class="nav-item {% if data_sources_url in request.get_full_path %}active border nav-active{% endif %}">
-                        <a class="nav-link" href="{{ data_sources_url }}">Data Sources</a>
-                    </li>
-                    
-                    {% comment %} {% if user.is_authenticated %}
-                        {% url 'tools:data_tools' as data_tools_url %}
-                        <li class="nav-item {% if data_tools_url in request.get_full_path %}active border nav-active{% endif %}">
-                            <a class="nav-link" href="{{ data_tools_url }}">Data Tools</a>
+                    <ul class="navbar-nav navbar-expand-lg me-auto mb-2 mb-lg-0">
+                        <li class="nav-item {% if request.get_full_path == about_url %}active border nav-active{% endif %}">
+                            <a class="nav-link" aria-current="page" href="{{about_url}}">About</a>
                         </li>
-                    {% endif %} {% endcomment %}
-                </ul>
+                        {% url 'tools:top_genes' as top_genes_url %}
+                        <li class="nav-item {% if top_genes_url in request.get_full_path %}active border nav-active{% endif %}">
+                            <a class="nav-link" href="{{ top_genes_url }}">Top Genes</a>
+                        </li>
 
-                <div class="collapse navbar-collapse " id="navbarSupportedContent">
-                    <ul class="navbar-nav ms-auto">
-                        {% if user.is_staff %}
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="navbarAdminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Admin
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarAdminDropdown">
-                                    <li><a class="dropdown-item text-nowrap" href="{% url 'admin:user_list' %}">Manage Users</a></li>
-                                    <li><a class="dropdown-item text-nowrap" href="{% url 'admin:group_list' %}">Manage User Groups</a></li>
-                                    <li><a class="dropdown-item text-nowrap" href="{% url 'admin:data_set_access_list' %}">Manage Data Set Access</a></li>
-                                    <li><a class="dropdown-item text-nowrap" href="{% url "ml_import_wizard:import" %}">Import Data</a></li>
-                                </ul>
+                        {% url 'tools:get_the_data' as get_the_data_url %}
+                        <li class="nav-item {% if get_the_data_url in request.get_full_path %}active border nav-active{% endif %}">
+                            <a class="nav-link" href="{{ get_the_data_url }}">Get the Data</a>
+                        </li>
+                        
+                        {% url 'tools:data_sources' as data_sources_url %}
+                        <li class="nav-item {% if data_sources_url in request.get_full_path %}active border nav-active{% endif %}">
+                            <a class="nav-link" href="{{ data_sources_url }}">Data Sources</a>
+                        </li>
+                        
+                        {% comment %} {% if user.is_authenticated %}
+                            {% url 'tools:data_tools' as data_tools_url %}
+                            <li class="nav-item {% if data_tools_url in request.get_full_path %}active border nav-active{% endif %}">
+                                <a class="nav-link" href="{{ data_tools_url }}">Data Tools</a>
                             </li>
-                        {% endif %}
-                        {% if user.is_authenticated %}
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    {% pretty_user_name %}
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
-                                    <li><a class="dropdown-item" href="/logout?next={{ about_url }}">Logout</a></li>
-                                    <li><a class="dropdown-item" href="#">Change Password</a></li>
-                                </ul>
-                            </li>
-                        {% else %}
-                            <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
-                        {% endif %}
+                        {% endif %} {% endcomment %}
                     </ul>
+
+                    <div class="collapse navbar-collapse " id="navbarSupportedContent">
+                        <ul class="navbar-nav ms-auto">
+                            {% if user.is_staff %}
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarAdminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Admin
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarAdminDropdown">
+                                        <li><a class="dropdown-item text-nowrap" href="{% url 'admin:user_list' %}">Manage Users</a></li>
+                                        <li><a class="dropdown-item text-nowrap" href="{% url 'admin:group_list' %}">Manage User Groups</a></li>
+                                        <li><a class="dropdown-item text-nowrap" href="{% url 'admin:data_set_access_list' %}">Manage Data Set Access</a></li>
+                                        <li><a class="dropdown-item text-nowrap" href="{% url "ml_import_wizard:import" %}">Import Data</a></li>
+                                    </ul>
+                                </li>
+                            {% endif %}
+                            {% if user.is_authenticated %}
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        {% pretty_user_name %}
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
+                                        <li><a class="dropdown-item" href="/logout?next={{ about_url }}">Logout</a></li>
+                                        <li><a class="dropdown-item" href="#">Change Password</a></li>
+                                    </ul>
+                                </li>
+                            {% else %}
+                                <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <!-- default -->
+        {% block page_content %}
+        <div class="row">
+        <div class="col col-md-8 col-sm-12">
+            content goes here
+        </div>
+        </div>
+        {% endblock %}
+
+    </div>  
+    <div class="b-example-divider"></div>
+        <div class="container-fluid mt-5">
+            <hr>
+            <div class="row">
+                <div class="d-flex justify-content-center  mb-3">
+                    <div class="p-2 ">
+                        <a href="https://mullinslab.microbiol.washington.edu">
+                        <img src="{% static 'images/ml.png' %}" alt="Mullins Lab"> 
+                        </a>
+                    </div>
+                    <div class="p-2">
+                        <p>
+                        Copyright © 2015-2024
+                        <a href="https://washington.edu">University of Washington</a>.
+                        Previously published datasets are copyright their respective authors
+                        and used in accordance with their licenses.
+                        </p>
+                        <p>
+                        This work was supported by the <a href="https://www.nih.gov">National Institutes of Health</a>
+                        [R01AI111806, R21AI22361].
+                        </p>
+                        <p>
+                        Built as
+                        a project of the <a href="https://mullinslab.microbiol.washington.edu">Mullins Molecular Retrovirology Lab</a>
+                        at the <a href="https://washington.edu">University of Washington</a>.
+                        </p>
+                    </div>
                 </div>
             </div>
-        </nav>
-    </div>
-
-    <!-- default -->
-    {% block page_content %}
-    <div class="row">
-      <div class="col col-md-8 col-sm-12">
-        content goes here
-      </div>
-    </div>
-    {% endblock %}
-
-  </div>  
-  <div class="b-example-divider"></div>
-  <div class="container-fluid mt-5">
-    <hr>
-    <div class="row">
-        <div class="d-flex justify-content-center  mb-3">
-          <div class="p-2 ">
-            <a href="https://mullinslab.microbiol.washington.edu">
-              <img src="{% static 'images/ml.png' %}" alt="Mullins Lab"> 
-            </a>
-          </div>
-          <div class="p-2">
-            <p>
-              Copyright © 2015-2024
-              <a href="https://washington.edu">University of Washington</a>.
-              Previously published datasets are copyright their respective authors
-              and used in accordance with their licenses.
-            </p>
-            <p>
-              This work was supported by the <a href="https://www.nih.gov">National Institutes of Health</a>
-              [R01AI111806, R21AI22361].
-            </p>
-            <p>
-              Built as
-              a project of the <a href="https://mullinslab.microbiol.washington.edu">Mullins Molecular Retrovirology Lab</a>
-              at the <a href="https://washington.edu">University of Washington</a>.
-            </p>
-          </div>
-          
         </div>
-        
     </div>
-  </div>
-</div>
+
+    <div class="modal fade" id="dataSetModal" tabindex="-1" aria-labelledby="dataSetModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dataSetModalLabel">Limit Data Sets</h5>
+                </div>
+                <div class="modal-body" id="dataSetModalBody">
+                    <p class="text-primary">Limiting data sources will affect all plots and data file downloads.</p>
+                    Data sets to include:
+                    <div id="dataSetModalForm">
+                        Testing
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="dataSetModalClear">Clear Limits</button>
+                    <button type="button" class="btn btn-primary" id="dataSetModalSubmit">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 

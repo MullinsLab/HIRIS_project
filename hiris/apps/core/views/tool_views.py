@@ -54,7 +54,7 @@ class DataSources(View):
         return render(request, "data_sources.html", context={"counts": counts, "gene_count": gene_count, "data_sources": data_sources})
     
 
-class SummaryByGeneJS(LoginRequiredMixin, View):
+class SummaryByGeneJS(View):
     """ The JS file that holds the data for gene summaries """
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
@@ -65,7 +65,7 @@ class SummaryByGeneJS(LoginRequiredMixin, View):
         return render(request, "summary-by-gene.js", context={"summary": summary_by_gene}, content_type="text/javascript")
     
 
-class FullSummaryByGeneJS(LoginRequiredMixin, View):
+class FullSummaryByGeneJS(View):
     """ The JS file that holds the data for full gene summaries """
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
