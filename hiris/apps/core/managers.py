@@ -17,10 +17,10 @@ class DataSetLimitingManager(models.Manager):
     def get_queryset(self):
         """ Return a queryset limited to the current scientsist """
 
-        from hiris.utils import get_anonymous_user 
+        from hiris.utils import current_user 
 
         if request := get_request_object():
-            user = request.user or get_anonymous_user()
+            user = current_user()
             
             if not user.is_staff:
                 user_q: Q = Q(**{f"{models_graph.path_to[self.model.__name__]}users": user})
