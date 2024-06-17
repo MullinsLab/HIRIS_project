@@ -77,7 +77,7 @@ class DataSetLimiter {
         this.modal = $("#dataSetModal");
         this.form = $("#dataSetModalForm");
         
-        // $("#dataSetModalSave").click(function() {this.save()});
+        $("#dataSetModalSubmit").click(function() {window.dataSetLimiter.save()});
         $("#dataSetModalClear").click(function() {window.dataSetLimiter.clear()});
         
         console.log("DataSetLimiter initialized");
@@ -101,20 +101,19 @@ class DataSetLimiter {
         }); 
     }
 
-    post() {
+    post(data){
         let self = this;
-        let data = {};
-
-        $ajax({
+        console.log({data_sets: data});
+        $.ajax({
             url: "/api/limit_data_sets",
             method: 'POST',
             headers: {'X-CSRFToken': csrftoken},
             mode: 'same-origin',
-            data: data,
+            data: {data_sets: data},
             success: function(response) {
-                if (! self.reloadIfNeeded()) {
-                    self.hide();
-                }
+                self.dataSets = response;
+                self.setButtons();
+                self.hide();
             },
         })
     }
@@ -148,15 +147,32 @@ class DataSetLimiter {
 
         for (let dataSet of this.dataSets) {
             html += `<div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" ${dataSet.selected ? "checked" : ""}>
-                <label class="form-check-label" for="flexSwitchCheckDefault">${dataSet.name}</label></div>`
+                <input class="form-check-input" type="checkbox" id="dataSet${dataSet.id}" ${dataSet.selected ? "checked" : ""}>
+                <label class="form-check-label" for="dataSet${dataSet.id}">${dataSet.name}</label></div>`
         }
 
         return html;
     }
 
+    save() {
+        let data = [];
+
+        for (let dataSet of this.dataSets) {
+            if ($(`#dataSet${dataSet.id}`).prop("checked")) {
+                data.push(dataSet.id);
+            }
+        };
+
+        this.post(data.join());
+    }
+
     clear() {
-        console.log("Clearing data set limit");
-        this.hide()
+        let data = [];
+
+        for (let dataSet of this.dataSets) {
+            data.push(dataSet.id);
+        };
+
+        this.post(data.join());
     }
 }

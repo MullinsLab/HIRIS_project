@@ -1,6 +1,8 @@
 import logging
 log = logging.getLogger("app")
 
+import json
+
 from django.contrib.auth.models import User, Group
 from django.db.models import Count
 from django.http import JsonResponse
@@ -9,7 +11,6 @@ from django.views.generic.base import View
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
 from rest_framework_datatables.django_filters.backends import DatatablesFilterBackend
 
 from hiris.apps.core import models, serializers, filters
@@ -76,6 +77,6 @@ class LimitDataSets(View):
     def post(self, request, *args, **kwargs) -> JsonResponse:
         """ Updates the session data sets """ 
 
-        request.session["data_sets"] = request.POST.getlist("data_sets[]")
+        request.session["data_sets"] = [int(data_set) for data_set in request.POST.get("data_sets", "").split(",")]
 
         return self.get(request, *args, **kwargs)
