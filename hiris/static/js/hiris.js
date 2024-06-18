@@ -70,7 +70,8 @@ class DataSetLimiter {
     dataSets = [];              // Array of data sets that can be limited
     modal = undefined;          // Modal that will be used to set the data set limit
     form = undefined;           // Form that will be used to set the data set limit
-
+    reload = false;             // Boolean to determine if the page should be reloaded after setting the data set limit
+    
     constructor() {
         this.get();
         
@@ -111,26 +112,50 @@ class DataSetLimiter {
             mode: 'same-origin',
             data: {data_sets: data},
             success: function(response) {
-                self.dataSets = response;
-                self.setButtons();
-                self.hide();
+                if (self.reload) {
+                    location.reload();
+                } else {
+                    self.dataSets = response;
+                    self.setButtons();
+                    self.hide();
+                }
             },
         })
     }
 
     setButtons() {
-        let buttonHTML = `<button type="button" class="btn btn-sm btn-outline-primary data-set-limit RELOAD_REPLACER">Set Data Set Limit</button>`;
+        let buttonHTML = `<button type="button" class="btn btn-sm btn-outline-primary data-set-limitRELOAD_REPLACER">Set Data Set Limit${this.buttonBadge()}</button>`;
         
         for (let span of $("span.data-set-limit")) {
-            let replacer = $(span).hasClass("data-set-limit-reload") ? "data-set-limit-reload" : "";
+            let replacer = $(span).hasClass("data-set-limit-reload") ? " data-set-limit-reload" : "";
 
             $(span).html(buttonHTML.replace("RELOAD_REPLACER", replacer));
         };
 
         this.buttons = $(".data-set-limit:button");
         this.buttons.click(function() {
-            window.dataSetLimiter.show();
+            window.dataSetLimiter.buttonClick(this);
         });
+    }
+
+    buttonBadge() {
+        let count = 0;
+
+        for (let dataSet of this.dataSets) {
+            if (dataSet.selected) {
+                count++;
+            }
+        }
+
+        return count > 0 && count < this.dataSets.length ? ` <span class="badge bg-secondary">${count}/${this.dataSets.length}</span>` : "";
+    }
+
+    buttonClick(button) {
+        if ($(button).hasClass("data-set-limit-reload")) {
+            this.reload = true;
+        }
+
+        this.show();
     }
 
     show() {

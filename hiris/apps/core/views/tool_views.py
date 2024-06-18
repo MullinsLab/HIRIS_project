@@ -24,7 +24,8 @@ class Home(View):
     def get(self, request, *args, **kwargs) -> HttpResponse:
         ''' Returns the default template on a get '''
 
-        summary_by_gene_top_12: list = db.get_summary_by_gene(limit=12, order_output=True)
+        summary_by_gene_top_12: list = db.get_summary_by_gene(limit=12, order_output=True, data_set_limit=request.session.get("data_set_limit", []))
+        
 
         return render(request, "about.html", context={"summary_by_gene_top_12": summary_by_gene_top_12})
 
@@ -60,7 +61,7 @@ class SummaryByGeneJS(View):
     def get(self, request, *args, **kwargs) -> HttpResponse:
         """ return the file """
 
-        summary_by_gene: list = db.get_summary_by_gene(limit=12, order_output=True)
+        summary_by_gene: list = db.get_summary_by_gene(limit=12, order_output=True, data_set_limit=request.session.get("data_set_limit", []))
 
         return render(request, "summary-by-gene.js", context={"summary": summary_by_gene}, content_type="text/javascript")
     
@@ -71,7 +72,7 @@ class FullSummaryByGeneJS(View):
     def get(self, request, *args, **kwargs) -> HttpResponse:
         """ return the file """
 
-        summary_by_gene: list = db.get_summary_by_gene(order_output=True)
+        summary_by_gene: list = db.get_summary_by_gene(order_output=True, data_set_limit=request.session.get("data_set_limit", []))
 
         return render(request, "summary-by-gene.js", context={"summary": summary_by_gene}, content_type="text/javascript")
     
@@ -118,7 +119,17 @@ class Exports(View):
                 case "summary-by-gene":
                     query = exporters["SummaryByGene"].query()
 
+            # Query stuff to limit data sets by user/group
             query.external_values = db.get_current_user_external_value()
+
+            # Query stuff to limit data sets acording to the session
+            query.where_before_join = {
+                "DataSet": [{
+                    "field": "data_set_id",
+                    "value": request.session.get("data_set_limit", []),
+                    "operator": "in",
+                }],
+            }
 
             match file_mime_type:
                 case "text/csv":

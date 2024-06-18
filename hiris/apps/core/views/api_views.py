@@ -67,7 +67,7 @@ class LimitDataSets(View):
         """ Returns the limited data sets """
 
         json: list[dict] = []
-        session_data_sets: list[int] = request.session.get("data_sets", [])
+        session_data_sets: list[int] = request.session.get("data_set_limit", [])
 
         for data_set in models.DataSet.objects.all():
             json.append({"id": data_set.pk, "name": data_set.data_set_name, "selected": data_set.pk in session_data_sets if session_data_sets else True})
@@ -77,6 +77,6 @@ class LimitDataSets(View):
     def post(self, request, *args, **kwargs) -> JsonResponse:
         """ Updates the session data sets """ 
 
-        request.session["data_sets"] = [int(data_set) for data_set in request.POST.get("data_sets", "").split(",")]
+        request.session["data_set_limit"] = [int(data_set) for data_set in request.POST.get("data_sets", "").split(",")]
 
         return self.get(request, *args, **kwargs)

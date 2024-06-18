@@ -39,14 +39,12 @@ def get_current_user_external_value() -> dict:
     """ Returns the external values for the current user """
 
     if user := current_user():
-        # if not user.is_staff:
-        #     return {"user_id": user.pk}
         return {"user_id": user.pk}
 
     return {}
 
 
-def get_most_interesting(environment: str=None) -> Feature:
+def get_most_interesting(environment: str=None, data_set_limit: list=None) -> Feature:
     """ Returns the most interesting gene for an environment """
 
     query = exporters["SummaryByGene"].query(
@@ -76,6 +74,13 @@ def get_most_interesting(environment: str=None) -> Feature:
         ],
         limit = 1,
     )
+
+    if data_set_limit:
+        query.where.append({
+            "field": "data_set_name",
+            "value": data_set_limit,
+            "operator": "in",
+        })
     
     return Feature.objects.get(feature_name=query.get_single_dict()["feature_name"])
 
@@ -131,7 +136,7 @@ def get_data_sources() -> list:
     return sources
 
 
-def get_summary_by_gene(*, limit: int=None, order_output: bool=None) -> list:
+def get_summary_by_gene(*, limit: int=None, order_output: bool=None, data_set_limit: list=None) -> list:
     """ Get a list of genes with associated data """
 
     order_by: list[dict[str: str]] = None
@@ -155,6 +160,15 @@ def get_summary_by_gene(*, limit: int=None, order_output: bool=None) -> list:
         order_by = order_by,
         limit = limit,
     )
+
+    if data_set_limit:
+        query.where_before_join = {
+            "DataSet": [{
+                "field": "data_set_id",
+                "value": data_set_limit,
+                "operator": "in",
+            }],
+        }
         
     return query.get_dict_list()
 
