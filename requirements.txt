@@ -17,6 +17,7 @@ xmlsec==1.3.13
 
 # Web serving stuff
 whitenoise
+gunicorn
 
 # install jupyterlab if you want to test django code in a notebook environment
 # jupyterlab==3.5.2

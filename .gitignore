@@ -134,3 +134,4 @@ dmypy.json
 /temp
 certs/
 !certs/idp.cert
+docker-compose.yml

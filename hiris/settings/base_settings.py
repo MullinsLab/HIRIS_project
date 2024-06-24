@@ -1,9 +1,8 @@
 import logging
 import logging.config
 
-
 import environ
-import os #,sys
+import os, sys
 from pathlib import Path
 
 from django.conf.urls.static import static
@@ -179,7 +178,7 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # adding django debug toolbar
-if DEBUG and int(env('DEBUG_TOOLBAR')):
+if DEBUG and int(env('DEBUG_TOOLBAR')) and "runserver" in sys.argv:
     import socket  # only if you haven't already imported this
     MIDDLEWARE.insert(0,'debug_toolbar.middleware.DebugToolbarMiddleware')
     INSTALLED_APPS += 'debug_toolbar',
