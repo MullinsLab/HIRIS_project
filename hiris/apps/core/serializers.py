@@ -32,7 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "first_name", "last_name", "email", "username", "groups"]
+        fields = ["id", "first_name", "last_name", "email", "username", "groups", "is_staff"]
         datatables_always_serialize = ("id", )
 
 

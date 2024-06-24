@@ -9,8 +9,6 @@
         <div class="card">
           <div class="card-body">
             <h4 class="card-title titlefont">Log in to your account</h4>
-            {{settings.LOGIN_TYPE}}
-            testing
             {% if settings.LOGIN_TYPE == "dual" %}
               <a href="/saml/login?next=/">{{ settings.LOGIN_SSO_TITLE }}</a>
               <br/><br/>

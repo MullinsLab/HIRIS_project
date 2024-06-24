@@ -38,12 +38,8 @@
                         <td>{{ form.email }}</td>
                     </tr>
                     <tr>
-                        <td class="col-sm-2">{{ form.role.label_tag }}<span class="danger">{{ form.role.errors }}</span></td>
-                        <td>{{ form.role }}</td>
-                    </tr>
-                    <tr>
-                        <td class="col-sm-2">{{ form.lab.label_tag }}<span class="danger">{{ form.lab.errors }}</span></td>
-                        <td>{{ form.lab }}</td>
+                        <td class="col-sm-2">Admin<span class="danger">{{ form.is_staff.errors }}</span></td>
+                        <td>{{ form.is_staff }}</td>
                     </tr>
                     <tr>
                         <td class="col-sm-2">{{ form.groups.label_tag }}{{ form.groups.errors }}</td>

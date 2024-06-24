@@ -37,6 +37,7 @@
                 "last_name",
                 "email", 
                 {name: "groups", orderable: false, searchable: false, objectField: "name"},
+                {name: "admin", data: "is_staff"},
                 {name: "Edit", editURL: "{% url 'admin:user_list' %}(row:id)/", toolTip: "Edit user"},
                 {name: "Password", editURL: "{% url 'admin:user_list' %}(row:id)/password/", toolTip: "Set password", buttonIcon: "lock"},
             ],
