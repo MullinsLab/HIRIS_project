@@ -23,13 +23,13 @@ if 'UW_SAML_CERT_DIR' in env:
         'strict': False,
         'debug': True,
         'sp': {
-            'entityId': 'https://dev.hiris.washington.edu',
+            'entityId': 'https://hiris.washington.edu',
             'assertionConsumerService': {
-                'url': 'https://dev.hiris.washington.edu/saml/sso',
+                'url': 'https://hiris.washington.edu/saml/sso',
                 'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
             },
             'singleLogoutService': {
-                'url': 'https://dev.hiris.washington.edu/saml/logout',
+                'url': 'https://hiris.washington.edu/saml/logout',
                 'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect'
             },
             'NameIDFormat': 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified',
