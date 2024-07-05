@@ -398,7 +398,7 @@ class Integration(DataSetLimitingModel):
     integration_environment = models.ForeignKey(IntegrationEnvironment, on_delete=models.CASCADE, related_name="integrations", null=True)
     sequencing_method = models.ForeignKey(SequencingMethod, on_delete=models.CASCADE, related_name="integrations")
     integration_name = models.CharField(max_length=255, null=True, blank=True)
-    ltr = models.CharField(max_length=2, choices=(('3p', '3p'), ('5p', '5p')), null=True)
+    ltr = models.CharField(max_length=4, choices=(('3p', '3p'), ('5p', '5p'), ("both", "both")), null=True)
     multiple_integration = models.BooleanField(null=True, blank=True)
     multiple_integration_count = models.IntegerField(null=True, blank=True)
     sequence = models.TextField(null=True, blank=True)
