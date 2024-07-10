@@ -80,6 +80,9 @@ ML_IMPORT_WIZARD = {
                             "restriction": "rejected",
                             "load_value_fields": ["genome_version_name"],
                         },
+                        "DataSet": {
+                            "exclude_fields": ["users", "groups"],
+                        },
                         "Integration": {
                             "critical": True,
                             "minimum_objects": False,

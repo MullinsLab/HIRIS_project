@@ -14,9 +14,9 @@ def translate_chromosome_to_accession_id(*, user_input_chromosome: str=None, fie
 
     if chromosome.startswith("chr"):
         chromosome = chromosome.replace("chr", "")
-    elif len(chromosome) > 1:
+    elif len(chromosome) > 2:
         return chromosome
-    
+
     try:
         feature_location: FeatureLocation = FeatureLocation.objects.get(
             ~Q(chromosome=''),
