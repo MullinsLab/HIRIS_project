@@ -13,23 +13,22 @@
        
         <h5>
         HIRIS aims to provide a stable, authoritative, and standardized source of data for analysing HIV-1 
-        integration sites from the viral reservoir. 
+        integration sites found in vivo and after infection of cell cultures. 
         It seeks to support analyses using the tools of your choice, whether that’s R and ggplot or Excel and Prism. 
        </h5>
 
        <p>
         The data contained within comes from a variety of published sources curated by the <a href="https://mullinslab.microbiol.washington.edu">Mullins Lab</a>. 
-        The database itself is regularly and automatically regenerated from our primary and secondary sources in order to incorporate changes and additions.
+        The database is automatically regenerated from our primary and secondary sources in order to incorporate changes and additions.
 
         We also maintain a private copy of HIRIS with additional, unpublished datasets from our own research and that of our collaborators. As we publish on the private datasets, they will be made available in the primary, public HIRIS database.
     
-        If you’d like to see your public HIV-1 integration site data included in HIRIS, please <a href="mailto:mullspt%2bcfar@uw.edu?subject=New%20HIRIS%20data%20source">email us</a>.
+        If you’d like to see your public HIV-1 integration site data included in HIRIS, please <a href="mailto:mullspt@uw.edu?subject=New%20HIRIS%20data%20source">email us</a>.
         
         <h3>Similar resources</h3>
         
-            A few other curated datasets of viral integration sites exist. You may find that some of them better fit your needs.
-        
-            <a href="https://rid.ncifcrf.gov/">Retrovirus Integration Database (RID)</a>, a project of the National Cancer Institute HIV Dynamics and Replication Program, collects published data on HIV-1, HTLV-1, and MLV integration sites. Some of the data in HIRIS is derived from the RID dataset, and we gratefully acknowledge their prior work.
+            Other datasets of viral integration sites exist.         
+            <a href="https://rid.ncifcrf.gov/">The Retrovirus Integration Database (RID)</a> is a project of the National Cancer Institute HIV Dynamics and Replication Program that collects published data on HIV-1, HTLV-1, and MLV integration sites. Some of the data in HIRIS is derived from the RID dataset, and we gratefully acknowledge their prior work.
             Dr. VIS is a clinically-focused database of disease-related viral integration sites.
             <a href="http://variation.osu.edu/rtcgd/">RTCGD: Retrovirus and
                 Transposon tagged Cancer Gene Database</a> aggregates viral integration sites derived from mouse tumor model experiments.
@@ -49,7 +48,7 @@
             
             <p class="notice bg-info">
             See an expanded version of this plot on the
-            <a href="top_genes.html">Top Genes</a> page.
+            <a href="{% url 'tools:top_genes' %}">Top Genes</a> page.
             </p>
             <table class="table table-condensed">
                 <thead>
