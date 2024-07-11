@@ -27,19 +27,21 @@
                 {% for source in data_sources.in_vivo %}
                     {% if source.publication_pubmed_id %}
                         <tr>
-                                <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
-                                <td class="author">{{ source.first_author }}</td>
-                                <td class="publication-name"><a href='https://www.ncbi.nlm.nih.gov/pubmed/{{ source.publication_pubmed_id }}'>{{ source.title }}</a></td>
-                                <td class="n-count">{{ source.count_of_integrations|intcomma }}</td>
+                            {% comment %} <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td> {% endcomment %}
+                            <td class="source-name">{{ source.data_set_name }}</td>
+                            <td class="author">{{ source.first_author }}</td>
+                            <td class="publication-name"><a href='https://www.ncbi.nlm.nih.gov/pubmed/{{ source.publication_pubmed_id }}'>{{ source.title }}</a></td>
+                            <td class="n-count">{{ source.count_of_integrations|intcomma }}</td>
                         </tr>
                     {% endif %}
                 {% endfor %}
                 {% for source in data_sources.in_vivo %}
                     {% if not source.publication_pubmed_id %}
                         <tr>
-                                <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td>
-                                <td class="author" colspan=2><em>unpublished</em></td>
-                                <td class="n-count">{{ source.count_of_integrations|intcomma }}</td>
+                            {% comment %} <td class="source-name"><a href='{{ source.document_uri }}'>{{ source.data_set_name }}</a></td> {% endcomment %}
+                            <td class="source-name">{{ source.data_set_name }}</td>
+                            <td class="author" colspan=2><em>unpublished</em></td>
+                            <td class="n-count">{{ source.count_of_integrations|intcomma }}</td>
                         </tr>
                     {% endif %}
                 {% endfor %}
