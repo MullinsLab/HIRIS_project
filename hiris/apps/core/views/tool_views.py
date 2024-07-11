@@ -13,6 +13,7 @@ from django.contrib.auth.models import User
 
 from ml_export_wizard.utils.exporter import exporters, ExporterQuery
 
+from hiris.apps.core import models
 from hiris.apps.core.utils import db
 from hiris.apps.core.utils.simple import underscore_keys, group_dict_list
 from hiris.apps.core.utils.files import integrations_bed, integration_gene_summary_gff3
@@ -99,7 +100,7 @@ class Exports(View):
     """ Class that serves files created from queries """
 
     def get(self, request, *args, **kwargs) -> HttpResponse:
-        """ The basic page """
+        """ Return a file """
 
         file_name: str = kwargs['file_name'].split(".")[0]
         file_extension: str = kwargs['file_name'].split(".")[1]
@@ -126,7 +127,7 @@ class Exports(View):
             query.where_before_join = {
                 "DataSet": [{
                     "field": "data_set_id",
-                    "value": request.session.get("data_set_limit", []),
+                    "value": request.session.get("data_set_limit", list(models.DataSet.objects.all().values_list('pk', flat=True))),
                     "operator": "in",
                 }],
             }
