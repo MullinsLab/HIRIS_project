@@ -472,7 +472,7 @@ class IntegrationFeature(DataSetLimitingModel):
     """ Holds the links between Integrations and Features """
 
     integration_feature_id = models.BigAutoField(primary_key=True)
-    integration_location = models.ForeignKey(IntegrationLocation, on_delete=models.DO_NOTHING)
+    integration_location = models.ForeignKey(IntegrationLocation, on_delete=models.CASCADE)
     feature_location = models.ForeignKey(FeatureLocation, on_delete=models.DO_NOTHING)
     feature_type_name = models.CharField(max_length=255)
 
