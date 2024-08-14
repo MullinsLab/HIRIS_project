@@ -7,6 +7,7 @@ ML_IMPORT_WIZARD = {
     "Logger": "app",
     "Log_Exceptions": True,
     "Setup_On_Start": True,
+    "Max_Importer_Processes": 2,
     'Importers': {
         "LandmarkChromosomes": {
             "name": "Landmark Chromosomes",
