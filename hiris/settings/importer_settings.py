@@ -71,7 +71,7 @@ ML_IMPORT_WIZARD = {
         'Integrations':{
             'name': 'Integration Sites',
             'long_name': 'A list of integration sites in a genome',
-            'description': 'A test description of an Integration.',
+            #'description': 'A test description of an Integration.',
             'apps': [
                 {
                     'name': 'core',

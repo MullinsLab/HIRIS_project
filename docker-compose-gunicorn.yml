@@ -33,6 +33,8 @@ services:
       - /bin/bash
       - -c
       - |
+        cron
+        crontab /hiris/crontab_import_heartbeat
         python manage.py collectstatic --noinput
         gunicorn -w 2 -b 0.0.0.0:${WEB_PORT} hiris.wsgi:application
     # command: python /hiris/manage.py runserver 0.0.0.0:${WEB_PORT}

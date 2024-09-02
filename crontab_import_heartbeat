@@ -1,0 +1,2 @@
+# Run the import_heartbeat management command every minute
+* * * * * /usr/bin/python /hiris/manage.py import_heartbeat >> /var/log/cron.log 2>&1

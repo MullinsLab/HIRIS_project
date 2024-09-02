@@ -20,7 +20,8 @@ RUN apt-get update -y && \
     python3-venv \
     python3-pip \
     postgresql-client \
-    nano
+    nano \
+    cron
 
 WORKDIR /hiris
 COPY requirements.txt /hiris/

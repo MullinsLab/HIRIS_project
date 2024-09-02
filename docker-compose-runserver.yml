@@ -29,7 +29,13 @@ services:
   hiris:
     container_name: HIRIS
     build: .
-    command: python /hiris/manage.py runserver 0.0.0.0:${WEB_PORT}
+    command:
+      - /bin/bash
+      - -c
+      - |
+        cron
+        crontab /hiris/crontab_import_heartbeat
+        python /hiris/manage.py runserver 0.0.0.0:${WEB_PORT}
 
     volumes:
       - .:/hiris
