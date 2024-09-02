@@ -8,6 +8,7 @@ ML_IMPORT_WIZARD = {
     "Log_Exceptions": True,
     "Setup_On_Start": True,
     "Max_Importer_Processes": 2,
+    "Call_After_Import": "hiris.apps.core.utils.backend.process_after_import",
     'Importers': {
         "LandmarkChromosomes": {
             "name": "Landmark Chromosomes",

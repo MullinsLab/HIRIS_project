@@ -5,8 +5,20 @@ import json
 
 from django.db import IntegrityError, transaction
 
+from hiris.apps.core.utils.db import process_integration_feature_links
 from hiris.apps.core.models import Publication, PublicationData
 from hiris.apps.core.utils.network import get_pubmed_data
+
+
+def process_after_import() -> None:
+    """ Link the integrations to features and get publication data from Pubmed.  Needs to run after each import """
+
+    fill_publication_data()
+    log.info("Completed filling publication data.")
+
+    process_integration_feature_links()
+    log.info("Completed processing integration feature links.")
+
 
 def fill_publication_data() -> None:
     """ Fills the PublicationData objects for Publications that don't have them yet """
